@@ -74,6 +74,12 @@ export const icons = {
       stroke-linecap="round" stroke-linejoin="round" />
   `),
 
+  /** Down caret — the ▾ inside a System sub-screen selector (opens its picker). */
+  caret: wrap(svg`
+    <path d="M6 9.5 L12 15.5 L18 9.5" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" />
+  `),
+
   /** Nudge up — a circled plus, matching the Temperature Adjust buttons. */
   plus: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
@@ -117,5 +123,39 @@ export const icons = {
       <path d="M20.8 11.4 C14.6 11.9 11.9 15.5 12.4 21.2 C18.6 20.7 21.3 17.1 20.8 11.4 Z" />
       <path d="M14 19.4 C15.6 16.2 17.8 14 20.2 12.8" />
     </g>
+  `),
+
+  /** Home Comfort Setting — a house. */
+  home: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M3.5 11.5 L12 4 L20.5 11.5" />
+      <path d="M5.5 10 V20 H18.5 V10" />
+      <path d="M10 20 V14.5 H14 V20" />
+    </g>
+  `),
+
+  /** Away Comfort Setting — a suitcase (the device's "leaving home" motif). */
+  away: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+      stroke-linejoin="round">
+      <rect x="4" y="8" width="16" height="12" rx="2" />
+      <path d="M9 8 V6 A1.5 1.5 0 0 1 10.5 4.5 H13.5 A1.5 1.5 0 0 1 15 6 V8" />
+      <path d="M12 11 V17" />
+    </g>
+  `),
+
+  /** Sleep Comfort Setting — a crescent moon. */
+  sleep: wrap(svg`
+    <path d="M20 14.2 A8 8 0 1 1 10.4 4.2 A6.4 6.4 0 0 0 20 14.2 Z" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+  `),
+
+  /** Default / custom Comfort Setting — a four-point sparkle (a named, user-defined
+   *  preset with no built-in glyph). */
+  comfort: wrap(svg`
+    <path d="M12 4 C12.7 10.3 13.7 11.3 20 12 C13.7 12.7 12.7 13.7 12 20
+      C11.3 13.7 10.3 12.7 4 12 C10.3 11.3 11.3 10.3 12 4 Z" fill="none"
+      stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
   `),
 } as const;

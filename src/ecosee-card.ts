@@ -4,7 +4,9 @@ import { CARD_TYPE, parseConfig, type EcoseeCardConfig } from './config';
 import { toHomeView } from './climate/home-view';
 import { toTempAdjustModel, type TempAdjustModel } from './climate/temperature-adjust';
 import { toSystemModeModel } from './climate/system-mode';
+import { toComfortSettingModel } from './climate/comfort-setting';
 import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
+import type { SystemSelectTarget } from './overlays/system-overlay';
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
@@ -13,11 +15,15 @@ import './screens/home-screen';
 import './overlays/overlay-shell';
 import './overlays/temperature-overlay';
 import './overlays/system-mode-overlay';
+import './overlays/comfort-setting-overlay';
+import './overlays/system-overlay';
 import './overlays/main-menu-overlay';
 
-/** An Overlay that can mount over the Home Screen. More kinds (Fan, Sensors,
- *  Weather) join this union as they land. */
-type OverlayKind = 'temperature' | 'system-mode' | 'menu';
+/** An Overlay that can mount over the Home Screen. `system` is the Main Menu's
+ *  System sub-screen (the hub holding the System Mode + Comfort Setting selectors);
+ *  `system-mode` / `comfort-setting` are the focused pickers it routes to. More
+ *  kinds (Fan, Sensors, Weather) join this union as they land. */
+type OverlayKind = 'temperature' | 'system-mode' | 'comfort-setting' | 'system' | 'menu';
 
 const VERSION = '0.1.0';
 
@@ -115,6 +121,32 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         ></ecosee-system-mode-overlay>
       `;
     }
+    if (this._overlay === 'comfort-setting') {
+      if (!this.hass) return nothing;
+      // Computed live (like the System Mode picker): the picker holds no in-progress
+      // edit, so the highlight tracks the entity's reported `preset_mode` as `hass`
+      // updates after a write.
+      return html`
+        <ecosee-comfort-setting-overlay
+          .model=${toComfortSettingModel(this.hass, config)}
+          .entityId=${config.entity}
+          @ecosee-set-comfort-setting=${this._onServiceCall}
+        ></ecosee-comfort-setting-overlay>
+      `;
+    }
+    if (this._overlay === 'system') {
+      if (!this.hass) return nothing;
+      // The System sub-screen hub: both selectors + the equipment-status line,
+      // computed live so each selector reflects (and gates on) the current `hass`.
+      return html`
+        <ecosee-system-overlay
+          .systemMode=${toSystemModeModel(this.hass, config)}
+          .comfort=${toComfortSettingModel(this.hass, config)}
+          .equipment=${toHomeView(this.hass, config).equipment}
+          @ecosee-system-select=${this._onSystemSelect}
+        ></ecosee-system-overlay>
+      `;
+    }
     if (this._overlay === 'menu') {
       if (!this.hass) return nothing;
       // Computed live so the listed sub-screens reflect the current `hass` (an
@@ -181,7 +213,9 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   private _onMenuSelect = (event: CustomEvent<{ target: MainMenuTarget }>): void => {
     switch (event.detail.target) {
       case 'system':
-        this._nav = [...this._nav, 'system-mode'];
+        // Open the System sub-screen hub (System Mode + Comfort Setting selectors),
+        // not a picker directly — the pickers are reached from within it.
+        this._nav = [...this._nav, 'system'];
         break;
       case 'fan':
       case 'sensors':
@@ -191,6 +225,13 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         console.debug(`ecosee: "${event.detail.target}" sub-screen not yet implemented`);
         break;
     }
+  };
+
+  /** Route a System sub-screen selector to its focused picker, pushed onto the stack
+   *  so the picker's dismissal returns to the System sub-screen (hub-and-picker). The
+   *  selector targets double as overlay kinds. */
+  private _onSystemSelect = (event: CustomEvent<{ target: SystemSelectTarget }>): void => {
+    this._nav = [...this._nav, event.detail.target];
   };
 
   /** Dismiss (✕ / outside-tap): pop one level. From a top-level Overlay that is

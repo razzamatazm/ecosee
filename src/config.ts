@@ -13,6 +13,10 @@ export interface EcoseeCardConfig {
   weather_entity?: string;
   /** Override humidity source when the climate entity has no `current_humidity`. */
   humidity_entity?: string;
+  /** Glyph for custom Comfort Settings (presets without a built-in mapping). One of
+   *  the Skin's icon names — `home` / `away` / `sleep` / `comfort`; anything else
+   *  falls back to `comfort`. The named ecobee Comfort Settings keep their own icon. */
+  default_comfort_icon?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -47,5 +51,6 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     name: optionalString('name'),
     weather_entity: optionalString('weather_entity'),
     humidity_entity: optionalString('humidity_entity'),
+    default_comfort_icon: optionalString('default_comfort_icon'),
   };
 }

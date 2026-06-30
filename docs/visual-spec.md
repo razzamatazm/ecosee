@@ -34,7 +34,9 @@ Home Screen
 ├── tap weather icon ........... Weather overlay (page 1 current / page 2 forecast)
 ├── tap Hold pill ✕ ............ Resume Schedule
 └── menu ....................... Main Menu (hub)
-                                 ├── System  → System Mode picker + Comfort Setting picker
+                                 ├── System  → System sub-screen (hub)
+                                 │            ├── System Mode selector → System Mode picker
+                                 │            └── Comfort Setting selector → Comfort Setting picker
                                  ├── Fan      → On/Auto + min-runtime
                                  └── Sensors  → temperature + occupancy cards
 ```
@@ -72,13 +74,31 @@ The hub reached from the Home Screen menu affordance, presented as an Overlay.
   cyan-outlined vertical list (hairline dividers), each row a label with a forward
   chevron: **System**, **Fan**, **Sensors**, **Weather**.
 - **Hub-and-picker**, not flat siblings: selecting a row opens that sub-screen's
-  Overlay (System → System Mode picker today; the others as they land). A picker
-  reached through the hub returns to the hub on ✕/outside-tap; the hub itself
-  returns to the Home Screen.
+  Overlay (System → the System sub-screen; the others as they land). A view reached
+  through the hub returns to the hub on ✕/outside-tap; the hub itself returns to the
+  Home Screen. Navigation nests: Main Menu → System sub-screen → a picker.
 - **Graceful degradation:** a sub-screen is listed only when its backing data is
-  present (e.g. System hidden without `hvac_modes`, Fan without `fan_modes`,
-  Sensors when none are configured, Weather without a `weather` entity). With
-  nothing reachable, the menu affordance opens nothing.
+  present (e.g. System hidden without `hvac_modes` *and* `preset_modes`, Fan without
+  `fan_modes`, Sensors when none are configured, Weather without a `weather`
+  entity). With nothing reachable, the menu affordance opens nothing.
+
+### Main Menu › System sub-screen — `reference/menu-system.jpeg`
+The hub reached from the Main Menu's **System** row, presented as an Overlay. The
+intermediate screen that holds the two system selectors — it routes, it does not
+edit.
+- **"Main Menu" title** with a **"System" subtitle** near the top.
+- Two **selectors** side by side (wrapping to stacked rows when a value is too wide,
+  e.g. "Heat / Cool (Auto)"): **System Mode** and **Comfort Setting**, each a label
+  over a cyan-outlined pill showing the active value with a ▾ caret. Tapping a
+  selector opens its **picker** (pushed onto the stack, so ✕/outside-tap returns
+  here).
+- **Equipment Status line** beneath the selectors: **No Equipment Running** (idle),
+  **Heating**, or **Cooling**. From `hvac_action` (inferred if absent); hidden when
+  neither is available.
+- **Graceful degradation:** a selector is shown only when its data is present — the
+  System Mode selector needs `hvac_modes`, the Comfort Setting selector needs
+  `preset_modes`. The sub-screen is reachable from the Main Menu when *either* is
+  present.
 
 ### Temperature Adjust — `reference/temp-adjust-cool.jpeg`, `temp-adjust-heat.jpeg`
 - **Vertical value scrubber** down the center, higher values up:
@@ -102,11 +122,21 @@ The hub reached from the Home Screen menu affordance, presented as an Overlay.
   entity may also offer **Dry** / **Fan only** (HA labels); these list after Auto
   and before Off, though the ecobee device has neither.
 
-### Comfort Setting picker — (on Main Menu › System, `reference/menu-system.jpeg`)
-- Dropdown/list of `preset_modes` (Home / Away / Sleep / custom). Selecting one
-  applies it as a Hold. Hidden entirely if the entity has no presets.
-- Known presets map to ecobee icons; custom presets get a default icon
-  (config-overridable). Equipment status line ("No Equipment Running") shown here too.
+### Comfort Setting picker — (reached from Main Menu › System)
+- A vertical segmented list (same cyan-outlined motif as the System Mode picker) of
+  the entity's `preset_modes` (Home / Away / Sleep / custom), in the entity's own
+  order. Each row pairs a **glyph** with the Comfort Setting's name. The active
+  Comfort Setting's row is filled cyan with dark text.
+- Selecting one applies it as a **Hold** (`climate.set_preset_mode`) and the
+  highlight follows the entity's reported `preset_mode`. Tapping the active row is a
+  no-op.
+- **Icons:** the named ecobee Comfort Settings map to Skin glyphs — **Home** (house),
+  **Away** (suitcase), **Sleep** (moon), matched case-insensitively and shown with
+  their canonical labels. Custom presets pass their name through verbatim and get the
+  default **comfort** glyph (a sparkle), overridable per-card via the
+  `default_comfort_icon` config key (one of `home` / `away` / `sleep` / `comfort`).
+- **Graceful degradation:** hidden entirely when the entity exposes no `preset_modes`
+  (ADR-0001) — the Comfort Setting selector then drops out of the System sub-screen.
 
 ### Fan — `reference/fan-mode.jpeg`
 - **On / Auto** toggle from `fan_modes`.

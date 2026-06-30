@@ -27,10 +27,20 @@ describe('toMainMenuModel — reachable sub-screens', () => {
     expect(model.available).toBe(true);
     expect(model.entries.map((e) => [e.target, e.label])).toEqual([['system', 'System']]);
   });
+
+  it('lists System when the entity has Comfort Settings but no System Modes', () => {
+    // The System sub-screen holds both selectors, so presets alone make it reachable
+    // (the System Mode selector then degrades away inside the sub-screen).
+    const model = toMainMenuModel(
+      hass(climate('heat', { preset_modes: ['Home', 'Away'] })),
+      config,
+    );
+    expect(model.entries.map((e) => e.target)).toEqual(['system']);
+  });
 });
 
 describe('toMainMenuModel — graceful degradation', () => {
-  it('omits System (and reports unavailable) when the entity exposes no System Modes', () => {
+  it('omits System (and reports unavailable) when the entity backs neither modes nor presets', () => {
     const model = toMainMenuModel(hass(climate('heat', {})), config);
     expect(model.entries).toEqual([]);
     expect(model.available).toBe(false);

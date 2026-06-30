@@ -1,6 +1,7 @@
 import type { HomeAssistant } from '../types/hass';
 import type { EcoseeCardConfig } from '../config';
 import { toSystemModeModel } from '../climate/system-mode';
+import { toComfortSettingModel } from '../climate/comfort-setting';
 
 // The derivation seam for the Main Menu hub (the sibling of `toHomeView` /
 // `toSystemModeModel`). `toMainMenuModel` builds the already-degraded list of
@@ -41,10 +42,12 @@ const SUBSCREENS: readonly SubScreen[] = [
   {
     target: 'system',
     label: 'System',
-    // The System sub-screen routes to the System Mode picker today; it reuses that
-    // seam's availability so the two never disagree. When the Comfort Setting
-    // picker (#7) lands, this broadens to "modes OR presets".
-    available: (hass, config) => toSystemModeModel(hass, config).available,
+    // The System sub-screen holds the System Mode picker and the Comfort Setting
+    // picker, so it is reachable when the entity backs either — System Modes
+    // (`hvac_modes`) OR Comfort Settings (`preset_modes`). The sub-screen itself
+    // drops whichever selector lacks data (graceful degradation, ADR-0001).
+    available: (hass, config) =>
+      toSystemModeModel(hass, config).available || toComfortSettingModel(hass, config).available,
   },
 ];
 
