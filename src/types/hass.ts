@@ -49,6 +49,11 @@ export interface HomeAssistant {
     domain: string,
     service: string,
     serviceData?: Record<string, unknown>,
+    target?: Record<string, unknown>,
+    notifyOnError?: boolean,
+    /** Request the service's response data (e.g. `weather.get_forecasts`). The
+     *  resolved value then carries a `{ response: … }` payload. */
+    returnResponse?: boolean,
   ): Promise<unknown>;
 }
 
