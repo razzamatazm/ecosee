@@ -41,6 +41,10 @@ export interface EcoseeCardConfig {
    *  thermostat's own temperature is auto-included first, so this lists *extra*
    *  sensors only; absent/empty hides the Sensors sub-screen entirely. */
   sensors?: SensorConfig[];
+  /** Seconds of inactivity before any open Overlay auto-reverts to the Home Screen,
+   *  mirroring the device's auto-return (issue #13). `0` disables auto-revert; an
+   *  unset key uses the device-default (12s). See `inactivityTimeoutMs`. */
+  inactivity_timeout?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -85,7 +89,20 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     default_comfort_icon: optionalString('default_comfort_icon'),
     fan_min_on_time_entity: optionalString('fan_min_on_time_entity'),
     sensors: parseSensors(raw.sensors),
+    inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
   };
+}
+
+/** Parse the optional `inactivity_timeout` (seconds before an open Overlay
+ *  auto-reverts to the Home Screen). Returns `undefined` when absent so the seam
+ *  can apply the device-default; `0` is the canonical "off". Throws a user-facing
+ *  error for anything other than a non-negative number. */
+function parseInactivityTimeout(raw: unknown): number | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'number' || Number.isNaN(raw) || raw < 0) {
+    throw new Error('ecosee: `inactivity_timeout` must be a non-negative number of seconds.');
+  }
+  return raw;
 }
 
 /** Parse the optional `sensors:` list. Each item is either a bare entity-id

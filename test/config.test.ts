@@ -62,3 +62,29 @@ describe('parseConfig — sensors', () => {
     ).toThrow(/`sensors\[0\].occupancy_entity` must be a string/);
   });
 });
+
+describe('parseConfig — inactivity_timeout', () => {
+  it('leaves inactivity_timeout undefined when the key is absent', () => {
+    expect(parseConfig(base).inactivity_timeout).toBeUndefined();
+  });
+
+  it('accepts a positive number of seconds', () => {
+    expect(parseConfig({ ...base, inactivity_timeout: 30 }).inactivity_timeout).toBe(30);
+  });
+
+  it('accepts 0 (auto-revert disabled)', () => {
+    expect(parseConfig({ ...base, inactivity_timeout: 0 }).inactivity_timeout).toBe(0);
+  });
+
+  it('throws on a negative value', () => {
+    expect(() => parseConfig({ ...base, inactivity_timeout: -1 })).toThrow(
+      /`inactivity_timeout` must be a non-negative number/,
+    );
+  });
+
+  it('throws on a non-numeric value', () => {
+    expect(() => parseConfig({ ...base, inactivity_timeout: '12' })).toThrow(
+      /`inactivity_timeout` must be a non-negative number/,
+    );
+  });
+});

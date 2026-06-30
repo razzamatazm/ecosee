@@ -42,7 +42,11 @@ Home Screen
 ```
 
 Overlays auto-revert to the Home Screen after a configurable inactivity timeout
-(default ~10–15s, settable to off) and on ✕/outside-tap.
+and on ✕/outside-tap. The timeout is the `inactivity_timeout` config key (seconds;
+default **12s**, mirroring the device's ~10–15s auto-return); interaction within an
+Overlay resets the countdown, and setting it to `0` disables auto-revert (✕/outside-
+tap still dismiss). The revert collapses the whole nav stack — a deep view (e.g. a
+picker reached through the Main Menu) returns straight to Home, not one level up.
 
 ## Screens
 

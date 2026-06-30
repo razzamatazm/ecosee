@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
+import { LitElement, html, css, nothing, type TemplateResult, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CARD_TYPE, parseConfig, type EcoseeCardConfig } from './config';
 import { toHomeView } from './climate/home-view';
@@ -7,6 +7,7 @@ import { toSystemModeModel } from './climate/system-mode';
 import { toComfortSettingModel } from './climate/comfort-setting';
 import { toFanModel } from './climate/fan';
 import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
+import { InactivityTimer, inactivityTimeoutMs } from './overlays/inactivity-timer';
 import type { SystemSelectTarget } from './overlays/system-overlay';
 import { toSensorsModel } from './sensors/sensors';
 import {
@@ -75,6 +76,12 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  so a re-open refetches. */
   @state() private _weatherForecasts?: WeatherForecasts;
 
+  /** Auto-revert countdown (issue #13): collapses any open Overlay back to the
+   *  Home Screen after a configurable idle interval, mirroring the device. Armed
+   *  while an Overlay is open, reset on interaction within it, cancelled on manual
+   *  dismiss / unmount. */
+  private readonly _inactivity = new InactivityTimer(() => this._revertToHome());
+
   /** The Overlay currently on top of the stack, if any. */
   private get _overlay(): OverlayKind | undefined {
     return this._nav[this._nav.length - 1];
@@ -104,6 +111,30 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     return { entity: '' };
   }
 
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    // Drop a pending countdown so it can't revert (set state on) a detached card.
+    this._inactivity.stop();
+  }
+
+  protected override updated(changed: PropertyValues): void {
+    // Drive the auto-revert countdown off navigation, not off background `hass`
+    // pushes: a state update is not user interaction, so it must not extend (nor,
+    // by re-arming, reset) the idle timer.
+    if (changed.has('_nav') || changed.has('_config')) this._syncInactivityTimer();
+  }
+
+  /** Arm the auto-revert countdown while an Overlay is open — re-arming on each
+   *  navigation step, which doubles as an interaction reset — and cancel it once
+   *  back on the bare Home Screen. */
+  private _syncInactivityTimer(): void {
+    if (this._nav.length > 0 && this._config) {
+      this._inactivity.start(inactivityTimeoutMs(this._config));
+    } else {
+      this._inactivity.stop();
+    }
+  }
+
   override render(): TemplateResult | typeof nothing {
     if (!this._config || !this.hass) return nothing;
     const view = toHomeView(this.hass, this._config);
@@ -119,8 +150,19 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     if (!this._overlay || !this._config) return nothing;
     const content = this._renderOverlayContent(this._config);
     if (content === nothing) return nothing;
+    // These are native composed events, so any interaction on the slotted content
+    // (even inside a child Overlay's shadow DOM) bubbles here and postpones
+    // auto-revert (issue #13). `pointermove` matters too: the Temperature scrubber
+    // captures the pointer on `pointerdown` and then scrubs via `pointermove`
+    // alone, so a slow drag would otherwise let the timer expire mid-gesture.
     return html`
-      <ecosee-overlay @ecosee-overlay-dismiss=${this._closeOverlay}>${content}</ecosee-overlay>
+      <ecosee-overlay
+        @ecosee-overlay-dismiss=${this._closeOverlay}
+        @pointerdown=${this._onOverlayActivity}
+        @pointermove=${this._onOverlayActivity}
+        @keydown=${this._onOverlayActivity}
+        >${content}</ecosee-overlay
+      >
     `;
   }
 
@@ -336,12 +378,33 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   /** Dismiss (✕ / outside-tap): pop one level. From a top-level Overlay that is
    *  Home, from a menu-reached picker that is the menu. */
   private _closeOverlay = (): void => {
-    const dismissed = this._overlay;
     this._nav = this._nav.slice(0, -1);
-    // Drop per-open state when leaving the Overlay that carries it, so a later open
-    // starts fresh: the Temperature Adjust seed, and the Weather forecast.
-    if (dismissed === 'temperature') this._tempSeed = undefined;
-    if (dismissed === 'weather') this._weatherForecasts = undefined;
+    // Drop per-open state so a later open starts fresh. The seeds are per-Overlay
+    // and never co-present, so clearing all is equivalent to clearing just the one
+    // dismissed — and is the same cleanup auto-revert reuses.
+    this._clearOverlaySeeds();
+  };
+
+  /** Auto-revert (issue #13): collapse any open Overlay all the way back to the
+   *  bare Home Screen and drop per-open state, exactly as a manual dismiss leaves
+   *  it. Driven by the inactivity timer on expiry. */
+  private _revertToHome(): void {
+    if (this._nav.length === 0) return;
+    this._nav = [];
+    this._clearOverlaySeeds();
+  }
+
+  /** Clear per-open Overlay state so a later open starts fresh: the Temperature
+   *  Adjust seed and the Weather forecast. */
+  private _clearOverlaySeeds(): void {
+    this._tempSeed = undefined;
+    this._weatherForecasts = undefined;
+  }
+
+  /** Any interaction within an open Overlay (tap, drag start, key) postpones
+   *  auto-revert — the device keeps a screen up while you are using it. */
+  private _onOverlayActivity = (): void => {
+    this._inactivity.reset();
   };
 
   /** Apply a service call emitted by an Overlay (temperature setpoint, System
