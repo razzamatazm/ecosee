@@ -160,6 +160,86 @@ describe('toHomeView — edge cases', () => {
   });
 });
 
+describe('toHomeView — air quality', () => {
+  const withAqi = (aqiState: HassEntityBase | undefined, configured = true) =>
+    toHomeView(
+      hass({
+        climate: {
+          entity_id: 'climate.t',
+          state: 'cool',
+          attributes: { current_temperature: 72, temperature: 74 },
+        },
+        extraStates: aqiState ? { [aqiState.entity_id]: aqiState } : undefined,
+      }),
+      config(configured ? { air_quality_entity: 'sensor.aqi' } : {}),
+    );
+
+  it('is null when no air_quality_entity is configured', () => {
+    const view = withAqi(undefined, false);
+    expect(view.airQuality).toBeNull();
+  });
+
+  it('is null when the configured entity is missing', () => {
+    expect(withAqi(undefined).airQuality).toBeNull();
+  });
+
+  it('is null when the configured entity is unavailable', () => {
+    const view = withAqi({ entity_id: 'sensor.aqi', state: 'unavailable', attributes: {} });
+    expect(view.airQuality).toBeNull();
+  });
+
+  it('is null when the entity carries no numeric reading', () => {
+    const view = withAqi({ entity_id: 'sensor.aqi', state: 'good', attributes: {} });
+    expect(view.airQuality).toBeNull();
+  });
+
+  it('reads the AQI from the entity state and categorizes it', () => {
+    const view = withAqi({ entity_id: 'sensor.aqi', state: '42', attributes: {} });
+    expect(view.airQuality).toEqual({ aqi: 42, category: 'Good', level: 'good' });
+  });
+
+  it('falls back to the air_quality_index attribute when the state is non-numeric', () => {
+    const view = withAqi({
+      entity_id: 'sensor.aqi',
+      state: 'moderate',
+      attributes: { air_quality_index: 88 },
+    });
+    expect(view.airQuality).toEqual({ aqi: 88, category: 'Moderate', level: 'moderate' });
+  });
+
+  it('rounds a fractional AQI to a whole number', () => {
+    const view = withAqi({ entity_id: 'sensor.aqi', state: '142.6', attributes: {} });
+    expect(view.airQuality?.aqi).toBe(143);
+  });
+
+  it('maps each US EPA AQI band to its category and level', () => {
+    const cases: Array<[number, string, string]> = [
+      [50, 'Good', 'good'],
+      [100, 'Moderate', 'moderate'],
+      [150, 'Unhealthy for Sensitive Groups', 'sensitive'],
+      [200, 'Unhealthy', 'unhealthy'],
+      [300, 'Very Unhealthy', 'very-unhealthy'],
+      [301, 'Hazardous', 'hazardous'],
+    ];
+    for (const [aqi, category, level] of cases) {
+      const view = withAqi({ entity_id: 'sensor.aqi', state: String(aqi), attributes: {} });
+      expect(view.airQuality).toEqual({ aqi, category, level });
+    }
+  });
+
+  it('still surfaces air quality when the climate entity is unavailable', () => {
+    const view = toHomeView(
+      hass({
+        climate: { entity_id: 'climate.t', state: 'unavailable', attributes: {} },
+        extraStates: { 'sensor.aqi': { entity_id: 'sensor.aqi', state: '30', attributes: {} } },
+      }),
+      config({ air_quality_entity: 'sensor.aqi' }),
+    );
+    expect(view.available).toBe(false);
+    expect(view.airQuality).toEqual({ aqi: 30, category: 'Good', level: 'good' });
+  });
+});
+
 describe('formatTemp', () => {
   it('rounds to whole degrees in Fahrenheit', () => {
     expect(formatTemp(74.6, '°F')).toBe('75');

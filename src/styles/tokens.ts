@@ -22,6 +22,16 @@ export const tokens = css`
     --ecosee-cool-grad: linear-gradient(150deg, #74d4f3 0%, #2d7ed6 100%);
     --ecosee-weather: #7fd08a;
 
+    /* Air-quality element severity bands (issue #10): the US-EPA AQI scale, green
+       (Good) → maroon (Hazardous). The optional element colors its number/glyph by
+       the reading's band; overridable per dashboard like every other accent. */
+    --ecosee-aqi-good: #5bbf6a;
+    --ecosee-aqi-moderate: #e6c84d;
+    --ecosee-aqi-sensitive: #ef9a4d;
+    --ecosee-aqi-unhealthy: #e5604d;
+    --ecosee-aqi-very-unhealthy: #b06fce;
+    --ecosee-aqi-hazardous: #9c5a6a;
+
     /* Responsive squircle: scale to the container between a legible floor and a
        capped ceiling; aspect + corner radius are overridable per dashboard. */
     --ecosee-min-size: 220px;

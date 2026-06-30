@@ -251,6 +251,18 @@ export const icons = {
     </g>
   `),
 
+  /** Air quality — drifting wind/breeze lines. Neutral regardless of the reading's
+   *  severity (the element's color carries that), so it reads as "air" whether the
+   *  air is clean or not. */
+  wind: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M3 8 H13.5 A2.4 2.4 0 1 0 11.1 5.6" />
+      <path d="M3 12 H18 A2.4 2.4 0 1 1 15.6 14.4" />
+      <path d="M3 16 H9.5 A2 2 0 1 1 7.5 18" />
+    </g>
+  `),
+
   /** Probability of precipitation — an umbrella with a falling drop. */
   umbrella: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"

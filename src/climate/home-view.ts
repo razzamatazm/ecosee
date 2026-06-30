@@ -20,6 +20,21 @@ export interface HoldView {
   cool: number | null;
 }
 
+/** US-EPA AQI severity band, keyed by the Home Screen to the element's color. */
+export type AirQualityLevel =
+  'good' | 'moderate' | 'sensitive' | 'unhealthy' | 'very-unhealthy' | 'hazardous';
+
+/** The optional air-quality element's already-degraded data (issue #10): present
+ *  only when a usable `air_quality_entity` is configured, `null` otherwise. */
+export interface AirQualityView {
+  /** The numeric AQI (US-EPA scale), rounded to a whole number. */
+  aqi: number;
+  /** Friendly category for the AQI band ("Good", "Moderate", …). */
+  category: string;
+  /** Severity band the view maps to the element's color. */
+  level: AirQualityLevel;
+}
+
 export interface HomeView {
   /** False when the entity is missing or `unavailable` — Card shows a quiet shell. */
   available: boolean;
@@ -37,6 +52,9 @@ export interface HomeView {
   canResume: boolean;
   /** Whether a usable `weather` entity is configured (gates the weather icon). */
   weatherAvailable: boolean;
+  /** The optional air-quality element, or `null` when no usable `air_quality_entity`
+   *  is configured (the element is then hidden — ADR-0001 graceful degradation). */
+  airQuality: AirQualityView | null;
 }
 
 /** Entity states that carry no usable data — a Card/Overlay degrades to its
@@ -130,6 +148,33 @@ function canResume(hass: HomeAssistant, entityId: string, mode: SystemMode): boo
   return mode !== 'off' && hass.entities?.[entityId]?.platform === 'ecobee';
 }
 
+/** Categorize a US-EPA air-quality index into its band. The thresholds are the
+ *  standard EPA breakpoints; an out-of-range value clamps to the nearest band. */
+function aqiBand(aqi: number): { category: string; level: AirQualityLevel } {
+  if (aqi <= 50) return { category: 'Good', level: 'good' };
+  if (aqi <= 100) return { category: 'Moderate', level: 'moderate' };
+  if (aqi <= 150) return { category: 'Unhealthy for Sensitive Groups', level: 'sensitive' };
+  if (aqi <= 200) return { category: 'Unhealthy', level: 'unhealthy' };
+  if (aqi <= 300) return { category: 'Very Unhealthy', level: 'very-unhealthy' };
+  return { category: 'Hazardous', level: 'hazardous' };
+}
+
+/** Derive the optional air-quality element (issue #10) from the configured
+ *  `air_quality_entity`: its numeric state, or an `air_quality_index` attribute for
+ *  the legacy `air_quality` domain. Returns `null` — element hidden — when the key
+ *  is unset, the entity is missing/unavailable, or it carries no numeric reading
+ *  (ADR-0001 graceful degradation). */
+function toAirQuality(hass: HomeAssistant, config: EcoseeCardConfig): AirQualityView | null {
+  const entityId = config.air_quality_entity;
+  if (!entityId) return null;
+  const entity = hass.states[entityId];
+  if (!entity || UNAVAILABLE.has(entity.state)) return null;
+  const aqi = num(entity.state) ?? num(entity.attributes.air_quality_index);
+  if (aqi === null) return null;
+  const rounded = Math.round(aqi);
+  return { aqi: rounded, ...aqiBand(rounded) };
+}
+
 export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeView {
   const entity = hass.states[config.entity];
   const unit = hass.config?.unit_system?.temperature ?? '°';
@@ -147,6 +192,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
       hold: null,
       canResume: false,
       weatherAvailable: weatherAvailable(hass, config.weather_entity),
+      airQuality: toAirQuality(hass, config),
     };
   }
 
@@ -171,6 +217,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     hold,
     canResume: canResume(hass, config.entity, mode),
     weatherAvailable: weatherAvailable(hass, config.weather_entity),
+    airQuality: toAirQuality(hass, config),
   };
 }
 

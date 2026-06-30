@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { EquipmentStatus, HomeView, SystemMode } from '../climate/home-view';
+import type { AirQualityView, EquipmentStatus, HomeView, SystemMode } from '../climate/home-view';
 import { formatTemp } from '../climate/home-view';
 import { icons } from '../icons';
 
@@ -13,11 +13,12 @@ export type HomeAction = 'menu' | 'temperature' | 'weather' | 'resume' | 'system
  * The default Card view, laid out as the device is (see
  * docs/reference/home-*.jpeg): a top row of affordance glyphs (weather left,
  * System Mode center, menu right), the humidity line and the large current
- * temperature centered beneath, and the horizontal Hold pill below the number.
- * Active equipment is shown as a colored edge glow around the squircle (blue
- * cooling / amber heating), keyed to `hvac_action` — not an icon. Purely
- * presentational: it renders whatever the already-degraded HomeView says and
- * emits `ecosee-action` events for the host card to handle.
+ * temperature centered beneath, the horizontal Hold pill below the number, and the
+ * optional air-quality element (issue #10) at the foot of the cluster. Active
+ * equipment is shown as a colored edge glow around the squircle (blue cooling /
+ * amber heating), keyed to `hvac_action` — not an icon. Purely presentational: it
+ * renders whatever the already-degraded HomeView says and emits `ecosee-action`
+ * events for the host card to handle.
  */
 @customElement('ecosee-home-screen')
 export class EcoseeHomeScreen extends LitElement {
@@ -238,6 +239,50 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-muted, #6f96a3);
     }
 
+    /* Optional air-quality element (issue #10): a subtle pill at the foot of the
+       cluster — a wind glyph + the AQI number + its category. The CSS color carries
+       the severity band (the glyph and number inherit it; the pill tints from it),
+       so the band reads at a glance the way the device colors air quality. */
+    .aqi {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.8cqw;
+      padding: 1.6cqw 3.4cqw;
+      border-radius: 999px;
+      font-size: 6cqw;
+      font-weight: 500;
+      line-height: 1;
+      color: var(--ecosee-aqi-good, #5bbf6a);
+      background: color-mix(in srgb, currentColor 14%, transparent);
+    }
+    .aqi .glyph {
+      width: 6cqw;
+      height: 6cqw;
+    }
+    .aqi .num {
+      font-weight: 700;
+    }
+    /* The category stays a muted neutral so the colored number carries the band. */
+    .aqi .cat {
+      color: var(--ecosee-muted, #6f96a3);
+      font-weight: 400;
+    }
+    .aqi.moderate {
+      color: var(--ecosee-aqi-moderate, #e6c84d);
+    }
+    .aqi.sensitive {
+      color: var(--ecosee-aqi-sensitive, #ef9a4d);
+    }
+    .aqi.unhealthy {
+      color: var(--ecosee-aqi-unhealthy, #e5604d);
+    }
+    .aqi.very-unhealthy {
+      color: var(--ecosee-aqi-very-unhealthy, #b06fce);
+    }
+    .aqi.hazardous {
+      color: var(--ecosee-aqi-hazardous, #9c5a6a);
+    }
+
     /* Adapt when the container is narrow: ease the number down. */
     @container (max-width: 300px) {
       .temp {
@@ -286,7 +331,7 @@ export class EcoseeHomeScreen extends LitElement {
                   >
                     ${formatTemp(view.currentTemp, view.unit)}
                   </button>
-                  ${this._renderPill(view)}
+                  ${this._renderPill(view)} ${this._renderAirQuality(view.airQuality)}
                 `
               : html`<div class="unavailable">${view.name} unavailable</div>`
           }
@@ -363,6 +408,22 @@ export class EcoseeHomeScreen extends LitElement {
               </button>`
             : nothing
         }
+      </div>
+    `;
+  }
+
+  /** The optional air-quality element (issue #10). Rendered only when the seam
+   *  supplies a model — absent/unavailable data leaves `airQuality` null, so the
+   *  element simply isn't shown (ADR-0001 graceful degradation). The `sr-only`
+   *  prefix gives the bare number + category screen-reader context. */
+  private _renderAirQuality(airQuality: AirQualityView | null): TemplateResult | typeof nothing {
+    if (!airQuality) return nothing;
+    return html`
+      <div class="aqi ${airQuality.level}" part="air-quality">
+        <span class="sr-only">Air quality</span>
+        <span class="glyph">${icons.wind}</span>
+        <span class="num">${airQuality.aqi}</span>
+        <span class="cat">${airQuality.category}</span>
       </div>
     `;
   }
