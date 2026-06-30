@@ -239,33 +239,51 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-muted, #6f96a3);
     }
 
-    /* Optional air-quality element (issue #10): a subtle pill at the foot of the
-       cluster — a wind glyph + the AQI number + its category. The CSS color carries
-       the severity band (the glyph and number inherit it; the pill tints from it),
-       so the band reads at a glance the way the device colors air quality. */
+    /* Optional air-quality element (issue #10): a subtle badge at the foot of the
+       cluster — a wind glyph + the AQI number on top, the category beneath. The CSS
+       color carries the severity band (the glyph and number inherit it; the badge
+       tints from it), so the band reads at a glance the way the device colors air
+       quality. The category sits on its own centered line and the badge is capped at
+       the container width, so the long "Unhealthy for Sensitive Groups" label wraps
+       instead of overflowing the squircle at any size. */
     .aqi {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6cqw;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 1.6cqw 3.6cqw;
+      border-radius: 6cqw;
+      line-height: 1.1;
+      color: var(--ecosee-aqi-good, #5bbf6a);
+      background: color-mix(in srgb, currentColor 14%, transparent);
+    }
+    /* The glyph + number read together as the dominant reading. */
+    .aqi .reading {
       display: inline-flex;
       align-items: center;
       gap: 1.8cqw;
-      padding: 1.6cqw 3.4cqw;
-      border-radius: 999px;
       font-size: 6cqw;
-      font-weight: 500;
-      line-height: 1;
-      color: var(--ecosee-aqi-good, #5bbf6a);
-      background: color-mix(in srgb, currentColor 14%, transparent);
+      font-weight: 700;
     }
     .aqi .glyph {
       width: 6cqw;
       height: 6cqw;
     }
-    .aqi .num {
-      font-weight: 700;
-    }
-    /* The category stays a muted neutral so the colored number carries the band. */
+    /* The category stays a muted neutral so the colored number carries the band;
+       smaller and centered. Capped at a fraction of the container so the long
+       "Unhealthy for Sensitive Groups" label wraps between words onto a few centered
+       lines instead of overflowing the squircle — at any card size, since the cap is
+       proportional (cqw). */
     .aqi .cat {
+      max-width: 66cqw;
+      font-size: 4.4cqw;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-align: center;
+      text-wrap: balance;
       color: var(--ecosee-muted, #6f96a3);
-      font-weight: 400;
     }
     .aqi.moderate {
       color: var(--ecosee-aqi-moderate, #e6c84d);
@@ -331,9 +349,15 @@ export class EcoseeHomeScreen extends LitElement {
                   >
                     ${formatTemp(view.currentTemp, view.unit)}
                   </button>
-                  ${this._renderPill(view)} ${this._renderAirQuality(view.airQuality)}
+                  ${this._renderPill(view)}
                 `
               : html`<div class="unavailable">${view.name} unavailable</div>`
+          }
+          ${
+            // The air-quality element is backed by its own entity, independent of
+            // the bound climate entity — so it sits at the foot of the cluster below
+            // either the live readout or the unavailable shell (issue #10).
+            this._renderAirQuality(view.airQuality)
           }
         </div>
       </div>
@@ -421,8 +445,10 @@ export class EcoseeHomeScreen extends LitElement {
     return html`
       <div class="aqi ${airQuality.level}" part="air-quality">
         <span class="sr-only">Air quality</span>
-        <span class="glyph">${icons.wind}</span>
-        <span class="num">${airQuality.aqi}</span>
+        <span class="reading">
+          <span class="glyph">${icons.wind}</span>
+          <span class="num">${airQuality.aqi}</span>
+        </span>
         <span class="cat">${airQuality.category}</span>
       </div>
     `;

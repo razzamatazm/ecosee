@@ -270,6 +270,44 @@ const ecobeeSensors: Fixture = {
   }),
 };
 
+// The optional air-quality element (issue #10): an ecobee with an
+// `air_quality_entity` reading 142 — the worst-case "Unhealthy for Sensitive
+// Groups" band, the longest category label — so the badge's wrapping can be
+// exercised across the width slider (it must not overflow the squircle).
+const ecobeeAirQuality: Fixture = {
+  label: 'ecobee · Air quality',
+  config: {
+    type: 'custom:ecosee-card',
+    entity: 'climate.living_room',
+    weather_entity: 'weather.home',
+    air_quality_entity: 'sensor.air_quality_index',
+  },
+  hass: makeHass({
+    platform: 'ecobee',
+    weather: true,
+    climate: {
+      entity_id: 'climate.living_room',
+      state: 'heat_cool',
+      attributes: {
+        friendly_name: 'Living Room',
+        current_temperature: 75,
+        current_humidity: 60,
+        target_temp_low: 70,
+        target_temp_high: 75,
+        hvac_action: 'idle',
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+      },
+    },
+    extra: [
+      {
+        entity_id: 'sensor.air_quality_index',
+        state: '142',
+        attributes: { friendly_name: 'Air Quality', device_class: 'aqi' },
+      },
+    ],
+  }),
+};
+
 const unavailable: Fixture = {
   label: 'Unavailable entity',
   config: { type: 'custom:ecosee-card', entity: 'climate.living_room' },
@@ -282,12 +320,40 @@ const unavailable: Fixture = {
   }),
 };
 
+// The bound climate entity is unavailable but the air-quality entity is fine — the
+// element is backed by its own entity, so it still renders on the quiet shell
+// (issue #10). Reads 38 → "Good".
+const unavailableWithAirQuality: Fixture = {
+  label: 'Unavailable · air quality still shown',
+  config: {
+    type: 'custom:ecosee-card',
+    entity: 'climate.living_room',
+    air_quality_entity: 'sensor.air_quality_index',
+  },
+  hass: makeHass({
+    climate: {
+      entity_id: 'climate.living_room',
+      state: 'unavailable',
+      attributes: { friendly_name: 'Living Room' },
+    },
+    extra: [
+      {
+        entity_id: 'sensor.air_quality_index',
+        state: '38',
+        attributes: { friendly_name: 'Air Quality', device_class: 'aqi' },
+      },
+    ],
+  }),
+};
+
 export const fixtures: Fixture[] = [
   ecobeeAutoHold,
   ecobeeHeating,
   ecobeeCooling,
   ecobeeOff,
   ecobeeSensors,
+  ecobeeAirQuality,
   genericDegraded,
   unavailable,
+  unavailableWithAirQuality,
 ];
