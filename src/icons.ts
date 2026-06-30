@@ -68,6 +68,12 @@ export const icons = {
       stroke-width="2.2" stroke-linecap="round" />
   `),
 
+  /** Forward navigation — the chevron trailing a Main Menu row (opens a sub-screen). */
+  chevron: wrap(svg`
+    <path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" />
+  `),
+
   /** Nudge up — a circled plus, matching the Temperature Adjust buttons. */
   plus: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">

@@ -4,6 +4,7 @@ import { CARD_TYPE, parseConfig, type EcoseeCardConfig } from './config';
 import { toHomeView } from './climate/home-view';
 import { toTempAdjustModel, type TempAdjustModel } from './climate/temperature-adjust';
 import { toSystemModeModel } from './climate/system-mode';
+import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
@@ -12,10 +13,11 @@ import './screens/home-screen';
 import './overlays/overlay-shell';
 import './overlays/temperature-overlay';
 import './overlays/system-mode-overlay';
+import './overlays/main-menu-overlay';
 
-/** The Overlay currently mounted over the Home Screen, if any. More kinds (Fan,
- *  Sensors, Weather) join this union as they land. */
-type OverlayKind = 'temperature' | 'system-mode';
+/** An Overlay that can mount over the Home Screen. More kinds (Fan, Sensors,
+ *  Weather) join this union as they land. */
+type OverlayKind = 'temperature' | 'system-mode' | 'menu';
 
 const VERSION = '0.1.0';
 
@@ -29,12 +31,21 @@ const VERSION = '0.1.0';
 export class EcoseeCard extends LitElement implements LovelaceCard {
   @property({ attribute: false }) hass?: HomeAssistant;
   @state() private _config?: EcoseeCardConfig;
-  @state() private _overlay?: OverlayKind;
+  /** The overlay navigation stack (hub-and-picker, CONTEXT.md). The top is the
+   *  visible Overlay; dismissing pops one level, so a picker reached *through* the
+   *  Main Menu returns to the menu, while one opened straight from the Home Screen
+   *  returns to Home. Empty ⇒ the bare Home Screen. */
+  @state() private _nav: OverlayKind[] = [];
   /** Open-time *seed* for the Temperature Adjust overlay (not the live edit
    *  state — the overlay owns that). Captured once on open and held by reference,
    *  not recomputed per render, so the overlay's in-progress edits survive `hass`
    *  updates rather than being reset on every state push. */
   @state() private _tempSeed?: TempAdjustModel;
+
+  /** The Overlay currently on top of the stack, if any. */
+  private get _overlay(): OverlayKind | undefined {
+    return this._nav[this._nav.length - 1];
+  }
 
   static override styles = [
     tokens,
@@ -104,6 +115,17 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         ></ecosee-system-mode-overlay>
       `;
     }
+    if (this._overlay === 'menu') {
+      if (!this.hass) return nothing;
+      // Computed live so the listed sub-screens reflect the current `hass` (an
+      // entry can come or go as its backing data appears/disappears).
+      return html`
+        <ecosee-main-menu-overlay
+          .model=${toMainMenuModel(this.hass, config)}
+          @ecosee-menu-select=${this._onMenuSelect}
+        ></ecosee-main-menu-overlay>
+      `;
+    }
     return nothing;
   }
 
@@ -119,30 +141,66 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         this._openSystemMode();
         break;
       case 'menu':
+        this._openMenu();
+        break;
       case 'weather':
-        // The remaining Overlays land in later milestones.
+        // The Weather Overlay lands in a later milestone.
         console.debug(`ecosee: "${event.detail.action}" overlay not yet implemented`);
         break;
     }
   };
+
+  /** Open an Overlay straight from the Home Screen: a fresh stack, so dismissing
+   *  it returns to Home. */
+  private _openFromHome(kind: OverlayKind): void {
+    this._nav = [kind];
+  }
 
   private _openTemperature(): void {
     if (!this.hass || !this._config) return;
     const model = toTempAdjustModel(this.hass, this._config);
     if (!model.available) return; // nothing editable ⇒ no overlay
     this._tempSeed = model;
-    this._overlay = 'temperature';
+    this._openFromHome('temperature');
   }
 
   private _openSystemMode(): void {
     if (!this.hass || !this._config) return;
     if (!toSystemModeModel(this.hass, this._config).available) return; // no modes ⇒ no overlay
-    this._overlay = 'system-mode';
+    this._openFromHome('system-mode');
   }
 
+  private _openMenu(): void {
+    if (!this.hass || !this._config) return;
+    if (!toMainMenuModel(this.hass, this._config).available) return; // no sub-screens ⇒ no menu
+    this._openFromHome('menu');
+  }
+
+  /** Route a Main Menu selection to its sub-screen, pushed onto the stack so the
+   *  sub-screen's dismissal returns to the menu (hub-and-picker). */
+  private _onMenuSelect = (event: CustomEvent<{ target: MainMenuTarget }>): void => {
+    switch (event.detail.target) {
+      case 'system':
+        this._nav = [...this._nav, 'system-mode'];
+        break;
+      case 'fan':
+      case 'sensors':
+      case 'weather':
+        // These sub-screens land in later milestones (#8 / #9 / #5); until then
+        // `toMainMenuModel` doesn't list them, so this is unreachable today.
+        console.debug(`ecosee: "${event.detail.target}" sub-screen not yet implemented`);
+        break;
+    }
+  };
+
+  /** Dismiss (✕ / outside-tap): pop one level. From a top-level Overlay that is
+   *  Home, from a menu-reached picker that is the menu. */
   private _closeOverlay = (): void => {
-    this._overlay = undefined;
-    this._tempSeed = undefined;
+    const dismissed = this._overlay;
+    this._nav = this._nav.slice(0, -1);
+    // Drop the Temperature Adjust seed when leaving that overlay so a later open
+    // re-seeds fresh (it is the only Overlay that carries open-time state).
+    if (dismissed === 'temperature') this._tempSeed = undefined;
   };
 
   /** Apply a service call emitted by an Overlay (temperature setpoint, System

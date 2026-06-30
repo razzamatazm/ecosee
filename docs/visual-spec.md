@@ -66,6 +66,20 @@ then the Hold pill — see also the equipment edge glow below.
 - **Omitted (no generic data source):** reminder/alert glyph, glowing status orb (the
   distinct center orb; the equipment *edge glow* above is backed by `hvac_action`).
 
+### Main Menu — `reference/menu-system.jpeg`
+The hub reached from the Home Screen menu affordance, presented as an Overlay.
+- **"Main Menu" title** near the top, then the reachable sub-screens as a single
+  cyan-outlined vertical list (hairline dividers), each row a label with a forward
+  chevron: **System**, **Fan**, **Sensors**, **Weather**.
+- **Hub-and-picker**, not flat siblings: selecting a row opens that sub-screen's
+  Overlay (System → System Mode picker today; the others as they land). A picker
+  reached through the hub returns to the hub on ✕/outside-tap; the hub itself
+  returns to the Home Screen.
+- **Graceful degradation:** a sub-screen is listed only when its backing data is
+  present (e.g. System hidden without `hvac_modes`, Fan without `fan_modes`,
+  Sensors when none are configured, Weather without a `weather` entity). With
+  nothing reachable, the menu affordance opens nothing.
+
 ### Temperature Adjust — `reference/temp-adjust-cool.jpeg`, `temp-adjust-heat.jpeg`
 - **Vertical value scrubber** down the center, higher values up:
   `77 / 76 / [75] / 74 / 73` top-to-bottom, the selected value in a big squircle
