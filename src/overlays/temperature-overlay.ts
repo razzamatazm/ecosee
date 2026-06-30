@@ -12,6 +12,7 @@ import {
   type TempAdjustModel,
 } from '../climate/temperature-adjust';
 import { icons } from '../icons';
+import { emitServiceCall } from './service-call-event';
 
 /** Neighbors shown on each side of the selected value in the scrubber. */
 const SCRUBBER_RADIUS = 2;
@@ -34,7 +35,7 @@ const PX_PER_STEP = 22;
  * Unlike the purely presentational <ecosee-home-screen> (which only renders the
  * card-owned `.view`), this is an interactive editor, so it owns the transient
  * edit state locally: it seeds `_edit` once from `model`, advances it through the
- * pure reducers in `temperature-adjust.ts`, and emits `ecosee-set-temperature`
+ * pure reducers in `temperature-adjust.ts`, and emits the shared `ecosee-service-call`
  * with the `climate.set_temperature` call so the host card applies it as a Hold.
  * Each ± nudge commits immediately; a drag tracks the finger live but commits
  * once on release. There is no separate Apply step (and no hold-duration prompt,
@@ -229,13 +230,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
   private _emit(model: TempAdjustModel): void {
     const call = setTemperatureCall(model, this.entityId);
     if (!call) return;
-    this.dispatchEvent(
-      new CustomEvent('ecosee-set-temperature', {
-        detail: { call },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+    emitServiceCall(this, call);
   }
 
   /** A discrete change (nudge / chip): update the edit and commit immediately. */

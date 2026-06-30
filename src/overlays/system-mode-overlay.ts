@@ -5,6 +5,7 @@ import {
   type SystemModeModel,
   type SystemModeOption,
 } from '../climate/system-mode';
+import { emitServiceCall } from './service-call-event';
 
 /**
  * `<ecosee-system-mode-overlay>` — the System Mode picker's content (slotted into
@@ -17,8 +18,8 @@ import {
  *
  * Unlike the Temperature Adjust overlay — which holds in-progress edit state so a
  * multi-step scrub survives `hass` pushes — this picker owns no edit state.
- * Choosing a mode is a single discrete write: it emits `ecosee-set-system-mode`
- * with the `climate.set_hvac_mode` call and lets the highlight follow the
+ * Choosing a mode is a single discrete write: it emits the shared
+ * `ecosee-service-call` with the `climate.set_hvac_mode` call and lets the highlight follow the
  * entity's reported `hvac_mode` once `hass` reflects it (the host card recomputes
  * the model live, so the selection updates in place). Tapping the already-selected
  * row is a no-op. Dismissal is the shell's job (✕ / outside-tap).
@@ -96,13 +97,7 @@ export class EcoseeSystemModeOverlay extends LitElement {
 
   private _select(option: SystemModeOption): void {
     if (option.selected) return; // already the active mode — nothing to write
-    this.dispatchEvent(
-      new CustomEvent('ecosee-set-system-mode', {
-        detail: { call: setHvacModeCall(option.hvacMode, this.entityId) },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+    emitServiceCall(this, setHvacModeCall(option.hvacMode, this.entityId));
   }
 
   override render(): TemplateResult | typeof nothing {

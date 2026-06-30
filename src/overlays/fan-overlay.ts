@@ -8,6 +8,7 @@ import {
   type MinRuntimeModel,
 } from '../climate/fan';
 import { icons } from '../icons';
+import { emitServiceCall } from './service-call-event';
 
 /**
  * `<ecosee-fan-overlay>` — the Fan sub-screen's content (slotted into
@@ -19,8 +20,8 @@ import { icons } from '../icons';
  *
  * Like the System Mode picker (and unlike the Temperature Adjust overlay), this
  * owns no edit state: each choice is a single discrete write. Selecting a fan mode
- * emits `ecosee-set-fan` with the `climate.set_fan_mode` call; choosing a runtime
- * emits the same event with the `number.set_value` call. The host card recomputes
+ * emits the shared `ecosee-service-call` with the `climate.set_fan_mode` call;
+ * choosing a runtime emits the same event with the `number.set_value` call. The host card recomputes
  * the model from `hass`, so the highlight / selection follows the entity's reported
  * values once they reflect. Tapping the already-selected mode is a no-op. Dismissal
  * is the shell's job (✕ / outside-tap).
@@ -185,25 +186,13 @@ export class EcoseeFanOverlay extends LitElement {
 
   private _selectMode(option: FanOption): void {
     if (option.selected) return; // already the active mode — nothing to write
-    this.dispatchEvent(
-      new CustomEvent('ecosee-set-fan', {
-        detail: { call: setFanModeCall(option.fanMode, this.entityId) },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+    emitServiceCall(this, setFanModeCall(option.fanMode, this.entityId));
   }
 
   private _onRuntimeChange(event: Event, runtime: MinRuntimeModel): void {
     const value = Number((event.target as HTMLSelectElement).value);
     if (!Number.isFinite(value) || value === runtime.value) return;
-    this.dispatchEvent(
-      new CustomEvent('ecosee-set-fan', {
-        detail: { call: setFanMinOnTimeCall(value, runtime.entityId) },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+    emitServiceCall(this, setFanMinOnTimeCall(value, runtime.entityId));
   }
 
   override render(): TemplateResult | typeof nothing {
