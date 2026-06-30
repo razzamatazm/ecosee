@@ -16,6 +16,7 @@ function makeHass(options: {
   platform?: string;
   weather?: boolean;
   unit?: string;
+  extra?: HassEntityBase[];
 }): HomeAssistant {
   const states: Record<string, HassEntityBase> = {
     [options.climate.entity_id]: options.climate,
@@ -27,6 +28,7 @@ function makeHass(options: {
       attributes: { friendly_name: 'Home', temperature: 82 },
     };
   }
+  for (const entity of options.extra ?? []) states[entity.entity_id] = entity;
   return {
     states,
     entities: {
@@ -160,6 +162,54 @@ const ecobeeOff: Fixture = {
   }),
 };
 
+// Reproduces docs/reference/sensors.jpeg: the thermostat's own temp first, then a
+// curated list of remote sensors — some with an occupancy entity (→ "Occupied"),
+// some without (badge hidden, ADR-0001). Open Main Menu › Sensors to view.
+const ecobeeSensors: Fixture = {
+  label: 'ecobee · Sensors',
+  config: {
+    type: 'custom:ecosee-card',
+    entity: 'climate.living_room',
+    weather_entity: 'weather.home',
+    sensors: [
+      { entity: 'sensor.hallway_temp', name: 'Hallway', occupancy_entity: 'binary_sensor.hallway' },
+      {
+        entity: 'sensor.office_temp',
+        name: 'Erica Office',
+        occupancy_entity: 'binary_sensor.office',
+      },
+      { entity: 'sensor.kitchen_temp', name: 'Kitchen', occupancy_entity: 'binary_sensor.kitchen' },
+      { entity: 'sensor.garage_temp', name: 'Garage' },
+    ],
+  },
+  hass: makeHass({
+    platform: 'ecobee',
+    weather: true,
+    climate: {
+      entity_id: 'climate.living_room',
+      state: 'heat_cool',
+      attributes: {
+        friendly_name: 'Living Room',
+        current_temperature: 72,
+        current_humidity: 60,
+        target_temp_low: 70,
+        target_temp_high: 75,
+        hvac_action: 'idle',
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+      },
+    },
+    extra: [
+      { entity_id: 'sensor.hallway_temp', state: '73', attributes: { friendly_name: 'Hallway' } },
+      { entity_id: 'sensor.office_temp', state: '75', attributes: { friendly_name: 'Office' } },
+      { entity_id: 'sensor.kitchen_temp', state: '77', attributes: { friendly_name: 'Kitchen' } },
+      { entity_id: 'sensor.garage_temp', state: '64', attributes: { friendly_name: 'Garage' } },
+      { entity_id: 'binary_sensor.hallway', state: 'on', attributes: {} },
+      { entity_id: 'binary_sensor.office', state: 'on', attributes: {} },
+      { entity_id: 'binary_sensor.kitchen', state: 'on', attributes: {} },
+    ],
+  }),
+};
+
 const unavailable: Fixture = {
   label: 'Unavailable entity',
   config: { type: 'custom:ecosee-card', entity: 'climate.living_room' },
@@ -177,6 +227,7 @@ export const fixtures: Fixture[] = [
   ecobeeHeating,
   ecobeeCooling,
   ecobeeOff,
+  ecobeeSensors,
   genericDegraded,
   unavailable,
 ];

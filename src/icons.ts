@@ -68,7 +68,9 @@ export const icons = {
       stroke-width="2.2" stroke-linecap="round" />
   `),
 
-  /** Forward navigation — the chevron trailing a Main Menu row (opens a sub-screen). */
+  /** A right chevron, used two ways: the forward-navigation glyph trailing a Main
+   *  Menu row (opens a sub-screen), and the circled expand affordance on a Sensors
+   *  card (read-only — there is no per-sensor detail screen). */
   chevron: wrap(svg`
     <path d="M9 5 L16 12 L9 19" fill="none" stroke="currentColor" stroke-width="2"
       stroke-linecap="round" stroke-linejoin="round" />
@@ -163,5 +165,24 @@ export const icons = {
     <path d="M12 4 C12.7 10.3 13.7 11.3 20 12 C13.7 12.7 12.7 13.7 12 20
       C11.3 13.7 10.3 12.7 4 12 C10.3 11.3 11.3 10.3 12 4 Z" fill="none"
       stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" />
+  `),
+
+  /** The thermostat's own Sensors card — the wall display: a landscape squircle
+   *  with a small reading dot. Marks the auto-included thermostat temperature. */
+  thermostat: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
+      <rect x="3.5" y="7.5" width="17" height="9" rx="3.2" />
+      <circle cx="8.5" cy="12" r="1.6" fill="currentColor" stroke="none" />
+    </g>
+  `),
+
+  /** A curated remote sensor's Sensors card — the ecobee SmartSensor silhouette:
+   *  a rounded head on a small stand (its occupancy-sensing form). */
+  sensor: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+      stroke-linejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M12 12 V15.5 M7.5 19 Q12 15.8 16.5 19" />
+    </g>
   `),
 } as const;

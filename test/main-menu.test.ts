@@ -58,6 +58,30 @@ describe('toMainMenuModel — reachable sub-screens', () => {
     const model = toMainMenuModel(hass(climate('cool', { fan_modes: ['auto', 'on'] })), config);
     expect(model.entries.map((e) => e.target)).toEqual(['fan']);
   });
+
+  it('lists Sensors when at least one configured sensor is usable', () => {
+    const withSensor: HomeAssistant = {
+      ...hass(FULL),
+      states: {
+        'climate.t': FULL,
+        'sensor.hallway': { entity_id: 'sensor.hallway', state: '73', attributes: {} },
+      },
+    };
+    const model = toMainMenuModel(withSensor, {
+      ...config,
+      sensors: [{ entity: 'sensor.hallway' }],
+    });
+    expect(model.entries.map((e) => e.target)).toEqual(['system', 'sensors']);
+  });
+
+  it('omits Sensors when no sensor is configured (the thermostat temp alone does not surface it)', () => {
+    const withTemp = climate('heat_cool', {
+      hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+      current_temperature: 72,
+    });
+    const model = toMainMenuModel(hass(withTemp), config);
+    expect(model.entries.map((e) => e.target)).toEqual(['system']);
+  });
 });
 
 describe('toMainMenuModel — graceful degradation', () => {
