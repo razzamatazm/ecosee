@@ -2,7 +2,19 @@ import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
 import type { AirQualityView, EquipmentStatus, HomeView, SystemMode } from '../climate/home-view';
 import { formatTemp } from '../climate/home-view';
-import { icons } from '../icons';
+import { icons, weatherIcon } from '../icons';
+
+/**
+ * The screen's outline as a true **superellipse** ( |x/a|⁴ + |y/b|⁴ = 1 ), the
+ * device's squircle — rounder and softer at the corners than a constant-radius
+ * `border-radius`. Sampled at 128 points in a 0–100 viewBox (pulled fractionally
+ * inside the box so the crisp edge stroke, drawn centred on the path, sits at the
+ * screen boundary). One path drives the background fill, the clip, and the
+ * equipment edge glow so all three trace the identical curve. The SVG scales with
+ * the responsive container via `preserveAspectRatio="none"`.
+ */
+const SQUIRCLE_PATH =
+  'M99.40 50.00L99.37 60.94L99.28 65.47L99.13 68.92L98.92 71.82L98.65 74.35L98.32 76.62L97.93 78.67L97.48 80.56L96.97 82.30L96.39 83.92L95.75 85.42L95.05 86.82L94.27 88.13L93.43 89.35L92.52 90.48L91.54 91.54L90.48 92.52L89.35 93.43L88.13 94.27L86.82 95.05L85.42 95.75L83.92 96.39L82.30 96.97L80.56 97.48L78.67 97.93L76.62 98.32L74.35 98.65L71.82 98.92L68.92 99.13L65.47 99.28L60.94 99.37L50.00 99.40L39.06 99.37L34.53 99.28L31.08 99.13L28.18 98.92L25.65 98.65L23.38 98.32L21.33 97.93L19.44 97.48L17.70 96.97L16.08 96.39L14.58 95.75L13.18 95.05L11.87 94.27L10.65 93.43L9.52 92.52L8.46 91.54L7.48 90.48L6.57 89.35L5.73 88.13L4.95 86.82L4.25 85.42L3.61 83.92L3.03 82.30L2.52 80.56L2.07 78.67L1.68 76.62L1.35 74.35L1.08 71.82L0.87 68.92L0.72 65.47L0.63 60.94L0.60 50.00L0.63 39.06L0.72 34.53L0.87 31.08L1.08 28.18L1.35 25.65L1.68 23.38L2.07 21.33L2.52 19.44L3.03 17.70L3.61 16.08L4.25 14.58L4.95 13.18L5.73 11.87L6.57 10.65L7.48 9.52L8.46 8.46L9.52 7.48L10.65 6.57L11.87 5.73L13.18 4.95L14.58 4.25L16.08 3.61L17.70 3.03L19.44 2.52L21.33 2.07L23.38 1.68L25.65 1.35L28.18 1.08L31.08 0.87L34.53 0.72L39.06 0.63L50.00 0.60L60.94 0.63L65.47 0.72L68.92 0.87L71.82 1.08L74.35 1.35L76.62 1.68L78.67 2.07L80.56 2.52L82.30 3.03L83.92 3.61L85.42 4.25L86.82 4.95L88.13 5.73L89.35 6.57L90.48 7.48L91.54 8.46L92.52 9.52L93.43 10.65L94.27 11.87L95.05 13.18L95.75 14.58L96.39 16.08L96.97 17.70L97.48 19.44L97.93 21.33L98.32 23.38L98.65 25.65L98.92 28.18L99.13 31.08L99.28 34.53L99.37 39.06Z';
 
 /** Actions the Home Screen surfaces to the host card. `temperature` opens the
  *  Temperature Adjust overlay; `system-mode` / `weather` / `menu` open later
@@ -30,8 +42,11 @@ export class EcoseeHomeScreen extends LitElement {
     }
 
     /* Responsive squircle: a sized container so children can scale with cqw, with
-       a legible floor (min-size) and a capped ceiling (max-size). */
-    .face {
+       a legible floor (min-size) and a capped ceiling (max-size). The squircle
+       surface itself is drawn by the inline SVG (.shape) below — no background or
+       border-radius here, so the true superellipse, its glow and any clip all
+       trace the one curve. */
+    .screen {
       container-type: size;
       position: relative;
       box-sizing: border-box;
@@ -41,29 +56,46 @@ export class EcoseeHomeScreen extends LitElement {
       padding: 7cqw 8cqw;
       display: flex;
       flex-direction: column;
-      background: var(--ecosee-bg, #0a0d10);
-      border-radius: var(--ecosee-radius, 15%);
       color: var(--ecosee-fg, #d4eff9);
       font-family: var(--ecosee-font, system-ui, sans-serif);
-      overflow: hidden;
       user-select: none;
     }
 
-    /* Equipment-status edge glow, keyed to hvac_action: blue while cooling,
-       amber while heating, nothing when idle. The device shows a crisp bright
-       outline tracing the squircle edge with a gentle falloff inward — a thin
-       solid ring plus a tight and a wider blurred layer. */
-    .face.cooling {
-      box-shadow:
-        inset 0 0 0 0.6cqw var(--ecosee-cool, #49b6ea),
-        inset 0 0 3.5cqw color-mix(in srgb, var(--ecosee-cool, #49b6ea) 55%, transparent),
-        inset 0 0 10cqw color-mix(in srgb, var(--ecosee-cool, #49b6ea) 25%, transparent);
+    /* The superellipse surface + equipment edge glow, drawn behind the content.
+       preserveAspectRatio="none" stretches the 0–100 viewBox to the container, so
+       the curve and the (user-unit) stroke widths scale with the card. */
+    .shape {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      z-index: 0;
+      pointer-events: none;
     }
-    .face.heating {
-      box-shadow:
-        inset 0 0 0 0.6cqw var(--ecosee-heat, #f3a13c),
-        inset 0 0 3.5cqw color-mix(in srgb, var(--ecosee-heat, #f3a13c) 55%, transparent),
-        inset 0 0 10cqw color-mix(in srgb, var(--ecosee-heat, #f3a13c) 25%, transparent);
+    .shape .fill {
+      fill: var(--ecosee-bg, #0a0d10);
+    }
+    /* Equipment-status edge glow, keyed to hvac_action: a crisp bright line tracing
+       the squircle edge with a gentle inward falloff (blue cooling / amber heating,
+       nothing idle). Three concentric strokes of the same curve — wide+faint,
+       medium, then crisp — clipped to the squircle so the bloom falls only inward,
+       matching the device's clean outline. The color derives from the accent
+       tokens, so a token override recolors the glow. */
+    .shape .glow {
+      display: none;
+    }
+    .shape .glow path {
+      fill: none;
+      stroke: currentColor;
+    }
+    .screen.cooling .glow {
+      display: block;
+      color: var(--ecosee-cool, #49b6ea);
+    }
+    .screen.heating .glow {
+      display: block;
+      color: var(--ecosee-heat, #f3a13c);
     }
 
     .sr-only {
@@ -92,6 +124,8 @@ export class EcoseeHomeScreen extends LitElement {
     /* Top row: weather (left), System Mode (center), menu (right). Explicit
        columns keep each anchored even when weather is absent. */
     .top {
+      position: relative;
+      z-index: 1;
       width: 100%;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
@@ -138,6 +172,8 @@ export class EcoseeHomeScreen extends LitElement {
 
     /* Centered cluster: humidity above the dominant number, Hold pill below. */
     .body {
+      position: relative;
+      z-index: 1;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -324,7 +360,8 @@ export class EcoseeHomeScreen extends LitElement {
     if (!view) return nothing;
 
     return html`
-      <div class="face ${view.equipment ?? ''}" part="screen">
+      <div class="screen ${view.equipment ?? ''}" part="screen">
+        ${this._renderShape()}
         ${
           view.equipment
             ? html`<span class="sr-only">${this._equipLabel(view.equipment)}</span>`
@@ -364,6 +401,28 @@ export class EcoseeHomeScreen extends LitElement {
     `;
   }
 
+  /** The superellipse surface + equipment edge glow, drawn behind the content.
+   *  One path (SQUIRCLE_PATH) fills the screen, clips the glow, and is stroked
+   *  three times for the crisp-edge-plus-inward-falloff glow. The `.glow` group is
+   *  hidden until the equipment class on `.screen` reveals/colors it. */
+  private _renderShape(): TemplateResult {
+    return html`
+      <svg class="shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <clipPath id="ecosee-squircle">
+            <path d=${SQUIRCLE_PATH} />
+          </clipPath>
+        </defs>
+        <path class="fill" d=${SQUIRCLE_PATH} />
+        <g class="glow" clip-path="url(#ecosee-squircle)">
+          <path d=${SQUIRCLE_PATH} stroke-width="5.5" opacity="0.18" />
+          <path d=${SQUIRCLE_PATH} stroke-width="2.2" opacity="0.5" />
+          <path d=${SQUIRCLE_PATH} stroke-width="0.9" opacity="1" />
+        </g>
+      </svg>
+    `;
+  }
+
   private _renderTop(view: HomeView): TemplateResult {
     return html`
       <div class="top">
@@ -374,7 +433,7 @@ export class EcoseeHomeScreen extends LitElement {
                 aria-label="Weather"
                 @click=${() => this._emit('weather')}
               >
-                ${icons.sun}
+                ${weatherIcon(view.weatherCondition ?? '')}
               </button>`
             : nothing
         }

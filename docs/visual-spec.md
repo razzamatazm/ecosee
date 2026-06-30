@@ -15,8 +15,10 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   first (used when the user's HA frontend/theme/system provides it) and falls back
   to **Montserrat** — the closest freely-licensed Gotham-alike — then the system
   stack. Numbers use proportional lining figures.
-- **Motif:** flat **squircle** (rounded-square) — big numbers and rounded-square
-  bubbles. **No circular dial/ring.**
+- **Motif:** flat **squircle** — big numbers and rounded-square bubbles. **No
+  circular dial/ring.** The Home Screen edge is a true **superellipse**
+  (|x|⁴ + |y|⁴ = 1), softer at the corners than a constant-radius rounded-square;
+  the equipment edge glow traces that same curve.
 - **Canvas:** near-black background, cyan/blue accent text and outlines.
 - **Selected state:** filled cyan fill. The System Mode picker's selected row uses
   dark text on cyan; the Temperature Adjust scrubber bubble uses a thin light
@@ -79,8 +81,10 @@ then the Hold pill — see also the equipment edge glow below.
   single-setpoint pill (Heat/Cool only) shows one value and is tinted to the mode
   color. The device's `until 5:28pm` expiry is omitted — HA doesn't expose the next
   transition time (ADR-0003).
-- **Weather icon** (top row, left) — opens the Weather overlay; shown only if a
-  `weather` entity is configured/detected.
+- **Weather icon** (top row, left) — the **current condition's glyph** (sun /
+  clear-night moon / partly-cloudy / …), reflecting the live `weather` entity's
+  condition rather than a fixed sun, in cyan like the other top-row glyphs. Opens
+  the Weather overlay; shown only if a `weather` entity is configured/detected.
 - **Menu affordance** (top row, right) — opens Main Menu.
 - **Omitted (no generic data source):** reminder/alert glyph, glowing status orb (the
   distinct center orb; the equipment *edge glow* above is backed by `hvac_action`).

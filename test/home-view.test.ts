@@ -63,6 +63,10 @@ describe('toHomeView — rich ecobee', () => {
     expect(view.canResume).toBe(true);
     expect(view.weatherAvailable).toBe(true);
   });
+
+  it('surfaces the live weather condition for the Home Screen glyph', () => {
+    expect(view.weatherCondition).toBe('sunny');
+  });
 });
 
 describe('toHomeView — graceful degradation', () => {
@@ -81,6 +85,7 @@ describe('toHomeView — graceful degradation', () => {
   it('hides humidity and weather when their data is absent', () => {
     expect(view.humidity).toBeNull();
     expect(view.weatherAvailable).toBe(false);
+    expect(view.weatherCondition).toBeNull();
   });
 
   it('hides Resume for non-ecobee entities', () => {

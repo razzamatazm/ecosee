@@ -52,6 +52,11 @@ export interface HomeView {
   canResume: boolean;
   /** Whether a usable `weather` entity is configured (gates the weather icon). */
   weatherAvailable: boolean;
+  /** The weather entity's current condition (`sunny` / `clear-night` / … ), or
+   *  `null` when no usable weather entity is configured. The Home Screen's weather
+   *  affordance shows this condition's glyph — the device reflects the live weather,
+   *  not a fixed sun. */
+  weatherCondition: string | null;
   /** The optional air-quality element, or `null` when no usable `air_quality_entity`
    *  is configured (the element is then hidden — ADR-0001 graceful degradation). */
   airQuality: AirQualityView | null;
@@ -136,10 +141,15 @@ function deriveSetpoints(mode: SystemMode, attrs: Record<string, unknown>): Hold
   return null; // off / dry / fan_only / unknown ⇒ no pill
 }
 
-function weatherAvailable(hass: HomeAssistant, weatherEntity: string | undefined): boolean {
-  if (!weatherEntity) return false;
+/** The configured `weather` entity's current condition, or `null` when none is
+ *  configured/usable. Doubles as the availability check (the Home Screen shows the
+ *  weather affordance iff this is non-null) and supplies the glyph the device
+ *  reflects from the live condition. */
+function weatherCondition(hass: HomeAssistant, weatherEntity: string | undefined): string | null {
+  if (!weatherEntity) return null;
   const entity = hass.states[weatherEntity];
-  return !!entity && !UNAVAILABLE.has(entity.state);
+  if (!entity || UNAVAILABLE.has(entity.state)) return null;
+  return entity.state;
 }
 
 /** Resume Schedule is ecobee-specific (`ecobee.resume_program`); only offer it
@@ -180,6 +190,8 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
   const unit = hass.config?.unit_system?.temperature ?? '°';
   const name = config.name ?? str(entity?.attributes.friendly_name) ?? config.entity;
 
+  const weather = weatherCondition(hass, config.weather_entity);
+
   if (!entity || UNAVAILABLE.has(entity.state)) {
     return {
       available: false,
@@ -191,7 +203,8 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
       mode: 'unknown',
       hold: null,
       canResume: false,
-      weatherAvailable: weatherAvailable(hass, config.weather_entity),
+      weatherAvailable: weather !== null,
+      weatherCondition: weather,
       airQuality: toAirQuality(hass, config),
     };
   }
@@ -216,7 +229,8 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     mode,
     hold,
     canResume: canResume(hass, config.entity, mode),
-    weatherAvailable: weatherAvailable(hass, config.weather_entity),
+    weatherAvailable: weather !== null,
+    weatherCondition: weather,
     airQuality: toAirQuality(hass, config),
   };
 }
