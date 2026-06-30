@@ -2,6 +2,7 @@ import type { HomeAssistant } from '../types/hass';
 import type { EcoseeCardConfig } from '../config';
 import { toSystemModeModel } from '../climate/system-mode';
 import { toComfortSettingModel } from '../climate/comfort-setting';
+import { toFanModel } from '../climate/fan';
 
 // The derivation seam for the Main Menu hub (the sibling of `toHomeView` /
 // `toSystemModeModel`). `toMainMenuModel` builds the already-degraded list of
@@ -48,6 +49,13 @@ const SUBSCREENS: readonly SubScreen[] = [
     // drops whichever selector lacks data (graceful degradation, ADR-0001).
     available: (hass, config) =>
       toSystemModeModel(hass, config).available || toComfortSettingModel(hass, config).available,
+  },
+  {
+    target: 'fan',
+    label: 'Fan',
+    // Gated on the entity exposing `fan_modes`; the Fan overlay's optional
+    // minimum-runtime control degrades independently (ADR-0001).
+    available: (hass, config) => toFanModel(hass, config).available,
   },
 ];
 

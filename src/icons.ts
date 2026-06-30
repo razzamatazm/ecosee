@@ -80,6 +80,12 @@ export const icons = {
       stroke-linecap="round" stroke-linejoin="round" />
   `),
 
+  /** Dropdown caret — the ⌄ trailing the Fan minimum-runtime selector. */
+  caretDown: wrap(svg`
+    <path d="M6 9 L12 15 L18 9" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round" />
+  `),
+
   /** Nudge up — a circled plus, matching the Temperature Adjust buttons. */
   plus: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">

@@ -17,6 +17,9 @@ export interface EcoseeCardConfig {
    *  the Skin's icon names — `home` / `away` / `sleep` / `comfort`; anything else
    *  falls back to `comfort`. The named ecobee Comfort Settings keep their own icon. */
   default_comfort_icon?: string;
+  /** A `number` entity backing the Fan minimum-runtime selector (ecobee's
+   *  `fan_min_on_time`). The selector is hidden when this is unset/unavailable. */
+  fan_min_on_time_entity?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -52,5 +55,6 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     weather_entity: optionalString('weather_entity'),
     humidity_entity: optionalString('humidity_entity'),
     default_comfort_icon: optionalString('default_comfort_icon'),
+    fan_min_on_time_entity: optionalString('fan_min_on_time_entity'),
   };
 }

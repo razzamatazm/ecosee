@@ -139,9 +139,25 @@ edit.
   (ADR-0001) — the Comfort Setting selector then drops out of the System sub-screen.
 
 ### Fan — `reference/fan-mode.jpeg`
-- **On / Auto** toggle from `fan_modes`.
-- **Minimum runtime** selector (`0 min / hr`) — maps to a `fan_min_on_time` number
-  entity; hidden if no such entity. Helper copy mirrors the device.
+- **"Fan Mode" title** near the top, then the controls beneath (top-anchored, as on
+  the device — not a vertically-centered cluster).
+- **On / Auto** segmented pill toggle from `fan_modes`, listed **Auto** then **On**
+  (the device order). The active mode's segment is **filled cyan with dark text**
+  (the squircle selected motif); the rest are cyan on black. Selecting a segment
+  writes `climate.set_fan_mode`; tapping the active one is a no-op. A generic
+  `climate` entity exposing extra fan speeds (e.g. Low / Medium / High) lists those
+  after Auto / On with Home Assistant's (title-cased) labels — graceful degradation,
+  the ecobee device has only the two.
+- **Minimum runtime** selector — a cyan-outlined dropdown pill (`0 min / hr` with a
+  ⌄ caret) backed by a configured `fan_min_on_time` **`number`** entity
+  (`fan_min_on_time_entity` in config). The option grid is derived from the number
+  entity's `min`/`max`/`step` (defaulting to the ecobee 0–55 by 5); choosing a value
+  writes `number.set_value`. **Hidden entirely** when no such entity is
+  configured/available (ADR-0001) — the On / Auto toggle still shows.
+- **Helper copy** mirrors the device: a dynamic summary line ("Your fan currently
+  has no minimum runtime." at 0, otherwise "…runs at least N minutes per hour.") and
+  the static instruction "You can change your fan's minimum hourly runtime by
+  tapping the setting below."
 
 ### Sensors — `reference/sensors.jpeg`
 - Horizontal **cards**, each: **name**, **temperature°**, **occupancy** ("Occupied")

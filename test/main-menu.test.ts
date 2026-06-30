@@ -37,6 +37,27 @@ describe('toMainMenuModel — reachable sub-screens', () => {
     );
     expect(model.entries.map((e) => e.target)).toEqual(['system']);
   });
+
+  it('lists Fan after System when the entity supports fan_modes', () => {
+    const model = toMainMenuModel(
+      hass(climate('heat_cool', { hvac_modes: ['off', 'heat'], fan_modes: ['auto', 'on'] })),
+      config,
+    );
+    expect(model.entries.map((e) => [e.target, e.label])).toEqual([
+      ['system', 'System'],
+      ['fan', 'Fan'],
+    ]);
+  });
+
+  it('omits Fan when the entity exposes no fan_modes', () => {
+    const model = toMainMenuModel(hass(FULL), config);
+    expect(model.entries.map((e) => e.target)).not.toContain('fan');
+  });
+
+  it('lists Fan on its own when the entity has fan_modes but no System Modes', () => {
+    const model = toMainMenuModel(hass(climate('cool', { fan_modes: ['auto', 'on'] })), config);
+    expect(model.entries.map((e) => e.target)).toEqual(['fan']);
+  });
 });
 
 describe('toMainMenuModel — graceful degradation', () => {
