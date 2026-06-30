@@ -1,9 +1,10 @@
 import { svg, type SVGTemplateResult } from 'lit';
 
 // Inline single-color SVG glyphs (stroke/fill `currentColor`), sized by the
-// consuming element's font-size / explicit dimensions. Kept deliberately simple
-// and recognizable rather than tracing the device's exact vector art — that is a
-// later fidelity pass.
+// consuming element's font-size / explicit dimensions. These are being traced
+// toward the device's exact vector art incrementally (the humidity droplet has
+// had a fidelity pass); the remaining glyphs are still recognizable
+// approximations pending closer reference (issue #3).
 
 const wrap = (body: SVGTemplateResult): SVGTemplateResult =>
   svg`<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">${body}</svg>`;
@@ -18,10 +19,11 @@ export const icons = {
     </g>
   `),
 
-  /** Humidity — a slim diamond, matching the device's ◊ glyph. */
+  /** Humidity — the device's water-droplet glyph: a teardrop with a pointed top
+   *  and a rounded body (the `◊` in the docs is shorthand for this raindrop). */
   humidity: wrap(svg`
-    <path d="M12 3 L19 12 L12 21 L5 12 Z" fill="none" stroke="currentColor"
-      stroke-width="1.8" stroke-linejoin="round" />
+    <path d="M12 3 C12 3 6 10.2 6 14.5 A6 6 0 0 0 18 14.5 C18 10.2 12 3 12 3 Z"
+      fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
   `),
 
   /** Cooling / Cool mode. */

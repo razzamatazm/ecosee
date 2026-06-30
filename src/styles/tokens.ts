@@ -12,6 +12,10 @@ export const tokens = css`
     --ecosee-muted: #6f96a3;
     --ecosee-idle: #6f96a3;
 
+    /* The dominant current-temperature number: cyan with the device's faint
+       top-bright sheen (a near-white cyan fading into the accent). */
+    --ecosee-temp-grad: linear-gradient(180deg, #cdeffb 0%, #62cfe9 72%);
+
     --ecosee-heat: #f3a13c;
     --ecosee-heat-grad: linear-gradient(150deg, #f7c84d 0%, #ee7a2c 100%);
     --ecosee-cool: #49b6ea;

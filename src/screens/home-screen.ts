@@ -49,16 +49,20 @@ export class EcoseeHomeScreen extends LitElement {
     }
 
     /* Equipment-status edge glow, keyed to hvac_action: blue while cooling,
-       amber while heating, nothing when idle. */
+       amber while heating, nothing when idle. The device shows a crisp bright
+       outline tracing the squircle edge with a gentle falloff inward — a thin
+       solid ring plus a tight and a wider blurred layer. */
     .face.cooling {
       box-shadow:
-        inset 0 0 0 0.8cqw var(--ecosee-cool, #49b6ea),
-        inset 0 0 7cqw rgba(73, 182, 234, 0.5);
+        inset 0 0 0 0.6cqw var(--ecosee-cool, #49b6ea),
+        inset 0 0 3.5cqw color-mix(in srgb, var(--ecosee-cool, #49b6ea) 55%, transparent),
+        inset 0 0 10cqw color-mix(in srgb, var(--ecosee-cool, #49b6ea) 25%, transparent);
     }
     .face.heating {
       box-shadow:
-        inset 0 0 0 0.8cqw var(--ecosee-heat, #f3a13c),
-        inset 0 0 7cqw rgba(243, 161, 60, 0.5);
+        inset 0 0 0 0.6cqw var(--ecosee-heat, #f3a13c),
+        inset 0 0 3.5cqw color-mix(in srgb, var(--ecosee-heat, #f3a13c) 55%, transparent),
+        inset 0 0 10cqw color-mix(in srgb, var(--ecosee-heat, #f3a13c) 25%, transparent);
     }
 
     .sr-only {
@@ -92,12 +96,14 @@ export class EcoseeHomeScreen extends LitElement {
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
     }
+    /* The weather affordance is cyan on the Home Screen, like every other top-row
+       glyph (the device reserves green for the Weather Overlay's condition art). */
     .weather {
       grid-column: 1;
       justify-self: start;
-      width: 11cqw;
-      height: 11cqw;
-      color: var(--ecosee-weather, #7fd08a);
+      width: 9.5cqw;
+      height: 9.5cqw;
+      color: var(--ecosee-accent, #62cfe9);
     }
     /* System Mode indicator (tap → System Mode picker); always cyan, like the
        device — the heat/cool color language is reserved for setpoints/equipment. */
@@ -107,8 +113,8 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-accent, #62cfe9);
     }
     .mode .glyph {
-      width: 12cqw;
-      height: 12cqw;
+      width: 10cqw;
+      height: 10cqw;
     }
     .mode-off {
       display: inline-flex;
@@ -124,8 +130,8 @@ export class EcoseeHomeScreen extends LitElement {
     .menu {
       grid-column: 3;
       justify-self: end;
-      width: 11cqw;
-      height: 11cqw;
+      width: 9.5cqw;
+      height: 9.5cqw;
       color: var(--ecosee-accent, #62cfe9);
     }
 
@@ -153,13 +159,25 @@ export class EcoseeHomeScreen extends LitElement {
       height: 6cqw;
     }
 
+    /* The dominant number: thin cyan glyphs with the device's faint top-bright
+       sheen. Proportional lining figures match the device's narrow 1 / 7. The
+       gradient is layered as progressive enhancement over a solid cyan fallback. */
     .temp {
       font-size: 42cqw;
       font-weight: 200;
       line-height: 0.84;
-      letter-spacing: -0.04em;
-      color: var(--ecosee-fg, #d4eff9);
+      letter-spacing: -0.05em;
+      font-variant-numeric: lining-nums proportional-nums;
+      color: var(--ecosee-accent, #62cfe9);
       cursor: pointer;
+    }
+    @supports (background-clip: text) or (-webkit-background-clip: text) {
+      .temp {
+        background: var(--ecosee-temp-grad, linear-gradient(180deg, #cdeffb 0%, #62cfe9 72%));
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
     }
 
     /* Horizontal Hold pill: heat – cool, then the Resume ✕ (the device's
@@ -175,14 +193,18 @@ export class EcoseeHomeScreen extends LitElement {
       font-weight: 500;
       line-height: 1;
     }
+    /* The device weights the setpoint numerals bold and the separator light. */
     .pill .heat {
       color: var(--ecosee-heat, #f3a13c);
+      font-weight: 600;
     }
     .pill .cool {
       color: var(--ecosee-cool, #49b6ea);
+      font-weight: 600;
     }
     .pill .dash {
       color: var(--ecosee-muted, #6f96a3);
+      font-weight: 400;
     }
     /* A single-setpoint pill is tinted to its mode; the dual (Auto) pill stays
        cyan, matching the device. */
