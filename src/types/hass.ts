@@ -1,0 +1,60 @@
+// Minimal Home Assistant typings — only what ecosee touches. The full `hass`
+// object is large; we type the slice we read and keep attributes loose because a
+// generic `climate` entity may carry any subset (ADR-0001 graceful degradation).
+
+export interface HassEntityBase {
+  entity_id: string;
+  state: string;
+  attributes: Record<string, unknown>;
+  last_changed?: string;
+  last_updated?: string;
+}
+
+/** Documented shape of the attributes a `climate` entity *may* expose. All
+ *  optional: nothing may assume an ecobee-cloud attribute exists. */
+export interface ClimateAttributes {
+  current_temperature?: number;
+  current_humidity?: number;
+  temperature?: number;
+  target_temp_low?: number;
+  target_temp_high?: number;
+  hvac_action?: string;
+  hvac_modes?: string[];
+  preset_mode?: string;
+  preset_modes?: string[];
+  fan_mode?: string;
+  fan_modes?: string[];
+  min_temp?: number;
+  max_temp?: number;
+  target_temp_step?: number;
+  friendly_name?: string;
+  supported_features?: number;
+}
+
+/** Entity-registry slice — used to detect the backing integration (e.g. ecobee),
+ *  which gates integration-specific actions like `ecobee.resume_program`. */
+export interface HassEntityRegistryEntry {
+  platform?: string;
+}
+
+export interface HomeAssistant {
+  states: Record<string, HassEntityBase>;
+  entities?: Record<string, HassEntityRegistryEntry>;
+  config?: {
+    unit_system?: {
+      temperature?: string;
+    };
+  };
+  callService(
+    domain: string,
+    service: string,
+    serviceData?: Record<string, unknown>,
+  ): Promise<unknown>;
+}
+
+/** The LovelaceCard contract Home Assistant calls into. */
+export interface LovelaceCard extends HTMLElement {
+  hass?: HomeAssistant;
+  setConfig(config: unknown): void;
+  getCardSize?(): number | Promise<number>;
+}

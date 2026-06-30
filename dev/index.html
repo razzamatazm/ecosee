@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ecosee — dev preview</title>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #15191d;
+        color: #cfd8dd;
+        font-family: system-ui, -apple-system, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 24px;
+        padding: 32px 16px;
+        box-sizing: border-box;
+      }
+      h1 {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #62cfe9;
+        margin: 0;
+      }
+      .controls {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 16px;
+        font-size: 13px;
+      }
+      select,
+      input[type='range'] {
+        accent-color: #62cfe9;
+      }
+      select {
+        background: #0a0d10;
+        color: #cfd8dd;
+        border: 1px solid #2a3138;
+        border-radius: 6px;
+        padding: 6px 8px;
+      }
+      #stage {
+        width: 380px;
+        max-width: 100%;
+        transition: width 0.15s ease;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ecosee · Home Screen</h1>
+    <div class="controls">
+      <label>Fixture <select id="fixture"></select></label>
+      <label>Width <input id="width" type="range" min="200" max="520" value="380" /></label>
+      <span id="width-label">380px</span>
+    </div>
+    <div id="stage"></div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
