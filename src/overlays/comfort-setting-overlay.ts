@@ -7,6 +7,7 @@ import {
   type ComfortSettingOption,
 } from '../climate/comfort-setting';
 import { icons } from '../icons';
+import { emitServiceCall } from './service-call-event';
 
 /** Maps a derived glyph key onto a Skin icon. The seam emits only these keys, so a
  *  custom preset whose configured override is unknown has already degraded to
@@ -29,8 +30,8 @@ const GLYPHS: Record<ComfortIcon, TemplateResult> = {
  * motif); the rest are cyan on black.
  *
  * Like the System Mode picker, this owns no edit state. Choosing a Comfort Setting
- * is a single discrete write that applies it as a Hold: it emits
- * `ecosee-set-comfort-setting` with the `climate.set_preset_mode` call and lets the
+ * is a single discrete write that applies it as a Hold: it emits the shared
+ * `ecosee-service-call` with the `climate.set_preset_mode` call and lets the
  * highlight follow the entity's reported `preset_mode` once `hass` reflects it.
  * Tapping the already-active row is a no-op. Dismissal is the shell's job (✕ /
  * outside-tap).
@@ -118,13 +119,7 @@ export class EcoseeComfortSettingOverlay extends LitElement {
 
   private _select(option: ComfortSettingOption): void {
     if (option.selected) return; // already the active Comfort Setting — nothing to write
-    this.dispatchEvent(
-      new CustomEvent('ecosee-set-comfort-setting', {
-        detail: { call: setPresetModeCall(option.preset, this.entityId) },
-        bubbles: true,
-        composed: true,
-      }),
-    );
+    emitServiceCall(this, setPresetModeCall(option.preset, this.entityId));
   }
 
   override render(): TemplateResult | typeof nothing {

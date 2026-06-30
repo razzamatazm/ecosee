@@ -49,6 +49,20 @@ type OverlayKind =
   | 'weather'
   | 'menu';
 
+/**
+ * One Overlay's wiring, gathered in a single place: whether it has anything to show
+ * (`available`, which gates opening), an optional side-effect when it opens or
+ * closes (the Temperature Adjust seed, the Weather forecast fetch), and how to
+ * render its content against the current `hass`. The card drives every Overlay
+ * through this descriptor instead of a per-kind branch, so adding one is a single
+ * table entry rather than edits in four places.
+ */
+interface OverlayDescriptor {
+  available(hass: HomeAssistant, config: EcoseeCardConfig): boolean;
+  onOpen?(hass: HomeAssistant, config: EcoseeCardConfig): void;
+  render(hass: HomeAssistant, config: EcoseeCardConfig): TemplateResult | typeof nothing;
+}
+
 const VERSION = '0.1.0';
 
 /**
@@ -88,6 +102,102 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   private get _overlay(): OverlayKind | undefined {
     return this._nav[this._nav.length - 1];
   }
+
+  /** Every Overlay's wiring in one table (see {@link OverlayDescriptor}). Keyed by
+   *  kind, so each Overlay's availability, open/close side-effects, and render live
+   *  together — replacing the former per-kind `if`-chain plus the bespoke opener
+   *  methods. The render templates carry no event handlers: editing Overlays emit
+   *  the unified `ecosee-service-call` and the hubs emit their navigation events,
+   *  all caught once on the <ecosee-overlay> shell in `_renderOverlay`. */
+  private readonly _overlays: Record<OverlayKind, OverlayDescriptor> = {
+    temperature: {
+      available: (hass, config) => toTempAdjustModel(hass, config).available,
+      // Seed the editing model once on open and hold it by reference, so the
+      // overlay's in-progress edits survive `hass` pushes (see `_tempSeed`).
+      onOpen: (hass, config) => {
+        this._tempSeed = toTempAdjustModel(hass, config);
+      },
+      render: (_hass, config) =>
+        this._tempSeed
+          ? html`
+              <ecosee-temperature-overlay
+                .model=${this._tempSeed}
+                .entityId=${config.entity}
+              ></ecosee-temperature-overlay>
+            `
+          : nothing,
+    },
+    'system-mode': {
+      available: (hass, config) => toSystemModeModel(hass, config).available,
+      // Computed live (not seeded): the picker holds no in-progress edit, so the
+      // highlight tracks the entity's reported mode as `hass` updates after a write.
+      render: (hass, config) => html`
+        <ecosee-system-mode-overlay
+          .model=${toSystemModeModel(hass, config)}
+          .entityId=${config.entity}
+        ></ecosee-system-mode-overlay>
+      `,
+    },
+    'comfort-setting': {
+      available: (hass, config) => toComfortSettingModel(hass, config).available,
+      render: (hass, config) => html`
+        <ecosee-comfort-setting-overlay
+          .model=${toComfortSettingModel(hass, config)}
+          .entityId=${config.entity}
+        ></ecosee-comfort-setting-overlay>
+      `,
+    },
+    system: {
+      // The System sub-screen hub backs either selector; it drops whichever lacks
+      // data (graceful degradation, ADR-0001).
+      available: (hass, config) =>
+        toSystemModeModel(hass, config).available || toComfortSettingModel(hass, config).available,
+      render: (hass, config) => html`
+        <ecosee-system-overlay
+          .systemMode=${toSystemModeModel(hass, config)}
+          .comfort=${toComfortSettingModel(hass, config)}
+          .equipment=${toHomeView(hass, config).equipment}
+        ></ecosee-system-overlay>
+      `,
+    },
+    fan: {
+      available: (hass, config) => toFanModel(hass, config).available,
+      render: (hass, config) => html`
+        <ecosee-fan-overlay
+          .model=${toFanModel(hass, config)}
+          .entityId=${config.entity}
+        ></ecosee-fan-overlay>
+      `,
+    },
+    sensors: {
+      available: (hass, config) => toSensorsModel(hass, config).available,
+      render: (hass, config) => html`
+        <ecosee-sensors-overlay .model=${toSensorsModel(hass, config)}></ecosee-sensors-overlay>
+      `,
+    },
+    weather: {
+      available: (hass, config) => toWeatherModel(hass, config).available,
+      // Current conditions are live from `hass`; the forecast (page 2 / intra-day
+      // periods) is fetched async via `weather.get_forecasts` and threaded in, the
+      // model degrading while it is still absent (ADR-0001).
+      onOpen: () => {
+        void this._loadForecasts();
+      },
+      render: (hass, config) => html`
+        <ecosee-weather-overlay
+          .model=${toWeatherModel(hass, config, this._weatherForecasts)}
+        ></ecosee-weather-overlay>
+      `,
+    },
+    menu: {
+      available: (hass, config) => toMainMenuModel(hass, config).available,
+      render: (hass, config) => html`
+        <ecosee-main-menu-overlay
+          .model=${toMainMenuModel(hass, config)}
+        ></ecosee-main-menu-overlay>
+      `,
+    },
+  };
 
   static override styles = [
     tokens,
@@ -157,17 +267,22 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   }
 
   private _renderOverlay(): TemplateResult | typeof nothing {
-    if (!this._overlay || !this._config) return nothing;
-    const content = this._renderOverlayContent(this._config);
+    if (!this._overlay || !this._config || !this.hass) return nothing;
+    const content = this._overlays[this._overlay].render(this.hass, this._config);
     if (content === nothing) return nothing;
-    // These are native composed events, so any interaction on the slotted content
-    // (even inside a child Overlay's shadow DOM) bubbles here and postpones
-    // auto-revert (issue #13). `pointermove` matters too: the Temperature scrubber
-    // captures the pointer on `pointerdown` and then scrubs via `pointermove`
-    // alone, so a slow drag would otherwise let the timer expire mid-gesture.
+    // One listening point for every Overlay. Editing Overlays emit the unified
+    // `ecosee-service-call` and the hubs emit their navigation events — all bubbling
+    // + composed, so they reach the shell here. The pointer/key listeners postpone
+    // auto-revert (issue #13) on any interaction with the slotted content (even
+    // inside a child Overlay's shadow DOM). `pointermove` matters too: the
+    // Temperature scrubber captures the pointer on `pointerdown` and then scrubs via
+    // `pointermove` alone, so a slow drag would otherwise let the timer expire.
     return html`
       <ecosee-overlay
         @ecosee-overlay-dismiss=${this._closeOverlay}
+        @ecosee-service-call=${this._onServiceCall}
+        @ecosee-menu-select=${this._onMenuSelect}
+        @ecosee-system-select=${this._onSystemSelect}
         @pointerdown=${this._onOverlayActivity}
         @pointermove=${this._onOverlayActivity}
         @keydown=${this._onOverlayActivity}
@@ -176,156 +291,36 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _renderOverlayContent(config: EcoseeCardConfig): TemplateResult | typeof nothing {
-    if (this._overlay === 'temperature') {
-      if (!this._tempSeed) return nothing;
-      return html`
-        <ecosee-temperature-overlay
-          .model=${this._tempSeed}
-          .entityId=${config.entity}
-          @ecosee-set-temperature=${this._onServiceCall}
-        ></ecosee-temperature-overlay>
-      `;
-    }
-    if (this._overlay === 'system-mode') {
-      if (!this.hass) return nothing;
-      // Computed live (not seeded like the temperature model): the picker holds no
-      // in-progress edit, so the selected row should track the entity's reported
-      // mode as `hass` updates after a write.
-      return html`
-        <ecosee-system-mode-overlay
-          .model=${toSystemModeModel(this.hass, config)}
-          .entityId=${config.entity}
-          @ecosee-set-system-mode=${this._onServiceCall}
-        ></ecosee-system-mode-overlay>
-      `;
-    }
-    if (this._overlay === 'comfort-setting') {
-      if (!this.hass) return nothing;
-      // Computed live (like the System Mode picker): the picker holds no in-progress
-      // edit, so the highlight tracks the entity's reported `preset_mode` as `hass`
-      // updates after a write.
-      return html`
-        <ecosee-comfort-setting-overlay
-          .model=${toComfortSettingModel(this.hass, config)}
-          .entityId=${config.entity}
-          @ecosee-set-comfort-setting=${this._onServiceCall}
-        ></ecosee-comfort-setting-overlay>
-      `;
-    }
-    if (this._overlay === 'system') {
-      if (!this.hass) return nothing;
-      // The System sub-screen hub: both selectors + the equipment-status line,
-      // computed live so each selector reflects (and gates on) the current `hass`.
-      return html`
-        <ecosee-system-overlay
-          .systemMode=${toSystemModeModel(this.hass, config)}
-          .comfort=${toComfortSettingModel(this.hass, config)}
-          .equipment=${toHomeView(this.hass, config).equipment}
-          @ecosee-system-select=${this._onSystemSelect}
-        ></ecosee-system-overlay>
-      `;
-    }
-    if (this._overlay === 'fan') {
-      if (!this.hass) return nothing;
-      // Computed live (like the System Mode picker): the overlay holds no in-progress
-      // edit, so the selected fan mode and runtime track the entity's reported values
-      // as `hass` updates after a write.
-      return html`
-        <ecosee-fan-overlay
-          .model=${toFanModel(this.hass, config)}
-          .entityId=${config.entity}
-          @ecosee-set-fan=${this._onServiceCall}
-        ></ecosee-fan-overlay>
-      `;
-    }
-    if (this._overlay === 'menu') {
-      if (!this.hass) return nothing;
-      // Computed live so the listed sub-screens reflect the current `hass` (an
-      // entry can come or go as its backing data appears/disappears).
-      return html`
-        <ecosee-main-menu-overlay
-          .model=${toMainMenuModel(this.hass, config)}
-          @ecosee-menu-select=${this._onMenuSelect}
-        ></ecosee-main-menu-overlay>
-      `;
-    }
-    if (this._overlay === 'sensors') {
-      if (!this.hass) return nothing;
-      // Computed live (read-only, no in-progress edit): the cards track each
-      // sensor's reported temperature + occupancy as `hass` updates.
-      return html`
-        <ecosee-sensors-overlay
-          .model=${toSensorsModel(this.hass, config)}
-        ></ecosee-sensors-overlay>
-      `;
-    }
-    if (this._overlay === 'weather') {
-      if (!this.hass) return nothing;
-      // Current conditions are computed live from `hass`; the forecast (page 2 /
-      // intra-day periods) is threaded in from the async `get_forecasts` fetch,
-      // and the model degrades while it is still absent. Weather is read-only —
-      // no service call, so there is no event to wire here.
-      return html`
-        <ecosee-weather-overlay
-          .model=${toWeatherModel(this.hass, config, this._weatherForecasts)}
-        ></ecosee-weather-overlay>
-      `;
-    }
-    return nothing;
-  }
-
   private _onAction = (event: CustomEvent<{ action: HomeAction }>): void => {
     switch (event.detail.action) {
       case 'resume':
         this._resumeSchedule();
         break;
       case 'temperature':
-        this._openTemperature();
+        this._open('temperature', 'home');
         break;
       case 'system-mode':
-        this._openSystemMode();
+        this._open('system-mode', 'home');
         break;
       case 'menu':
-        this._openMenu();
+        this._open('menu', 'home');
         break;
       case 'weather':
-        this._openWeather();
+        this._open('weather', 'home');
         break;
     }
   };
 
-  /** Open an Overlay straight from the Home Screen: a fresh stack, so dismissing
-   *  it returns to Home. */
-  private _openFromHome(kind: OverlayKind): void {
-    this._nav = [kind];
-  }
-
-  private _openTemperature(): void {
+  /** Open an Overlay: gate on its availability, run its open side-effect, then place
+   *  it on the nav stack. `'home'` replaces the bare Home Screen (so dismissing
+   *  returns to Home); `'push'` stacks it on the current Overlay (so a sub-screen
+   *  reached through the Main Menu returns to the menu). Hub-and-picker, CONTEXT.md. */
+  private _open(kind: OverlayKind, mode: 'home' | 'push'): void {
     if (!this.hass || !this._config) return;
-    const model = toTempAdjustModel(this.hass, this._config);
-    if (!model.available) return; // nothing editable ⇒ no overlay
-    this._tempSeed = model;
-    this._openFromHome('temperature');
-  }
-
-  private _openSystemMode(): void {
-    if (!this.hass || !this._config) return;
-    if (!toSystemModeModel(this.hass, this._config).available) return; // no modes ⇒ no overlay
-    this._openFromHome('system-mode');
-  }
-
-  private _openMenu(): void {
-    if (!this.hass || !this._config) return;
-    if (!toMainMenuModel(this.hass, this._config).available) return; // no sub-screens ⇒ no menu
-    this._openFromHome('menu');
-  }
-
-  private _openWeather(): void {
-    if (!this.hass || !this._config) return;
-    if (!toWeatherModel(this.hass, this._config).available) return; // no weather entity ⇒ no overlay
-    this._openFromHome('weather');
-    void this._loadForecasts();
+    const overlay = this._overlays[kind];
+    if (!overlay.available(this.hass, this._config)) return; // nothing to show ⇒ no Overlay
+    overlay.onOpen?.(this.hass, this._config);
+    this._nav = mode === 'home' ? [kind] : [...this._nav, kind];
   }
 
   /** Fetch the Weather overlay's forecast via `weather.get_forecasts` (daily for
@@ -356,37 +351,23 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   }
 
   /** Route a Main Menu selection to its sub-screen, pushed onto the stack so the
-   *  sub-screen's dismissal returns to the menu (hub-and-picker). */
+   *  sub-screen's dismissal returns to the menu (hub-and-picker). The targets double
+   *  as overlay kinds, so opening each one runs its descriptor (e.g. the System hub's
+   *  availability gate, or Weather's forecast fetch). */
   private _onMenuSelect = (event: CustomEvent<{ target: MainMenuTarget }>): void => {
-    switch (event.detail.target) {
-      case 'system':
-        // Open the System sub-screen hub (System Mode + Comfort Setting selectors),
-        // not a picker directly — the pickers are reached from within it.
-        this._nav = [...this._nav, 'system'];
-        break;
-      case 'weather':
-        // Pushed onto the stack so dismissal returns to the Main Menu (hub-and-picker).
-        this._nav = [...this._nav, 'weather'];
-        void this._loadForecasts();
-        break;
-      case 'fan':
-        this._nav = [...this._nav, 'fan'];
-        break;
-      case 'sensors':
-        this._nav = [...this._nav, 'sensors'];
-        break;
-    }
+    this._open(event.detail.target, 'push');
   };
 
   /** Route a System sub-screen selector to its focused picker, pushed onto the stack
    *  so the picker's dismissal returns to the System sub-screen (hub-and-picker). The
    *  selector targets double as overlay kinds. */
   private _onSystemSelect = (event: CustomEvent<{ target: SystemSelectTarget }>): void => {
-    this._nav = [...this._nav, event.detail.target];
+    this._open(event.detail.target, 'push');
   };
 
-  /** Dismiss (✕ / outside-tap): pop one level. From a top-level Overlay that is
-   *  Home, from a menu-reached picker that is the menu. */
+  /** Dismiss (✕ / outside-tap): pop one level and drop per-open state so a later
+   *  open starts fresh. From a top-level Overlay that is Home; from a menu-reached
+   *  picker that is the menu. */
   private _closeOverlay = (): void => {
     this._nav = this._nav.slice(0, -1);
     // Drop per-open state so a later open starts fresh. The seeds are per-Overlay
