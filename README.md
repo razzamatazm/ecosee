@@ -12,9 +12,10 @@ ecobee fidelity when rich data is present and degrading gracefully when it is no
 ## Status
 
 Milestone 1 — project skeleton + the **Home Screen** (current temperature,
-humidity, equipment status, Hold pill + Resume, weather icon, menu affordance).
-Overlays (temperature adjust, System Mode, Comfort Setting, Fan, Weather, Sensors)
-and the GUI config editor are next.
+humidity, equipment status, Hold pill + Resume, weather icon, menu affordance),
+the overlays (temperature adjust, System Mode, Comfort Setting, Fan, Weather,
+Sensors), and a **GUI config editor** so the Card is configurable from the
+dashboard UI as well as YAML.
 
 ## Install (HACS)
 
@@ -26,7 +27,10 @@ and the GUI config editor are next.
 
 ## Configuration
 
-YAML-first (a GUI editor is a later fast-follow). Only `entity` is required.
+Configure the Card from the dashboard's **visual editor** or in YAML — both write
+the same schema below; only `entity` is required. (The visual editor manages the
+list of `sensors` entities; per-sensor `name`/`occupancy_entity` overrides are
+edited in YAML.)
 
 ```yaml
 type: custom:ecosee-card

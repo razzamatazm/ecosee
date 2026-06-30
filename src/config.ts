@@ -16,9 +16,10 @@ export interface SensorConfig {
   occupancy_entity?: string;
 }
 
-/** YAML-first config (ADR-0002). The GUI editor is a later fast-follow, so the
- *  schema is the source of truth and `setConfig` validates it. Only `entity` is
- *  required; everything else opts additional Home-Screen affordances in. */
+/** YAML-first config (ADR-0002): this schema is the source of truth and
+ *  `setConfig` validates it. The GUI editor (issue #14, `src/editor/`) is a thin
+ *  form *over* this schema, not a second source — it tracks the keys here. Only
+ *  `entity` is required; everything else opts additional Home-Screen affordances in. */
 export interface EcoseeCardConfig {
   type: string;
   /** The primary `climate` entity the Card is bound to. Required. */
