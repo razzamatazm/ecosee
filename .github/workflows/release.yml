@@ -1,0 +1,59 @@
+name: Release
+
+# Fully automated, version-driven release. On every push to main this reads the
+# version from package.json; if no `v<version>` release exists yet it builds the
+# single-file card bundle and publishes a GitHub Release with `dist/ecosee.js`
+# attached. HACS resolves a Lovelace plugin to its latest release and downloads
+# the asset named in hacs.json (`ecosee.js`), so publishing a release is what
+# makes the repository structure HACS-compliant.
+#
+# To cut a release: bump "version" in package.json and merge to main. Pushes that
+# don't change the version are a cheap no-op (the guard below skips the build).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build · Publish ecosee.js
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Read version from package.json
+        id: ver
+        run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this version is already released
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "v${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "v${{ steps.ver.outputs.version }} already released — skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.check.outputs.exists == 'false'
+        run: npm ci
+
+      - if: steps.check.outputs.exists == 'false'
+        run: npm run build
+
+      - name: Publish release with the bundled card
+        if: steps.check.outputs.exists == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.version }}
+          name: v${{ steps.ver.outputs.version }}
+          files: dist/ecosee.js
+          generate_release_notes: true
