@@ -84,6 +84,24 @@ export const icons = {
     </g>
   `),
 
+  /** Dry System Mode — a water droplet (generic `climate` only; not an ecobee mode). */
+  drop: wrap(svg`
+    <path d="M12 3 C12 3 5.5 10.5 5.5 15 A6.5 6.5 0 0 0 18.5 15 C18.5 10.5 12 3 12 3 Z"
+      fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+  `),
+
+  /** Fan only System Mode — a simple fan (generic `climate` only; not an ecobee mode). */
+  fan: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+      stroke-linejoin="round">
+      <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
+      <path d="M12 10.2 C12 6 11 3.5 13.5 3.5 C16 3.5 15.5 8 12 10.2 Z" />
+      <path d="M13.8 12 C18 12 20.5 11 20.5 13.5 C20.5 16 16 15.5 13.8 12 Z" />
+      <path d="M10.2 12 C6 12 3.5 13 3.5 10.5 C3.5 8 8 8.5 10.2 12 Z" />
+      <path d="M12 13.8 C12 18 13 20.5 10.5 20.5 C8 20.5 8.5 16 12 13.8 Z" />
+    </g>
+  `),
+
   /** Heat / Cool (Auto) System Mode — a snowflake fused with a leaf (cool + eco),
    *  matching the device's combined Auto glyph. */
   auto: wrap(svg`

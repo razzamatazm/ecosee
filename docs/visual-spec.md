@@ -84,7 +84,9 @@ then the Hold pill — see also the equipment edge glow below.
 ### System Mode picker — `reference/system-mode-picker.jpeg`
 - Vertical segmented list with the device's exact labels: **Heat**, **Cool**,
   **Heat / Cool (Auto)**, **Off**. Selected = filled cyan.
-- Options come from `hvac_modes`; only show modes the entity supports.
+- Options come from `hvac_modes`; only show modes the entity supports. A generic
+  entity may also offer **Dry** / **Fan only** (HA labels); these list after Auto
+  and before Off, though the ecobee device has neither.
 
 ### Comfort Setting picker — (on Main Menu › System, `reference/menu-system.jpeg`)
 - Dropdown/list of `preset_modes` (Home / Away / Sleep / custom). Selecting one
