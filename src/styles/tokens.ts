@@ -29,6 +29,13 @@ export const tokens = css`
     --ecosee-aspect: 1 / 1;
     --ecosee-radius: 15%;
 
-    --ecosee-font: 'Helvetica Neue', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    /* The device's typeface is Gotham (Hoefler&Co). Gotham is proprietary and
+       cannot be bundled with the card, so we request it by name first — it is used
+       wherever the user's theme/system provides it — then fall back to Montserrat,
+       the closest freely-licensed geometric-sans Gotham-alike, then the system
+       stack. To guarantee Gotham itself, supply it via your Home Assistant frontend. */
+    --ecosee-font:
+      'Gotham', 'Gotham SSm', 'Montserrat', 'Helvetica Neue', 'Segoe UI', system-ui, -apple-system,
+      sans-serif;
   }
 `;

@@ -10,6 +10,11 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 
 ## Visual language
 
+- **Typeface:** the device uses **Gotham** (Hoefler&Co). It is proprietary and
+  **not bundled** with the card; the font stack (`--ecosee-font`) requests Gotham
+  first (used when the user's HA frontend/theme/system provides it) and falls back
+  to **Montserrat** — the closest freely-licensed Gotham-alike — then the system
+  stack. Numbers use proportional lining figures.
 - **Motif:** flat **squircle** (rounded-square) — big numbers and rounded-square
   bubbles. **No circular dial/ring.**
 - **Canvas:** near-black background, cyan/blue accent text and outlines.
