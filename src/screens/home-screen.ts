@@ -14,7 +14,7 @@ export type HomeAction = 'menu' | 'temperature' | 'weather' | 'resume' | 'system
  * docs/reference/home-*.jpeg): a top row of affordance glyphs (weather left,
  * System Mode center, menu right), the humidity line and the large current
  * temperature centered beneath, and the horizontal Hold pill below the number.
- * Active equipment is shown as a colored glow ring around the squircle (blue
+ * Active equipment is shown as a colored edge glow around the squircle (blue
  * cooling / amber heating), keyed to `hvac_action` — not an icon. Purely
  * presentational: it renders whatever the already-degraded HomeView says and
  * emits `ecosee-action` events for the host card to handle.
@@ -48,8 +48,8 @@ export class EcoseeHomeScreen extends LitElement {
       user-select: none;
     }
 
-    /* Equipment-status glow ring around the screen edge, keyed to hvac_action:
-       blue while cooling, amber while heating, nothing when idle. */
+    /* Equipment-status edge glow, keyed to hvac_action: blue while cooling,
+       amber while heating, nothing when idle. */
     .face.cooling {
       box-shadow:
         inset 0 0 0 0.8cqw var(--ecosee-cool, #49b6ea),

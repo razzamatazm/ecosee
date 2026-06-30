@@ -126,6 +126,11 @@ export class EcoseeTemperatureOverlay extends LitElement {
       touch-action: none;
       cursor: ns-resize;
     }
+    .scrubber:focus-visible {
+      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
+      outline-offset: 1.5cqw;
+      border-radius: 8cqw;
+    }
     .stack {
       display: flex;
       flex-direction: column;
@@ -257,11 +262,29 @@ export class EcoseeTemperatureOverlay extends LitElement {
   };
 
   private _onScrubberUp = (event: PointerEvent): void => {
-    if (!this._drag) return;
+    const drag = this._drag;
+    if (!drag) return;
     this._drag = null;
     const el = event.currentTarget as HTMLElement;
     if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
-    if (this._edit) this._emit(this._edit);
+    // Commit only when the drag actually moved the value — a tap (or a drag that
+    // nets back to where it started) must not create an unrequested Hold.
+    const edit = this._edit && this._edit[this._edit.active];
+    if (this._edit && edit && edit.value !== drag.startValue) this._emit(this._edit);
+  };
+
+  // Keyboard equivalent of the drag, so the scrubber slider is operable without a
+  // pointer: ↑/→ raise, ↓/← lower the active setpoint by one step.
+  private _onScrubberKey = (event: KeyboardEvent): void => {
+    const model = this._edit;
+    if (!model) return;
+    if (event.key === 'ArrowUp' || event.key === 'ArrowRight') {
+      event.preventDefault();
+      this._commit(nudge(model, 1));
+    } else if (event.key === 'ArrowDown' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      this._commit(nudge(model, -1));
+    }
   };
 
   override render(): TemplateResult | typeof nothing {
@@ -300,10 +323,18 @@ export class EcoseeTemperatureOverlay extends LitElement {
     return html`
       <div
         class="scrubber"
+        role="slider"
+        tabindex="0"
+        aria-label=${`${model.active === 'cool' ? 'Cool' : 'Heat'} setpoint`}
+        aria-valuenow=${edit.value}
+        aria-valuemin=${edit.min ?? nothing}
+        aria-valuemax=${edit.max ?? nothing}
+        aria-valuetext=${formatTemp(edit.value, model.unit)}
         @pointerdown=${this._onScrubberDown}
         @pointermove=${this._onScrubberMove}
         @pointerup=${this._onScrubberUp}
         @pointercancel=${this._onScrubberUp}
+        @keydown=${this._onScrubberKey}
       >
         <div class="stack above">${above.map(neighbor)}</div>
         <div class="bubble">${formatTemp(edit.value, model.unit)}</div>

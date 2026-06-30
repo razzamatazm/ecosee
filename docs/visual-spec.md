@@ -13,8 +13,9 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 - **Motif:** flat **squircle** (rounded-square) — big numbers and rounded-square
   bubbles. **No circular dial/ring.**
 - **Canvas:** near-black background, cyan/blue accent text and outlines.
-- **Selected state:** filled light-blue (cyan) bubble with dark text (see the
-  System Mode picker and the active scrubber value).
+- **Selected state:** filled cyan fill. The System Mode picker's selected row uses
+  dark text on cyan; the Temperature Adjust scrubber bubble uses a thin light
+  numeral over its gradient.
 - **Mode/setpoint color language:**
   - **Cool** — blue/cyan, **❄ snowflake** icon.
   - **Heat** — amber/orange, **♨ heat-coil** icon. The active heat bubble uses a warm
@@ -45,14 +46,14 @@ Overlays auto-revert to the Home Screen after a configurable inactivity timeout
 
 ### Home Screen — `reference/home-hold.jpeg`, `home-off.jpeg`, `home-heat-only.jpeg`, `home-cool-only.jpeg`
 Top row of glyphs, then the humidity line and large current temperature centered,
-then the Hold pill — see also the equipment ring below.
+then the Hold pill — see also the equipment edge glow below.
 - **Large current temperature** (e.g., `75`) — the dominant element. This is
   `current_temperature`, NOT a setpoint.
 - **Humidity** `◊ 60%` — `current_humidity` (hidden if absent).
 - **System Mode indicator** (top row, center) — the device's mode glyph: `OFF` pill,
   ♨ Heat, ❄ Cool, ❄-leaf Heat / Cool (Auto). From `hvac_mode`; tapping it opens the
-  **System Mode picker**. (This is *not* the equipment status — see the ring.)
-- **Equipment Status ring** — a colored glow around the screen edge: blue while
+  **System Mode picker**. (This is *not* the equipment status — see the edge glow.)
+- **Equipment Status edge glow** — a colored glow around the screen edge: blue while
   cooling, amber while heating, none when idle. From `hvac_action` (inferred if
   absent); see `reference/home-cooling.jpeg` / `home-heating.jpeg`.
 - **Hold pill** (when on a Hold): the active setpoints (`70 – 75`, heat amber / cool
@@ -63,7 +64,7 @@ then the Hold pill — see also the equipment ring below.
   `weather` entity is configured/detected.
 - **Menu affordance** (top row, right) — opens Main Menu.
 - **Omitted (no generic data source):** reminder/alert glyph, glowing status orb (the
-  distinct center orb; the equipment *ring* above is backed by `hvac_action`).
+  distinct center orb; the equipment *edge glow* above is backed by `hvac_action`).
 
 ### Temperature Adjust — `reference/temp-adjust-cool.jpeg`, `temp-adjust-heat.jpeg`
 - **Vertical value scrubber** down the center, higher values up:
