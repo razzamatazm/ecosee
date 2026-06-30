@@ -8,6 +8,7 @@ import { toComfortSettingModel } from './climate/comfort-setting';
 import { toFanModel } from './climate/fan';
 import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
 import type { SystemSelectTarget } from './overlays/system-overlay';
+import { toSensorsModel } from './sensors/sensors';
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
@@ -20,12 +21,14 @@ import './overlays/comfort-setting-overlay';
 import './overlays/system-overlay';
 import './overlays/fan-overlay';
 import './overlays/main-menu-overlay';
+import './overlays/sensors-overlay';
 
 /** An Overlay that can mount over the Home Screen. `system` is the Main Menu's
  *  System sub-screen (the hub holding the System Mode + Comfort Setting selectors);
  *  `system-mode` / `comfort-setting` are the focused pickers it routes to. More
- *  kinds (Sensors, Weather) join this union as they land. */
-type OverlayKind = 'temperature' | 'system-mode' | 'comfort-setting' | 'system' | 'fan' | 'menu';
+ *  kinds (Weather) join this union as they land. */
+type OverlayKind =
+  'temperature' | 'system-mode' | 'comfort-setting' | 'system' | 'fan' | 'sensors' | 'menu';
 
 const VERSION = '0.1.0';
 
@@ -173,6 +176,16 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         ></ecosee-main-menu-overlay>
       `;
     }
+    if (this._overlay === 'sensors') {
+      if (!this.hass) return nothing;
+      // Computed live (read-only, no in-progress edit): the cards track each
+      // sensor's reported temperature + occupancy as `hass` updates.
+      return html`
+        <ecosee-sensors-overlay
+          .model=${toSensorsModel(this.hass, config)}
+        ></ecosee-sensors-overlay>
+      `;
+    }
     return nothing;
   }
 
@@ -236,9 +249,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         this._nav = [...this._nav, 'fan'];
         break;
       case 'sensors':
+        this._nav = [...this._nav, 'sensors'];
+        break;
       case 'weather':
-        // These sub-screens land in later milestones (#9 / #5); until then
-        // `toMainMenuModel` doesn't list them, so this is unreachable today.
+        // The Weather sub-screen lands in a later milestone (#5); until then
+        // `toMainMenuModel` doesn't list it, so this is unreachable today.
         console.debug(`ecosee: "${event.detail.target}" sub-screen not yet implemented`);
         break;
     }

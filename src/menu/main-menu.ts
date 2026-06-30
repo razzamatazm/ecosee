@@ -3,6 +3,7 @@ import type { EcoseeCardConfig } from '../config';
 import { toSystemModeModel } from '../climate/system-mode';
 import { toComfortSettingModel } from '../climate/comfort-setting';
 import { toFanModel } from '../climate/fan';
+import { toSensorsModel } from '../sensors/sensors';
 
 // The derivation seam for the Main Menu hub (the sibling of `toHomeView` /
 // `toSystemModeModel`). `toMainMenuModel` builds the already-degraded list of
@@ -56,6 +57,14 @@ const SUBSCREENS: readonly SubScreen[] = [
     // Gated on the entity exposing `fan_modes`; the Fan overlay's optional
     // minimum-runtime control degrades independently (ADR-0001).
     available: (hass, config) => toFanModel(hass, config).available,
+  },
+  {
+    target: 'sensors',
+    label: 'Sensors',
+    // The Sensors sub-screen (#9) is reachable only when at least one *configured*
+    // sensor yields a usable card; the thermostat's own temp alone does not surface
+    // it. `toSensorsModel().available` encodes exactly that, so the two never disagree.
+    available: (hass, config) => toSensorsModel(hass, config).available,
   },
 ];
 

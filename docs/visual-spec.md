@@ -160,11 +160,27 @@ edit.
   tapping the setting below."
 
 ### Sensors — `reference/sensors.jpeg`
-- Horizontal **cards**, each: **name**, **temperature°**, **occupancy** ("Occupied")
-  with an occupancy icon, and an expand chevron.
-- Populated from a user-curated list of temperature entities (thermostat's own temp
-  auto-included first). Occupancy badge shown only when an occupancy entity is
-  supplied for that sensor. No "participating in average" UI (HA can't back it).
+- Reached through the hub (Main Menu › Sensors), so the header is the breadcrumb
+  **"Main Menu"** with **"Sensors"** beneath it.
+- A vertical stack of horizontal **cards**, each a cyan-outlined squircle with: a
+  sensor glyph on the left, the **name** (bold), a **`73° | Occupied`** reading
+  line, and a circled **expand chevron** on the right. The thermostat's own card
+  gets the wall-display glyph; curated sensors get the remote-sensor glyph.
+- **Reading line:** the current **temperature°** (degree sign only, no unit letter,
+  matching the device); when an occupancy entity is configured, a ` | ` divider and
+  the occupancy badge follow — **"Occupied"** when it reports `on`, **"Unoccupied"**
+  otherwise. With no occupancy entity (or an unavailable one), the badge is omitted
+  and the line is just the temperature (ADR-0001 graceful degradation).
+- **Populated** from a user-curated `sensors:` list (see the README config table);
+  the thermostat's own temperature is auto-included **first**. A sensor card is
+  dropped when its entity is missing / `unavailable` / non-numeric; the thermostat
+  card is dropped if it has no `current_temperature`.
+- **Read-only** — no "participating in average" UI (HA can't back it); the expand
+  chevron is a fidelity affordance with no per-sensor detail screen.
+- **Graceful degradation / gating:** the Sensors sub-screen is listed (and the
+  overlay shown) only when **at least one configured sensor** yields a usable card.
+  The thermostat's own temperature alone does **not** surface it, so an empty or
+  absent `sensors:` list hides the menu entry entirely.
 
 ### Weather — `reference/weather-current.jpeg` (page 1), `weather-forecast.jpeg` (page 2)
 - **Page 1 — current:** condition text ("Mostly Clear"), "as of [time]" (only if
