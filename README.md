@@ -34,6 +34,7 @@ entity: climate.living_room # required — the bound climate entity
 name: Living Room # optional — defaults to the friendly name
 weather_entity: weather.home # optional — enables the weather icon
 humidity_entity: sensor.hallway_humidity # optional — humidity fallback
+inactivity_timeout: 12 # optional — seconds before an overlay reverts; 0 = off
 sensors: # optional — the Main Menu › Sensors sub-screen
   - sensor.kitchen_temperature # shorthand: a temperature entity id
   - entity: sensor.hallway_temperature
@@ -41,13 +42,14 @@ sensors: # optional — the Main Menu › Sensors sub-screen
     occupancy_entity: binary_sensor.hallway_occupancy # optional → badge
 ```
 
-| Option            | Required | Description                                                          |
-| ----------------- | -------- | -------------------------------------------------------------------- |
-| `entity`          | yes      | A `climate.*` entity. The Card binds to exactly one.                 |
-| `name`            | no       | Label override.                                                      |
-| `weather_entity`  | no       | A `weather` entity; shows the weather icon (overlay comes later).    |
-| `humidity_entity` | no       | Humidity source when the climate entity exposes no humidity.         |
-| `sensors`         | no       | Curated temperature entities for the **Sensors** sub-screen (below). |
+| Option               | Required | Description                                                                                |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------ |
+| `entity`             | yes      | A `climate.*` entity. The Card binds to exactly one.                                       |
+| `name`               | no       | Label override.                                                                            |
+| `weather_entity`     | no       | A `weather` entity; shows the weather icon (overlay comes later).                          |
+| `humidity_entity`    | no       | Humidity source when the climate entity exposes no humidity.                               |
+| `sensors`            | no       | Curated temperature entities for the **Sensors** sub-screen (below).                       |
+| `inactivity_timeout` | no       | Seconds an open overlay waits (idle) before reverting to Home; `0` disables. Default `12`. |
 
 #### `sensors` — the Sensors sub-screen
 
