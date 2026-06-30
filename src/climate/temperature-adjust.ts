@@ -3,6 +3,7 @@ import type { EcoseeCardConfig } from '../config';
 import type { SystemMode } from './home-view';
 import { toMode } from './home-view';
 import { num } from './parse';
+import type { ServiceCall } from './service-call';
 
 // The editing seam for the Temperature Adjust overlay (the sibling of
 // `toHomeView`). `toTempAdjustModel` builds an already-degraded, on-grid editing
@@ -43,13 +44,6 @@ export interface TempAdjustModel {
   heat: SetpointEdit | null;
   cool: SetpointEdit | null;
   active: Setpoint;
-}
-
-/** A `hass.callService` descriptor. Pure data so the apply path is testable. */
-export interface ServiceCall {
-  domain: string;
-  service: string;
-  data: Record<string, unknown>;
 }
 
 function defaultStep(unit: string): number {

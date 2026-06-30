@@ -2,21 +2,20 @@ import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CARD_TYPE, parseConfig, type EcoseeCardConfig } from './config';
 import { toHomeView } from './climate/home-view';
-import {
-  toTempAdjustModel,
-  type ServiceCall,
-  type TempAdjustModel,
-} from './climate/temperature-adjust';
+import { toTempAdjustModel, type TempAdjustModel } from './climate/temperature-adjust';
+import { toSystemModeModel } from './climate/system-mode';
+import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
 import type { HomeAction } from './screens/home-screen';
 import './screens/home-screen';
 import './overlays/overlay-shell';
 import './overlays/temperature-overlay';
+import './overlays/system-mode-overlay';
 
-/** The Overlay currently mounted over the Home Screen, if any. More kinds (System
- *  Mode, Fan, Sensors, Weather) join this union as they land. */
-type OverlayKind = 'temperature';
+/** The Overlay currently mounted over the Home Screen, if any. More kinds (Fan,
+ *  Sensors, Weather) join this union as they land. */
+type OverlayKind = 'temperature' | 'system-mode';
 
 const VERSION = '0.1.0';
 
@@ -73,16 +72,39 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   }
 
   private _renderOverlay(): TemplateResult | typeof nothing {
-    if (this._overlay !== 'temperature' || !this._tempSeed || !this._config) return nothing;
+    if (!this._overlay || !this._config) return nothing;
+    const content = this._renderOverlayContent(this._config);
+    if (content === nothing) return nothing;
     return html`
-      <ecosee-overlay @ecosee-overlay-dismiss=${this._closeOverlay}>
+      <ecosee-overlay @ecosee-overlay-dismiss=${this._closeOverlay}>${content}</ecosee-overlay>
+    `;
+  }
+
+  private _renderOverlayContent(config: EcoseeCardConfig): TemplateResult | typeof nothing {
+    if (this._overlay === 'temperature') {
+      if (!this._tempSeed) return nothing;
+      return html`
         <ecosee-temperature-overlay
           .model=${this._tempSeed}
-          .entityId=${this._config.entity}
-          @ecosee-set-temperature=${this._onSetTemperature}
+          .entityId=${config.entity}
+          @ecosee-set-temperature=${this._onServiceCall}
         ></ecosee-temperature-overlay>
-      </ecosee-overlay>
-    `;
+      `;
+    }
+    if (this._overlay === 'system-mode') {
+      if (!this.hass) return nothing;
+      // Computed live (not seeded like the temperature model): the picker holds no
+      // in-progress edit, so the selected row should track the entity's reported
+      // mode as `hass` updates after a write.
+      return html`
+        <ecosee-system-mode-overlay
+          .model=${toSystemModeModel(this.hass, config)}
+          .entityId=${config.entity}
+          @ecosee-set-system-mode=${this._onServiceCall}
+        ></ecosee-system-mode-overlay>
+      `;
+    }
+    return nothing;
   }
 
   private _onAction = (event: CustomEvent<{ action: HomeAction }>): void => {
@@ -93,9 +115,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       case 'temperature':
         this._openTemperature();
         break;
+      case 'system-mode':
+        this._openSystemMode();
+        break;
       case 'menu':
       case 'weather':
-      case 'system-mode':
         // The remaining Overlays land in later milestones.
         console.debug(`ecosee: "${event.detail.action}" overlay not yet implemented`);
         break;
@@ -110,12 +134,21 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     this._overlay = 'temperature';
   }
 
+  private _openSystemMode(): void {
+    if (!this.hass || !this._config) return;
+    if (!toSystemModeModel(this.hass, this._config).available) return; // no modes ⇒ no overlay
+    this._overlay = 'system-mode';
+  }
+
   private _closeOverlay = (): void => {
     this._overlay = undefined;
     this._tempSeed = undefined;
   };
 
-  private _onSetTemperature = (event: CustomEvent<{ call: ServiceCall }>): void => {
+  /** Apply a service call emitted by an Overlay (temperature setpoint, System
+   *  Mode, …). Every Overlay carries its change as a pure `ServiceCall`, so the
+   *  host card just forwards it to Home Assistant. */
+  private _onServiceCall = (event: CustomEvent<{ call: ServiceCall }>): void => {
     if (!this.hass) return;
     const { domain, service, data } = event.detail.call;
     void this.hass.callService(domain, service, data);

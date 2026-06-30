@@ -8,7 +8,10 @@ import { num } from './parse';
 // "present → show, absent → hide" without ever faking a control it can't back.
 
 export type EquipmentStatus = 'heating' | 'cooling' | 'idle';
-export type SystemMode = 'heat' | 'cool' | 'heat_cool' | 'off' | 'unknown';
+/** The bound entity's operating mode. The ecobee device exposes only Heat / Cool
+ *  / Heat / Cool (Auto) / Off, but a generic `climate` entity (ADR-0001) may also
+ *  run in `dry` or `fan_only`, so the Card recognizes those too. */
+export type SystemMode = 'heat' | 'cool' | 'heat_cool' | 'dry' | 'fan_only' | 'off' | 'unknown';
 
 /** Active setpoints shown in the Hold pill. Either side may be `null` when the
  *  System Mode only drives one setpoint (Heat-only / Cool-only). */
@@ -36,7 +39,9 @@ export interface HomeView {
   weatherAvailable: boolean;
 }
 
-const UNAVAILABLE = new Set(['unavailable', 'unknown', 'none', '']);
+/** Entity states that carry no usable data — a Card/Overlay degrades to its
+ *  empty shell for any of these (shared across the climate seams). */
+export const UNAVAILABLE = new Set(['unavailable', 'unknown', 'none', '']);
 
 function str(value: unknown): string | undefined {
   return typeof value === 'string' ? value : undefined;
@@ -51,6 +56,10 @@ export function toMode(state: string): SystemMode {
     case 'heat_cool':
     case 'auto':
       return 'heat_cool';
+    case 'dry':
+      return 'dry';
+    case 'fan_only':
+      return 'fan_only';
     case 'off':
       return 'off';
     default:
@@ -106,7 +115,7 @@ function deriveSetpoints(mode: SystemMode, attrs: Record<string, unknown>): Hold
   if (single === null) return null;
   if (mode === 'heat') return { heat: single, cool: null };
   if (mode === 'cool') return { heat: null, cool: single };
-  return null; // off / unknown ⇒ no pill
+  return null; // off / dry / fan_only / unknown ⇒ no pill
 }
 
 function weatherAvailable(hass: HomeAssistant, weatherEntity: string | undefined): boolean {

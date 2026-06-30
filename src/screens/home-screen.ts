@@ -348,6 +348,8 @@ export class EcoseeHomeScreen extends LitElement {
   private _modeGlyph(mode: SystemMode): TemplateResult {
     if (mode === 'cool') return icons.snowflake;
     if (mode === 'heat') return icons.heat;
+    if (mode === 'dry') return icons.drop;
+    if (mode === 'fan_only') return icons.fan;
     return icons.auto; // heat_cool
   }
 
@@ -359,6 +361,10 @@ export class EcoseeHomeScreen extends LitElement {
         return 'System Mode: Cool';
       case 'heat_cool':
         return 'System Mode: Heat / Cool (Auto)';
+      case 'dry':
+        return 'System Mode: Dry';
+      case 'fan_only':
+        return 'System Mode: Fan only';
       case 'off':
         return 'System Mode: Off';
       default:

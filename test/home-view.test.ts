@@ -124,6 +124,24 @@ describe('toHomeView — edge cases', () => {
     expect(view.canResume).toBe(false);
   });
 
+  it('surfaces dry / fan_only as the mode with no hold pill', () => {
+    for (const state of ['dry', 'fan_only'] as const) {
+      const view = toHomeView(
+        hass({
+          climate: {
+            entity_id: 'climate.t',
+            state,
+            attributes: { current_temperature: 72, temperature: 74 },
+          },
+        }),
+        config(),
+      );
+      expect(view.mode).toBe(state);
+      expect(view.hold).toBeNull();
+      expect(view.equipment).toBeNull();
+    }
+  });
+
   it('falls back to a humidity_entity when the climate entity lacks humidity', () => {
     const view = toHomeView(
       hass({

@@ -57,8 +57,10 @@ _Avoid_: rooms view.
 
 **System Mode**:
 The heat/cool operating mode. The device's own labels are **Heat**, **Cool**,
-**Heat / Cool (Auto)**, **Off** — use these in UI copy, not "Auto" alone. Surfaces
-in Home Assistant as the `climate` entity's `hvac_mode`.
+**Heat / Cool (Auto)**, **Off** — use these in UI copy, not "Auto" alone. A generic
+`climate` entity (ADR-0001) may also run in **Dry** or **Fan only**; the Card
+recognizes and lists these (with Home Assistant's labels) even though the ecobee
+device has neither. Surfaces in Home Assistant as the `climate` entity's `hvac_mode`.
 _Avoid_: HVAC mode (in UI copy), operation mode, "Auto" (use "Heat / Cool (Auto)").
 
 **Main Menu**:
