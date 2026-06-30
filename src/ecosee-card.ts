@@ -32,6 +32,8 @@ import './overlays/fan-overlay';
 import './overlays/main-menu-overlay';
 import './overlays/sensors-overlay';
 import './overlays/weather-overlay';
+import { EDITOR_TYPE } from './editor/ecosee-card-editor';
+import './editor/ecosee-card-editor';
 
 /** An Overlay that can mount over the Home Screen. `system` is the Main Menu's
  *  System sub-screen (the hub holding the System Mode + Comfort Setting selectors);
@@ -109,6 +111,14 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
 
   static getStubConfig(): Partial<EcoseeCardConfig> {
     return { entity: '' };
+  }
+
+  /** The GUI config editor HA mounts when a user edits the Card from the dashboard
+   *  (issue #14). Paired with `getStubConfig`, it makes the Card configurable
+   *  without hand-writing YAML; the schema↔config reconciliation lives in
+   *  `./editor`. */
+  static getConfigElement(): HTMLElement {
+    return document.createElement(EDITOR_TYPE);
   }
 
   override disconnectedCallback(): void {
