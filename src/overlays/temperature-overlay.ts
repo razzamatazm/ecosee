@@ -16,6 +16,10 @@ import { icons } from '../icons';
 /** Neighbors shown on each side of the selected value in the scrubber. */
 const SCRUBBER_RADIUS = 2;
 
+/** Vertical drag distance (px) that scrubs one step. Tuned for a wheel-like feel
+ *  across the card's size range. */
+const PX_PER_STEP = 22;
+
 /**
  * `<ecosee-temperature-overlay>` — the Temperature Adjust overlay's content
  * (slotted into <ecosee-overlay>). Laid out as the device is (see
@@ -31,9 +35,9 @@ const SCRUBBER_RADIUS = 2;
  * card-owned `.view`), this is an interactive editor, so it owns the transient
  * edit state locally: it seeds `_edit` once from `model`, advances it through the
  * pure reducers in `temperature-adjust.ts`, and emits `ecosee-set-temperature`
- * with the `climate.set_temperature` call on every committed change so the host
- * card applies it as a Hold. Mirroring the device, every nudge / scrubber tap
- * commits live — there is no separate Apply step (and no hold-duration prompt,
+ * with the `climate.set_temperature` call so the host card applies it as a Hold.
+ * Each ± nudge commits immediately; a drag tracks the finger live but commits
+ * once on release. There is no separate Apply step (and no hold-duration prompt,
  * ADR-0003).
  */
 @customElement('ecosee-temperature-overlay')
@@ -69,7 +73,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
        dismiss; our actual controls opt back in. Chips that aren't switchable stay
        transparent (a single-mode chip is a label, not a button). */
     .nudge button,
-    .neighbor,
+    .scrubber,
     button.chip {
       pointer-events: auto;
     }
@@ -118,6 +122,9 @@ export class EcoseeTemperatureOverlay extends LitElement {
       grid-template-rows: 1fr auto 1fr;
       justify-items: center;
       gap: 3cqw;
+      /* Drag-to-scrub surface: swipe vertically to change the value. */
+      touch-action: none;
+      cursor: ns-resize;
     }
     .stack {
       display: flex;
@@ -149,8 +156,9 @@ export class EcoseeTemperatureOverlay extends LitElement {
       align-items: center;
       justify-content: center;
       font-size: 22cqw;
-      font-weight: 300;
-      color: var(--ecosee-bg, #0a0d10);
+      font-weight: 200;
+      /* Thin light numeral, as on the device (not dark) — reads on both gradients. */
+      color: var(--ecosee-fg, #d4eff9);
     }
     .adjust.cool .bubble {
       background: var(--ecosee-cool-grad, #49b6ea);
@@ -203,24 +211,58 @@ export class EcoseeTemperatureOverlay extends LitElement {
     }
   `;
 
+  /** In-progress drag: the pointer Y and active value at press, plus the step,
+   *  so each move maps absolute travel → whole steps without drift. */
+  private _drag: { startY: number; startValue: number; step: number } | null = null;
+
   override willUpdate(changed: PropertyValues<this>): void {
     // Seed (and re-seed on a fresh open) the live edit state from the model.
     if (changed.has('model') && this.model) this._edit = this.model;
   }
 
+  /** Emit the `climate.set_temperature` call for the current edit (a Hold). */
+  private _emit(model: TempAdjustModel): void {
+    const call = setTemperatureCall(model, this.entityId);
+    if (!call) return;
+    this.dispatchEvent(
+      new CustomEvent('ecosee-set-temperature', {
+        detail: { call },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /** A discrete change (nudge / chip): update the edit and commit immediately. */
   private _commit(next: TempAdjustModel): void {
     this._edit = next;
-    const call = setTemperatureCall(next, this.entityId);
-    if (call) {
-      this.dispatchEvent(
-        new CustomEvent('ecosee-set-temperature', {
-          detail: { call },
-          bubbles: true,
-          composed: true,
-        }),
-      );
-    }
+    this._emit(next);
   }
+
+  // Drag-to-scrub: the scrubber is a vertical wheel — drag up to raise the active
+  // setpoint, down to lower it (~PX_PER_STEP px = one step). The value tracks the
+  // finger live, but the service call fires once on release, not per move.
+  private _onScrubberDown = (event: PointerEvent): void => {
+    const model = this._edit;
+    const edit = model && model[model.active];
+    if (!edit) return;
+    this._drag = { startY: event.clientY, startValue: edit.value, step: edit.step };
+    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+  };
+
+  private _onScrubberMove = (event: PointerEvent): void => {
+    if (!this._drag || !this._edit) return;
+    const steps = Math.round((this._drag.startY - event.clientY) / PX_PER_STEP);
+    this._edit = setValue(this._edit, this._drag.startValue + steps * this._drag.step);
+  };
+
+  private _onScrubberUp = (event: PointerEvent): void => {
+    if (!this._drag) return;
+    this._drag = null;
+    const el = event.currentTarget as HTMLElement;
+    if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
+    if (this._edit) this._emit(this._edit);
+  };
 
   override render(): TemplateResult | typeof nothing {
     const model = this._edit;
@@ -249,17 +291,20 @@ export class EcoseeTemperatureOverlay extends LitElement {
     // side runs nearest-the-bubble last so the columns read toward the center.
     const above = values.filter((v) => v > edit.value).reverse();
     const below = values.filter((v) => v < edit.value).reverse();
+    // Neighbors are display-only context; the value is changed by dragging the
+    // scrubber (or the ± buttons), as on the device.
     const neighbor = (value: number): TemplateResult => {
       const far = Math.abs(value - edit.value) > edit.step * 1.5;
-      return html`<button
-        class="neighbor ${far ? 'far' : ''}"
-        @click=${() => this._commit(setValue(model, value))}
-      >
-        ${formatTemp(value, model.unit)}
-      </button>`;
+      return html`<div class="neighbor ${far ? 'far' : ''}">${formatTemp(value, model.unit)}</div>`;
     };
     return html`
-      <div class="scrubber">
+      <div
+        class="scrubber"
+        @pointerdown=${this._onScrubberDown}
+        @pointermove=${this._onScrubberMove}
+        @pointerup=${this._onScrubberUp}
+        @pointercancel=${this._onScrubberUp}
+      >
         <div class="stack above">${above.map(neighbor)}</div>
         <div class="bubble">${formatTemp(edit.value, model.unit)}</div>
         <div class="stack below">${below.map(neighbor)}</div>

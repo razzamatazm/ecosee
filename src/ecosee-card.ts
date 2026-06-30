@@ -95,6 +95,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         break;
       case 'menu':
       case 'weather':
+      case 'system-mode':
         // The remaining Overlays land in later milestones.
         console.debug(`ecosee: "${event.detail.action}" overlay not yet implemented`);
         break;

@@ -1,21 +1,23 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { EquipmentStatus, HomeView } from '../climate/home-view';
+import type { EquipmentStatus, HomeView, SystemMode } from '../climate/home-view';
 import { formatTemp } from '../climate/home-view';
 import { icons } from '../icons';
 
 /** Actions the Home Screen surfaces to the host card. `temperature` opens the
- *  Temperature Adjust overlay; `weather` / `menu` open later Overlays; `resume`
- *  clears the active Hold. */
-export type HomeAction = 'menu' | 'temperature' | 'weather' | 'resume';
+ *  Temperature Adjust overlay; `system-mode` / `weather` / `menu` open later
+ *  Overlays; `resume` clears the active Hold. */
+export type HomeAction = 'menu' | 'temperature' | 'weather' | 'resume' | 'system-mode';
 
 /**
  * The default Card view, laid out as the device is (see
- * docs/reference/home-hold.jpeg): a top row of affordance glyphs (weather left,
- * equipment center, menu right), the humidity line and the large current
+ * docs/reference/home-*.jpeg): a top row of affordance glyphs (weather left,
+ * System Mode center, menu right), the humidity line and the large current
  * temperature centered beneath, and the horizontal Hold pill below the number.
- * Purely presentational — it renders whatever the already-degraded HomeView says,
- * and emits `ecosee-action` events for the host card to handle.
+ * Active equipment is shown as a colored glow ring around the squircle (blue
+ * cooling / amber heating), keyed to `hvac_action` — not an icon. Purely
+ * presentational: it renders whatever the already-degraded HomeView says and
+ * emits `ecosee-action` events for the host card to handle.
  */
 @customElement('ecosee-home-screen')
 export class EcoseeHomeScreen extends LitElement {
@@ -46,6 +48,28 @@ export class EcoseeHomeScreen extends LitElement {
       user-select: none;
     }
 
+    /* Equipment-status glow ring around the screen edge, keyed to hvac_action:
+       blue while cooling, amber while heating, nothing when idle. */
+    .face.cooling {
+      box-shadow:
+        inset 0 0 0 0.8cqw var(--ecosee-cool, #49b6ea),
+        inset 0 0 7cqw rgba(73, 182, 234, 0.5);
+    }
+    .face.heating {
+      box-shadow:
+        inset 0 0 0 0.8cqw var(--ecosee-heat, #f3a13c),
+        inset 0 0 7cqw rgba(243, 161, 60, 0.5);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+    }
+
     button {
       appearance: none;
       background: none;
@@ -60,8 +84,8 @@ export class EcoseeHomeScreen extends LitElement {
       justify-content: center;
     }
 
-    /* Top row: weather (left), equipment (center), menu (right). Explicit columns
-       keep each anchored even when weather or equipment is absent. */
+    /* Top row: weather (left), System Mode (center), menu (right). Explicit
+       columns keep each anchored even when weather is absent. */
     .top {
       width: 100%;
       display: grid;
@@ -75,20 +99,27 @@ export class EcoseeHomeScreen extends LitElement {
       height: 11cqw;
       color: var(--ecosee-weather, #7fd08a);
     }
-    .equip {
+    /* System Mode indicator (tap → System Mode picker); always cyan, like the
+       device — the heat/cool color language is reserved for setpoints/equipment. */
+    .mode {
       grid-column: 2;
       justify-self: center;
+      color: var(--ecosee-accent, #62cfe9);
+    }
+    .mode .glyph {
       width: 12cqw;
       height: 12cqw;
     }
-    .equip.cooling {
-      color: var(--ecosee-cool, #49b6ea);
-    }
-    .equip.heating {
-      color: var(--ecosee-heat, #f3a13c);
-    }
-    .equip.idle {
-      color: var(--ecosee-idle, #6f96a3);
+    .mode-off {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0.5cqw solid currentColor;
+      border-radius: 999px;
+      padding: 1cqw 2.6cqw;
+      font-size: 5cqw;
+      font-weight: 600;
+      letter-spacing: 0.08em;
     }
     .menu {
       grid-column: 3;
@@ -153,6 +184,14 @@ export class EcoseeHomeScreen extends LitElement {
     .pill .dash {
       color: var(--ecosee-muted, #6f96a3);
     }
+    /* A single-setpoint pill is tinted to its mode; the dual (Auto) pill stays
+       cyan, matching the device. */
+    .pill.heat {
+      border-color: var(--ecosee-heat, #f3a13c);
+    }
+    .pill.cool {
+      border-color: var(--ecosee-cool, #49b6ea);
+    }
     .resume {
       width: 8.5cqw;
       height: 8.5cqw;
@@ -161,6 +200,14 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-accent, #62cfe9);
       padding: 1.4cqw;
       margin-left: 0.5cqw;
+    }
+    .pill.heat .resume {
+      border-color: var(--ecosee-heat, #f3a13c);
+      color: var(--ecosee-heat, #f3a13c);
+    }
+    .pill.cool .resume {
+      border-color: var(--ecosee-cool, #49b6ea);
+      color: var(--ecosee-cool, #49b6ea);
     }
 
     .unavailable {
@@ -192,19 +239,24 @@ export class EcoseeHomeScreen extends LitElement {
     if (!view) return nothing;
 
     return html`
-      <div class="face" part="face">
+      <div class="face ${view.equipment ?? ''}" part="face">
+        ${
+          view.equipment
+            ? html`<span class="sr-only">${this._equipLabel(view.equipment)}</span>`
+            : nothing
+        }
         ${this._renderTop(view)}
         <div class="body">
           ${
             view.available
               ? html`
                   ${
-                  view.humidity !== null
-                    ? html`<div class="hum">
-                        <span class="glyph">${icons.humidity}</span>${Math.round(view.humidity)}%
-                      </div>`
-                    : nothing
-                }
+                    view.humidity !== null
+                      ? html`<div class="hum">
+                          <span class="glyph">${icons.humidity}</span>${Math.round(view.humidity)}%
+                        </div>`
+                      : nothing
+                  }
                   <button
                     class="temp"
                     aria-label="Adjust temperature"
@@ -235,16 +287,7 @@ export class EcoseeHomeScreen extends LitElement {
               </button>`
             : nothing
         }
-        ${
-          view.equipment
-            ? html`<div
-                class="equip ${view.equipment}"
-                aria-label=${this._equipLabel(view.equipment)}
-              >
-                ${this._equipIcon(view.equipment)}
-              </div>`
-            : nothing
-        }
+        ${this._renderMode(view)}
         <button class="menu" aria-label="Open menu" @click=${() => this._emit('menu')}>
           ${icons.menu}
         </button>
@@ -252,11 +295,30 @@ export class EcoseeHomeScreen extends LitElement {
     `;
   }
 
+  private _renderMode(view: HomeView): TemplateResult | typeof nothing {
+    const mode = view.mode;
+    if (mode === 'unknown') return nothing;
+    const content =
+      mode === 'off'
+        ? html`<span class="mode-off">OFF</span>`
+        : html`<span class="glyph">${this._modeGlyph(mode)}</span>`;
+    return html`<button
+      class="mode"
+      aria-label=${this._modeLabel(mode)}
+      @click=${() => this._emit('system-mode')}
+    >
+      ${content}
+    </button>`;
+  }
+
   private _renderPill(view: HomeView): TemplateResult | typeof nothing {
     const hold = view.hold;
     if (!hold || (hold.heat === null && hold.cool === null)) return nothing;
+    // Single-setpoint pills are tinted to their mode; dual (Auto) stays cyan.
+    const tint =
+      hold.heat !== null && hold.cool !== null ? '' : hold.heat !== null ? 'heat' : 'cool';
     return html`
-      <div class="pill" part="hold-pill">
+      <div class="pill ${tint}" part="hold-pill">
         ${
           hold.heat !== null
             ? html`<span class="heat">${formatTemp(hold.heat, view.unit)}</span>`
@@ -283,10 +345,25 @@ export class EcoseeHomeScreen extends LitElement {
     `;
   }
 
-  private _equipIcon(equipment: EquipmentStatus): TemplateResult {
-    if (equipment === 'cooling') return icons.snowflake;
-    if (equipment === 'heating') return icons.heat;
-    return icons.idle;
+  private _modeGlyph(mode: SystemMode): TemplateResult {
+    if (mode === 'cool') return icons.snowflake;
+    if (mode === 'heat') return icons.heat;
+    return icons.auto; // heat_cool
+  }
+
+  private _modeLabel(mode: SystemMode): string {
+    switch (mode) {
+      case 'heat':
+        return 'System Mode: Heat';
+      case 'cool':
+        return 'System Mode: Cool';
+      case 'heat_cool':
+        return 'System Mode: Heat / Cool (Auto)';
+      case 'off':
+        return 'System Mode: Off';
+      default:
+        return 'System Mode';
+    }
   }
 
   private _equipLabel(equipment: EquipmentStatus): string {

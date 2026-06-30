@@ -114,6 +114,52 @@ const genericDegraded: Fixture = {
   }),
 };
 
+// Cool-only: ❄ System Mode glyph, single cyan setpoint pill, blue equipment ring.
+const ecobeeCooling: Fixture = {
+  label: 'ecobee · Cool',
+  config: { type: 'custom:ecosee-card', entity: 'climate.office', weather_entity: 'weather.home' },
+  hass: makeHass({
+    platform: 'ecobee',
+    weather: true,
+    climate: {
+      entity_id: 'climate.office',
+      state: 'cool',
+      attributes: {
+        friendly_name: 'Office',
+        current_temperature: 76,
+        current_humidity: 52,
+        temperature: 73,
+        hvac_action: 'cooling',
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+        min_temp: 45,
+        max_temp: 92,
+        target_temp_step: 1,
+      },
+    },
+  }),
+};
+
+// Off: (OFF) System Mode glyph, no Hold pill, no equipment ring.
+const ecobeeOff: Fixture = {
+  label: 'ecobee · Off',
+  config: { type: 'custom:ecosee-card', entity: 'climate.den', weather_entity: 'weather.home' },
+  hass: makeHass({
+    platform: 'ecobee',
+    weather: true,
+    climate: {
+      entity_id: 'climate.den',
+      state: 'off',
+      attributes: {
+        friendly_name: 'Den',
+        current_temperature: 74,
+        current_humidity: 56,
+        hvac_action: 'off',
+        hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+      },
+    },
+  }),
+};
+
 const unavailable: Fixture = {
   label: 'Unavailable entity',
   config: { type: 'custom:ecosee-card', entity: 'climate.living_room' },
@@ -126,4 +172,11 @@ const unavailable: Fixture = {
   }),
 };
 
-export const fixtures: Fixture[] = [ecobeeAutoHold, ecobeeHeating, genericDegraded, unavailable];
+export const fixtures: Fixture[] = [
+  ecobeeAutoHold,
+  ecobeeHeating,
+  ecobeeCooling,
+  ecobeeOff,
+  genericDegraded,
+  unavailable,
+];

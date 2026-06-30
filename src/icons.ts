@@ -83,4 +83,15 @@ export const icons = {
       <path d="M7.6 12 H16.4" />
     </g>
   `),
+
+  /** Heat / Cool (Auto) System Mode — a snowflake fused with a leaf (cool + eco),
+   *  matching the device's combined Auto glyph. */
+  auto: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M8.5 3 V12 M4.6 5.25 L12.4 9.75 M12.4 5.25 L4.6 9.75" />
+      <path d="M20.8 11.4 C14.6 11.9 11.9 15.5 12.4 21.2 C18.6 20.7 21.3 17.1 20.8 11.4 Z" />
+      <path d="M14 19.4 C15.6 16.2 17.8 14 20.2 12.8" />
+    </g>
+  `),
 } as const;
