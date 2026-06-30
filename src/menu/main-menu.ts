@@ -4,6 +4,7 @@ import { toSystemModeModel } from '../climate/system-mode';
 import { toComfortSettingModel } from '../climate/comfort-setting';
 import { toFanModel } from '../climate/fan';
 import { toSensorsModel } from '../sensors/sensors';
+import { toWeatherModel } from '../weather/weather';
 
 // The derivation seam for the Main Menu hub (the sibling of `toHomeView` /
 // `toSystemModeModel`). `toMainMenuModel` builds the already-degraded list of
@@ -32,8 +33,8 @@ export interface MainMenuModel {
 
 /** A candidate sub-screen and the predicate that gates it on backing data. New
  *  sub-screens register here as they land: Fan (#8, `fan_modes`), Sensors (#9,
- *  configured sensors), Weather (#5, `weather_entity`). Only sub-screens with a
- *  built destination appear, so the hub never routes to nothing. */
+ *  configured sensors). Only sub-screens with a built destination appear, so the
+ *  hub never routes to nothing. */
 interface SubScreen {
   target: MainMenuTarget;
   label: string;
@@ -65,6 +66,14 @@ const SUBSCREENS: readonly SubScreen[] = [
     // sensor yields a usable card; the thermostat's own temp alone does not surface
     // it. `toSensorsModel().available` encodes exactly that, so the two never disagree.
     available: (hass, config) => toSensorsModel(hass, config).available,
+  },
+  {
+    target: 'weather',
+    label: 'Weather',
+    // The Weather sub-screen routes to the Weather overlay; it is reachable only
+    // when a usable `weather_entity` is configured, reusing that seam's
+    // availability so the hub row and the overlay never disagree.
+    available: (hass, config) => toWeatherModel(hass, config).available,
   },
 ];
 

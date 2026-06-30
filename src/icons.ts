@@ -185,4 +185,105 @@ export const icons = {
       <path d="M12 12 V15.5 M7.5 19 Q12 15.8 16.5 19" />
     </g>
   `),
+
+  // Weather-condition glyphs (rendered green per the visual spec). Mapped from a
+  // Home Assistant `weather` condition by `weatherIcon` below; `sun` (above) covers
+  // a clear day. Deliberately simple, recognizable shapes — not the device's exact
+  // vector art (a later fidelity pass).
+
+  /** Clear night — a crescent moon. */
+  moon: wrap(svg`
+    <path d="M15.6 3.4 A9 9 0 1 0 20.6 14.4 A7 7 0 0 1 15.6 3.4 Z" fill="none"
+      stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+  `),
+
+  /** Overcast — a single cloud. */
+  cloud: wrap(svg`
+    <path d="M7.4 18 A4 4 0 0 1 6.9 10.1 A5.2 5.2 0 0 1 17 9.4 A3.7 3.7 0 0 1 17.1 18 Z"
+      fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
+  `),
+
+  /** Partly cloudy — a sun peeking from behind a cloud. */
+  cloudSun: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M8.5 3 V4.4 M3.2 8.3 H4.6 M4.6 4.4 L5.6 5.4 M12.4 4.4 L11.4 5.4" />
+      <circle cx="8.5" cy="8.3" r="2.7" />
+      <path d="M9.8 19 A3.3 3.3 0 0 1 9.5 12.5 A4.4 4.4 0 0 1 18 13.2 A2.9 2.9 0 0 1 18.1 19 Z" />
+    </g>
+  `),
+
+  /** Rain — a cloud over slanted streaks. */
+  rain: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M7.4 13.6 A3.6 3.6 0 0 1 6.9 6.2 A4.8 4.8 0 0 1 16.6 5.6 A3.3 3.3 0 0 1 16.8 13.6 Z" />
+      <path d="M8.6 16.4 L7.4 19.4 M12 16.4 L10.8 19.4 M15.4 16.4 L14.2 19.4" />
+    </g>
+  `),
+
+  /** Snow — a cloud over three flakes. */
+  snow: wrap(svg`
+    <g stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M7.4 13.4 A3.6 3.6 0 0 1 6.9 6 A4.8 4.8 0 0 1 16.6 5.4 A3.3 3.3 0 0 1 16.8 13.4 Z"
+        fill="none" />
+      <circle cx="8.4" cy="17.6" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="18.6" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="15.6" cy="17.6" r="0.9" fill="currentColor" stroke="none" />
+    </g>
+  `),
+
+  /** Fog — stacked drifting lines. */
+  fog: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+      <path d="M4 8 H19 M5.5 12 H20 M3.5 16 H17.5 M6 20 H18" />
+    </g>
+  `),
+
+  /** Thunderstorm — a cloud with a lightning bolt. */
+  lightning: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M7.4 12.6 A3.4 3.4 0 0 1 6.9 5.5 A4.6 4.6 0 0 1 16.3 4.9 A3.1 3.1 0 0 1 16.5 12.6 Z" />
+      <path d="M12.4 11.6 L9.6 16.2 H12 L10.4 20.4" />
+    </g>
+  `),
+
+  /** Probability of precipitation — an umbrella with a falling drop. */
+  umbrella: wrap(svg`
+    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+      stroke-linejoin="round">
+      <path d="M3.4 11.6 A8.6 8.6 0 0 1 20.6 11.6 Z" />
+      <path d="M12 11.6 V19 A2.3 2.3 0 0 0 16.2 19.7" />
+    </g>
+  `),
 } as const;
+
+/** Map a Home Assistant `weather` condition string to a glyph. Falls back to a
+ *  partly-cloudy glyph for unrecognized / under-specified conditions so the
+ *  Weather Overlay always shows something coherent (ADR-0001). */
+export function weatherIcon(condition: string): SVGTemplateResult {
+  switch (condition) {
+    case 'sunny':
+      return icons.sun;
+    case 'clear-night':
+      return icons.moon;
+    case 'cloudy':
+      return icons.cloud;
+    case 'rainy':
+    case 'pouring':
+      return icons.rain;
+    case 'lightning':
+    case 'lightning-rainy':
+      return icons.lightning;
+    case 'snowy':
+    case 'snowy-rainy':
+    case 'hail':
+      return icons.snow;
+    case 'fog':
+      return icons.fog;
+    case 'partlycloudy':
+    default:
+      return icons.cloudSun;
+  }
+}

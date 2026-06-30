@@ -3,16 +3,25 @@ import { toMainMenuModel } from '../src/menu/main-menu';
 import type { EcoseeCardConfig } from '../src/config';
 import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 
-function hass(climate: HassEntityBase): HomeAssistant {
+function hass(climate: HassEntityBase, weather?: HassEntityBase): HomeAssistant {
+  const states: Record<string, HassEntityBase> = { [climate.entity_id]: climate };
+  if (weather) states[weather.entity_id] = weather;
   return {
-    states: { [climate.entity_id]: climate },
+    states,
     entities: { [climate.entity_id]: { platform: 'ecobee' } },
     config: { unit_system: { temperature: '°F' } },
     callService: async () => undefined,
   };
 }
 
+const WEATHER: HassEntityBase = {
+  entity_id: 'weather.home',
+  state: 'sunny',
+  attributes: { temperature: 75 },
+};
+
 const config: EcoseeCardConfig = { type: 'custom:ecosee-card', entity: 'climate.t' };
+const withWeather: EcoseeCardConfig = { ...config, weather_entity: 'weather.home' };
 
 function climate(state: string, attributes: Record<string, unknown>): HassEntityBase {
   return { entity_id: 'climate.t', state, attributes };
@@ -80,6 +89,20 @@ describe('toMainMenuModel — reachable sub-screens', () => {
       current_temperature: 72,
     });
     const model = toMainMenuModel(hass(withTemp), config);
+    expect(model.entries.map((e) => e.target)).toEqual(['system']);
+  });
+
+  it('lists Weather when a usable weather_entity is configured', () => {
+    const model = toMainMenuModel(hass(FULL, WEATHER), withWeather);
+    expect(model.entries.map((e) => [e.target, e.label])).toEqual([
+      ['system', 'System'],
+      ['weather', 'Weather'],
+    ]);
+  });
+
+  it('omits Weather when its entity is configured but unavailable', () => {
+    const offline: HassEntityBase = { ...WEATHER, state: 'unavailable' };
+    const model = toMainMenuModel(hass(FULL, offline), withWeather);
     expect(model.entries.map((e) => e.target)).toEqual(['system']);
   });
 });

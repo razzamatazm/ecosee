@@ -183,14 +183,39 @@ edit.
   absent `sensors:` list hides the menu entry entirely.
 
 ### Weather — `reference/weather-current.jpeg` (page 1), `weather-forecast.jpeg` (page 2)
-- **Page 1 — current:** condition text ("Mostly Clear"), "as of [time]" (only if
-  available), big current outdoor temp + condition icon, **Hum.**, **PoP**, and
-  intra-day periods (Evening / Overnight / Morning) **only when the weather entity
-  provides them**.
-- **Page 2 — 4-day forecast:** per day: icon, high, "Night [low]", "PoP %".
-- Paginated (`1 of 2` / `2 of 2`), footer "Data provided by [provider]".
-- Forecast data comes from the `weather.get_forecasts` service in modern HA, not a
-  static attribute. Degrade page 2 / periods if the entity offers no forecast.
+The Overlay reached from the Home Screen weather icon and from Main Menu › Weather,
+backed by the configured `weather_entity`. Two pages, each with the pager and the
+provider footer. **Condition glyphs are green** (`--ecosee-weather`); the PoP
+umbrella and Hum. droplet, the temperatures, the day names and the pager are cyan
+on black (the umbrella/droplet read as cyan, not green).
+- **Page 1 — current:** the **condition text** as the title ("Mostly Clear" /
+  "Partly Cloudy") with **"[date] as of [time]"** beneath it (only when the entity
+  carries a timestamp); a large green **condition glyph** beside the big cyan
+  **current outdoor temp**; then a **PoP** ☂ / **Hum.** ◊ line and the next three
+  **intra-day periods** (Evening / Overnight / Morning) — each a glyph + temp over
+  a label.
+- **Page 2 — 4-day forecast:** title "4 Day Forecast"; the four days **after
+  today** (today already owns page 1), each a column with a short **day name**
+  (Tue / Wed / …), a green glyph, the cyan **high**, **"Night [low]"**, and
+  **"PoP %"**.
+- **Pager:** `1 of 2` / `2 of 2` centered above the footer, a chevron on each side;
+  the arrows wrap (both stay live on both pages, as on the device). When the entity
+  offers no forecast the pager collapses to a single page (page 1 only).
+- **Footer:** "Data provided by [provider]" from the entity's `attribution`
+  attribute (rendered verbatim when it already credits a provider); hidden when
+  absent.
+- **Data sources & graceful degradation (ADR-0001):**
+  - Current temp / condition / Hum. come from the weather entity's own attributes
+    (`temperature`, `state`, `humidity`); each is hidden when absent. The
+    temperature unit follows the weather entity's `temperature_unit` when present.
+  - The forecast comes from the **`weather.get_forecasts` service** (modern HA),
+    not a static attribute: the Card fetches **daily** (the four days after today
+    for page 2, plus today's PoP from the first entry) and **hourly** (the
+    intra-day periods) when the Overlay opens. An entity that offers no forecast
+    simply **drops page 2 and the PoP / periods** rather than rendering them
+    broken.
+  - Weather is **read-only** — no service write, no Hold; the only interaction is
+    paging (local view state). Dismissal is the shell's (✕ / outside-tap).
 
 ## v1 / v2 / excluded
 

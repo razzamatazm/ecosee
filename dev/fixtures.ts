@@ -25,7 +25,14 @@ function makeHass(options: {
     states['weather.home'] = {
       entity_id: 'weather.home',
       state: 'sunny',
-      attributes: { friendly_name: 'Home', temperature: 82 },
+      attributes: {
+        friendly_name: 'Home',
+        temperature: 75,
+        humidity: 52,
+        temperature_unit: options.unit ?? '°F',
+        attribution: 'Data provided by Apple Weather',
+      },
+      last_updated: '2026-06-29T17:00:00',
     };
   }
   for (const entity of options.extra ?? []) states[entity.entity_id] = entity;
@@ -35,11 +42,64 @@ function makeHass(options: {
       [options.climate.entity_id]: { platform: options.platform ?? 'generic_thermostat' },
     },
     config: { unit_system: { temperature: options.unit ?? '°F' } },
-    callService: async (domain, service, data) => {
+    callService: async (domain, service, data, _target, _notify, returnResponse) => {
       console.info('[dev] callService', `${domain}.${service}`, data);
+      // Stand in for `weather.get_forecasts` so the Weather overlay's page 2 / the
+      // intra-day periods render in the preview harness.
+      if (domain === 'weather' && service === 'get_forecasts' && returnResponse) {
+        const forecast = data?.type === 'hourly' ? HOURLY_FORECAST : DAILY_FORECAST;
+        return { response: { 'weather.home': { forecast } } };
+      }
+      return undefined;
     },
   };
 }
+
+// Mirrors docs/reference/weather-forecast.jpeg (page 2) and the intra-day periods
+// on page 1, so the preview harness shows a populated Weather overlay. `[0]` is
+// today (Jun 29) — the overlay skips it on page 2 and shows the next four days.
+const DAILY_FORECAST = [
+  {
+    datetime: '2026-06-29',
+    condition: 'sunny',
+    temperature: 75,
+    templow: 60,
+    precipitation_probability: 0,
+  },
+  {
+    datetime: '2026-06-30',
+    condition: 'sunny',
+    temperature: 76,
+    templow: 59,
+    precipitation_probability: 0,
+  },
+  {
+    datetime: '2026-07-01',
+    condition: 'sunny',
+    temperature: 77,
+    templow: 58,
+    precipitation_probability: 0,
+  },
+  {
+    datetime: '2026-07-02',
+    condition: 'sunny',
+    temperature: 80,
+    templow: 57,
+    precipitation_probability: 0,
+  },
+  {
+    datetime: '2026-07-03',
+    condition: 'sunny',
+    temperature: 82,
+    templow: 58,
+    precipitation_probability: 0,
+  },
+];
+const HOURLY_FORECAST = [
+  { datetime: '2026-06-29T17:00:00', condition: 'clear-night', temperature: 74 },
+  { datetime: '2026-06-29T21:00:00', condition: 'partlycloudy', temperature: 61 },
+  { datetime: '2026-06-30T06:00:00', condition: 'partlycloudy', temperature: 59 },
+];
 
 // Reproduces docs/reference/home-hold.jpeg: Heat/Cool (Auto) hold 70–75,
 // current 75, 60% humidity, actively cooling, weather present, ecobee-backed.

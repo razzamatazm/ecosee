@@ -9,6 +9,14 @@ import { toFanModel } from './climate/fan';
 import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
 import type { SystemSelectTarget } from './overlays/system-overlay';
 import { toSensorsModel } from './sensors/sensors';
+import {
+  toWeatherModel,
+  getForecastsCall,
+  parseForecastResponse,
+  type ForecastEntry,
+  type ForecastType,
+  type WeatherForecasts,
+} from './weather/weather';
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
@@ -22,13 +30,21 @@ import './overlays/system-overlay';
 import './overlays/fan-overlay';
 import './overlays/main-menu-overlay';
 import './overlays/sensors-overlay';
+import './overlays/weather-overlay';
 
 /** An Overlay that can mount over the Home Screen. `system` is the Main Menu's
  *  System sub-screen (the hub holding the System Mode + Comfort Setting selectors);
- *  `system-mode` / `comfort-setting` are the focused pickers it routes to. More
- *  kinds (Weather) join this union as they land. */
+ *  `system-mode` / `comfort-setting` are the focused pickers it routes to; the rest
+ *  are the Main Menu sub-screens — all now have overlays. */
 type OverlayKind =
-  'temperature' | 'system-mode' | 'comfort-setting' | 'system' | 'fan' | 'sensors' | 'menu';
+  | 'temperature'
+  | 'system-mode'
+  | 'comfort-setting'
+  | 'system'
+  | 'fan'
+  | 'sensors'
+  | 'weather'
+  | 'menu';
 
 const VERSION = '0.1.0';
 
@@ -52,6 +68,12 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  not recomputed per render, so the overlay's in-progress edits survive `hass`
    *  updates rather than being reset on every state push. */
   @state() private _tempSeed?: TempAdjustModel;
+  /** Forecast data for the Weather overlay, fetched via the `weather.get_forecasts`
+   *  service when it opens (modern HA exposes the forecast through a service, not a
+   *  static attribute — ADR-0001). `undefined` until the fetch resolves; the seam
+   *  degrades page 2 / the intra-day periods while it is absent. Cleared on close
+   *  so a re-open refetches. */
+  @state() private _weatherForecasts?: WeatherForecasts;
 
   /** The Overlay currently on top of the stack, if any. */
   private get _overlay(): OverlayKind | undefined {
@@ -186,6 +208,18 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         ></ecosee-sensors-overlay>
       `;
     }
+    if (this._overlay === 'weather') {
+      if (!this.hass) return nothing;
+      // Current conditions are computed live from `hass`; the forecast (page 2 /
+      // intra-day periods) is threaded in from the async `get_forecasts` fetch,
+      // and the model degrades while it is still absent. Weather is read-only —
+      // no service call, so there is no event to wire here.
+      return html`
+        <ecosee-weather-overlay
+          .model=${toWeatherModel(this.hass, config, this._weatherForecasts)}
+        ></ecosee-weather-overlay>
+      `;
+    }
     return nothing;
   }
 
@@ -204,8 +238,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         this._openMenu();
         break;
       case 'weather':
-        // The Weather Overlay lands in a later milestone.
-        console.debug(`ecosee: "${event.detail.action}" overlay not yet implemented`);
+        this._openWeather();
         break;
     }
   };
@@ -236,6 +269,40 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     this._openFromHome('menu');
   }
 
+  private _openWeather(): void {
+    if (!this.hass || !this._config) return;
+    if (!toWeatherModel(this.hass, this._config).available) return; // no weather entity ⇒ no overlay
+    this._openFromHome('weather');
+    void this._loadForecasts();
+  }
+
+  /** Fetch the Weather overlay's forecast via `weather.get_forecasts` (daily for
+   *  page 2, hourly for the intra-day periods) and stash it for the seam. Each
+   *  type is fetched independently so an entity that supports only some of them
+   *  still gets what it can; failures degrade to an empty forecast. */
+  private async _loadForecasts(): Promise<void> {
+    const weatherEntity = this._config?.weather_entity;
+    if (!this.hass || !weatherEntity) return;
+    const [daily, hourly] = await Promise.all([
+      this._getForecast(weatherEntity, 'daily'),
+      this._getForecast(weatherEntity, 'hourly'),
+    ]);
+    // Guard a slow fetch resolving after the overlay was dismissed (or reopened).
+    if (this._nav.includes('weather')) this._weatherForecasts = { daily, hourly };
+  }
+
+  private async _getForecast(entityId: string, type: ForecastType): Promise<ForecastEntry[]> {
+    if (!this.hass) return [];
+    try {
+      const { domain, service, data } = getForecastsCall(entityId, type);
+      const response = await this.hass.callService(domain, service, data, undefined, false, true);
+      return parseForecastResponse(response, entityId);
+    } catch {
+      // The entity doesn't support this forecast type (or the call failed) — degrade.
+      return [];
+    }
+  }
+
   /** Route a Main Menu selection to its sub-screen, pushed onto the stack so the
    *  sub-screen's dismissal returns to the menu (hub-and-picker). */
   private _onMenuSelect = (event: CustomEvent<{ target: MainMenuTarget }>): void => {
@@ -245,16 +312,16 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         // not a picker directly — the pickers are reached from within it.
         this._nav = [...this._nav, 'system'];
         break;
+      case 'weather':
+        // Pushed onto the stack so dismissal returns to the Main Menu (hub-and-picker).
+        this._nav = [...this._nav, 'weather'];
+        void this._loadForecasts();
+        break;
       case 'fan':
         this._nav = [...this._nav, 'fan'];
         break;
       case 'sensors':
         this._nav = [...this._nav, 'sensors'];
-        break;
-      case 'weather':
-        // The Weather sub-screen lands in a later milestone (#5); until then
-        // `toMainMenuModel` doesn't list it, so this is unreachable today.
-        console.debug(`ecosee: "${event.detail.target}" sub-screen not yet implemented`);
         break;
     }
   };
@@ -271,9 +338,10 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   private _closeOverlay = (): void => {
     const dismissed = this._overlay;
     this._nav = this._nav.slice(0, -1);
-    // Drop the Temperature Adjust seed when leaving that overlay so a later open
-    // re-seeds fresh (it is the only Overlay that carries open-time state).
+    // Drop per-open state when leaving the Overlay that carries it, so a later open
+    // starts fresh: the Temperature Adjust seed, and the Weather forecast.
     if (dismissed === 'temperature') this._tempSeed = undefined;
+    if (dismissed === 'weather') this._weatherForecasts = undefined;
   };
 
   /** Apply a service call emitted by an Overlay (temperature setpoint, System
