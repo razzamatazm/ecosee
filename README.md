@@ -94,6 +94,15 @@ The preview harness (`dev/`) renders the card against hand-built `hass` fixtures
 a rich ecobee, a bare generic thermostat, and an unavailable entity — so the UI
 can be built without a running Home Assistant.
 
+## Releasing
+
+Releases are automated and version-driven. Bump `version` in `package.json` and
+merge to `main`; the `Release` workflow builds the bundle and publishes a GitHub
+Release named `v<version>` with `dist/ecosee.js` attached. HACS resolves this
+Lovelace plugin to its latest release and downloads that asset, so a published
+release is what keeps the repository HACS-compliant. A push to `main` that doesn't
+change the version is a no-op.
+
 ## License
 
 MIT
