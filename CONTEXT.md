@@ -56,6 +56,13 @@ The Overlay listing temperature readings from configured Home Assistant sensor
 entities (not limited to ecobee remote sensors).
 _Avoid_: rooms view.
 
+**Standby Screen**:
+The dimmed idle display the Card shows when left untouched: a minimal white-on-black
+layout with outdoor temperature, current temperature and the time, mirroring the
+physical unit's on-wall idle look. Opt-in via config; the Card auto-returns to the
+Home Screen on interaction.
+_Avoid_: screensaver, idle face, lock screen, dim mode.
+
 ### Thermostat concepts
 
 **System Mode**:

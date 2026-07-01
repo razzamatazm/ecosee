@@ -117,7 +117,8 @@ export const icons = {
 
   /** Dry System Mode — a water droplet (generic `climate` only; not an ecobee mode).
    *  Drawn in the shared mode-glyph language (fill:none, `currentColor` stroke, 1.8
-   *  weight, round cap/join) and sized to fill the viewBox like Heat / Cool / Auto,
+   *  weight, round cap/join) and sized to fill the viewBox like the Heat, Cool, and
+   *  Heat / Cool (Auto) mode glyphs,
    *  so Dry reads at the same visual weight as the other System Modes (issue #59). */
   drop: wrap(svg`
     <path d="M12 2 C12 2 4.5 10 4.5 14.5 A7.5 7.5 0 0 0 19.5 14.5 C19.5 10 12 2 12 2 Z"

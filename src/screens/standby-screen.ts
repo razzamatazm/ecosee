@@ -44,7 +44,7 @@ export function formatClock(date: Date): string {
 
 /**
  * The Standby Screen — the device's dimmed idle display (issue #63). A minimal,
- * white-on-black layout mirroring the physical unit's idle face: the weather
+ * white-on-black layout mirroring the physical unit's idle display: the weather
  * condition glyph + outdoor temperature on top, the large current temperature in
  * the middle, and the live wall clock at the bottom. Purely presentational like the
  * Home Screen: it renders whatever the already-degraded `StandbyView` says (hiding
@@ -73,7 +73,7 @@ export class EcoseeStandbyScreen extends LitElement {
        fit its slot, so nothing reflows per-width. This is an inline-size query
        container so the children scale in cqw; the box's own padding uses the fixed
        --ecosee-u unit (never cqw — an element resolves its own cqw against the
-       viewport). The idle face is minimal white-on-black: the near-black canvas with
+       viewport). The idle display is minimal white-on-black: the near-black canvas with
        the overridable corner radius, everything drawn in white. */
     .screen {
       container-type: inline-size;
@@ -112,7 +112,7 @@ export class EcoseeStandbyScreen extends LitElement {
 
     /* The dominant current temperature, centered in the remaining space. Reuses the
        Home Screen's number treatment (thin, tight lining figures) but rendered in
-       white for the idle face rather than the cyan accent. */
+       white for the idle display rather than the cyan accent. */
     .current {
       flex: 1;
       display: flex;

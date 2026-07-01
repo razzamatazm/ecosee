@@ -16,6 +16,12 @@ export const tokens = css`
        (issue #37). Overridable per dashboard like every other Skin color. */
     --ecosee-top-row: #ffffff;
 
+    /* The Standby Screen's white-on-black idle display: outdoor temp, current
+       temp and clock render white, not the cyan accent, matching the device's
+       dimmed idle look (issue #63). Overridable per dashboard like every other
+       Skin color. */
+    --ecosee-standby-fg: #ffffff;
+
     /* The dominant current-temperature number: cyan with the device's faint
        top-bright sheen (a near-white cyan fading into the accent). */
     --ecosee-temp-grad: linear-gradient(180deg, #cdeffb 0%, #62cfe9 72%);
