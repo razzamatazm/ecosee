@@ -167,6 +167,18 @@ export function toFanModel(hass: HomeAssistant, config: EcoseeCardConfig): FanMo
   return { available: true, options, minRuntime: toMinRuntimeModel(hass, config) };
 }
 
+/** Whether the fan offers a genuine *speed* control — at least one mode beyond the
+ *  device's On / Auto (e.g. Low / Medium / High). Gates the Home Screen's top-row
+ *  fan glyph (issue #73): that corner affordance is a shortcut into real speed
+ *  selection, so an On/Auto-only fan shows no glyph. The recognized non-speed modes
+ *  are exactly `FAN_ORDER` (the device's two known modes), so a "speed" mode is any
+ *  the entity lists outside it. The Fan sub-screen's own availability
+ *  (`toFanModel().available`) is deliberately unaffected — On/Auto stays reachable
+ *  through Main Menu → Fan. */
+export function hasFanSpeedControls(model: FanModel): boolean {
+  return model.available && model.options.some((option) => !FAN_ORDER.includes(option.fanMode));
+}
+
 /** Build the `climate.set_fan_mode` call that switches the entity to the chosen
  *  mode. Takes the raw `fan_mode` string (an entity-supported value). */
 export function setFanModeCall(fanMode: string, entityId: string): ServiceCall {

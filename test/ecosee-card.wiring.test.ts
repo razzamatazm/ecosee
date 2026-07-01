@@ -201,7 +201,12 @@ describe('ecosee-card wiring — navigation (hub-and-picker)', () => {
 
   it('opens the Fan sub-screen from the Home top-row shortcut, dismissing back to Home (issue #45)', async () => {
     const { hass } = fakeHass({
-      entities: [climateEntity('cool', { fan_modes: ['auto', 'on'], fan_mode: 'auto' })],
+      entities: [
+        climateEntity('cool', {
+          fan_modes: ['auto', 'on', 'low', 'medium', 'high'],
+          fan_mode: 'auto',
+        }),
+      ],
     });
     const card = await mountCard(hass);
 

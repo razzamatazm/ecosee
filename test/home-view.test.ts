@@ -155,12 +155,18 @@ describe('toHomeView — edge cases', () => {
   });
 });
 
-describe('toHomeView — fan availability (issue #45)', () => {
+describe('toHomeView — fan glyph availability (issues #45, #73)', () => {
   const fanView = (attributes: Record<string, unknown>, state = 'cool') =>
     toHomeView(hass({ climate: { entity_id: 'climate.t', state, attributes } }), config());
 
-  it('is true when the entity lists usable fan modes', () => {
-    expect(fanView({ fan_modes: ['auto', 'on'] }).fanAvailable).toBe(true);
+  it('is true when the entity exposes a real fan speed control (issue #73)', () => {
+    expect(fanView({ fan_modes: ['auto', 'on', 'low', 'medium', 'high'] }).fanAvailable).toBe(true);
+    expect(fanView({ fan_modes: ['low', 'high'] }).fanAvailable).toBe(true);
+  });
+
+  it('is false for an On/Auto-only fan — reachable via Main Menu → Fan instead (issue #73)', () => {
+    expect(fanView({ fan_modes: ['auto', 'on'] }).fanAvailable).toBe(false);
+    expect(fanView({ fan_modes: ['on', 'auto'] }).fanAvailable).toBe(false);
   });
 
   it('is false when the entity lists no fan modes', () => {
@@ -173,7 +179,7 @@ describe('toHomeView — fan availability (issue #45)', () => {
   });
 
   it('is false for a missing or unavailable entity', () => {
-    expect(fanView({ fan_modes: ['auto', 'on'] }, 'unavailable').fanAvailable).toBe(false);
+    expect(fanView({ fan_modes: ['auto', 'on', 'low'] }, 'unavailable').fanAvailable).toBe(false);
     const missing = toHomeView(
       hass({ climate: { entity_id: 'climate.t', state: 'cool', attributes: {} } }),
       config({ entity: 'climate.none' }),
