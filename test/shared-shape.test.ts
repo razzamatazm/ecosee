@@ -12,6 +12,8 @@ import { SQUIRCLE_PATH, shapeStyles } from '../src/styles/shape';
 import type { HomeView } from '../src/climate/home-view';
 import type { StandbyView } from '../src/screens/standby-screen';
 
+const SVG_NS = 'http://www.w3.org/2000/svg';
+
 // Regression guard for issue #76: the outer superellipse silhouette must be the
 // SAME on every surface — the Home Screen, the Standby Screen, and every Overlay
 // (all Overlays ride one shell). It used to live only on the Home Screen, so the
@@ -121,6 +123,30 @@ describe('shared superellipse silhouette (issue #76)', () => {
     expect(home.shadowRoot!.querySelector('svg.shape .glow')).not.toBeNull();
     expect(standby.shadowRoot!.querySelector('svg.shape .glow')).toBeNull();
     expect(overlay.shadowRoot!.querySelector('svg.shape .glow')).toBeNull();
+  });
+
+  it('renders the glow group + clip as REAL SVG elements, not XHTML (issue #89)', async () => {
+    // Regression guard for #89: the glow group and its clipPath were split out of the
+    // outer `<svg>` template into nested `html` fragments by the #76 extraction, so Lit
+    // parsed them in the XHTML namespace. Browsers then treat `<g>`/`<path>`/`<clipPath>`
+    // as inert unknown HTML inside the SVG and paint NO glow in any engine — the glow
+    // never rendered while heating/cooling. They must live in the SVG namespace, exactly
+    // like the always-SVG `.fill` path. The fix uses Lit's `svg` tag for those fragments.
+    const el = await mountHome();
+    const root = el.shadowRoot!;
+    const fillNs = root.querySelector('svg.shape path.fill')!.namespaceURI;
+    expect(fillNs).toBe(SVG_NS);
+
+    const glow = root.querySelector('svg.shape .glow')!;
+    expect(glow.namespaceURI).toBe(SVG_NS);
+
+    const glowPaths = [...root.querySelectorAll('svg.shape .glow path')];
+    expect(glowPaths).toHaveLength(3);
+    for (const p of glowPaths) expect(p.namespaceURI).toBe(SVG_NS);
+
+    const clipPath = root.querySelector('svg.shape clipPath')!;
+    expect(clipPath.namespaceURI).toBe(SVG_NS);
+    expect(clipPath.querySelector('path')!.namespaceURI).toBe(SVG_NS);
   });
 });
 
