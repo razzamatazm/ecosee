@@ -25,6 +25,7 @@ import {
 } from './weather/weather';
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
+import { resolveDeviceSize } from './device-size';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
 import type { HomeActionDetail } from './screens/home-screen';
 import './screens/home-screen';
@@ -107,6 +108,15 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  while an Overlay is open, reset on interaction within it, cancelled on manual
    *  dismiss / unmount. */
   private readonly _inactivity = new InactivityTimer(() => this._revertToHome());
+
+  /** Watches the dashboard slot so the fixed-canvas device can be scaled to fit
+   *  (issue #35 / #36). The Home Screen and every Overlay are laid out once at a
+   *  fixed base size and sized in cqw; deriving the container size from
+   *  `clamp(…, 100%, …)` + `aspect-ratio` instead is what Gecko resolves
+   *  late/collapsed, squashing the layout in Firefox/Zen. Measuring the width here
+   *  and publishing `--ecosee-scale` (applied as one transform) sidesteps that and
+   *  keeps the layout from ever reflowing per-width. */
+  private _resizeObserver?: ResizeObserver;
 
   /** The Overlay currently on top of the stack, if any. */
   private get _overlay(): OverlayKind | undefined {
@@ -219,8 +229,26 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       :host {
         display: block;
       }
+      /* Fixed-canvas device (issue #35 / #36). .root holds the whole Card laid out
+         once at --ecosee-base-size; the ResizeObserver measures the slot and sets
+         --ecosee-scale, and we scale .root as a single unit. transform is a purely
+         visual scale — the internal layout never reflows — so Home Screen and every
+         Overlay render identically in every browser at any width. .sizer collapses
+         the Card's layout footprint to the on-screen (scaled) size, since a
+         transform alone leaves the un-scaled box reserving space. */
+      .sizer {
+        width: var(--ecosee-rendered-size, var(--ecosee-base-size, 460px));
+        height: var(--ecosee-rendered-size, var(--ecosee-base-size, 460px));
+        max-width: 100%;
+        margin: 0 auto;
+        overflow: hidden;
+      }
       .root {
         position: relative;
+        width: var(--ecosee-base-size, 460px);
+        height: var(--ecosee-base-size, 460px);
+        transform: scale(var(--ecosee-scale, 1));
+        transform-origin: top left;
       }
     `,
   ];
@@ -245,10 +273,30 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     return document.createElement(EDITOR_TYPE);
   }
 
+  override connectedCallback(): void {
+    super.connectedCallback();
+    // Track the slot width and pin the device's pixel size (issue #35). The
+    // observer fires once on observe, covering the initial size. Guarded for SSR
+    // / test environments (happy-dom) that don't implement ResizeObserver.
+    if (typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(() => this._syncDeviceScale());
+      this._resizeObserver.observe(this);
+    }
+    this._syncDeviceScale();
+  }
+
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     // Drop a pending countdown so it can't revert (set state on) a detached card.
     this._inactivity.stop();
+    this._resizeObserver?.disconnect();
+    this._resizeObserver = undefined;
+  }
+
+  protected override firstUpdated(): void {
+    // clientWidth is only meaningful once the host is laid out; the observe-time
+    // callback can land before that, so re-measure after the first render.
+    this._syncDeviceScale();
   }
 
   protected override updated(changed: PropertyValues): void {
@@ -256,6 +304,43 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     // pushes: a state update is not user interaction, so it must not extend (nor,
     // by re-arming, reset) the idle timer.
     if (changed.has('_nav') || changed.has('_config')) this._syncInactivityTimer();
+  }
+
+  /** Measure the dashboard slot and set the transform scale that fits the
+   *  fixed-canvas device into it (issue #35 / #36). The device is laid out once at
+   *  `--ecosee-base-size`; we clamp the slot width between the min/max tokens to
+   *  the on-screen size, publish it as `--ecosee-rendered-size` (the .sizer
+   *  footprint) and the ratio as `--ecosee-scale` (applied to .root). An unmeasured
+   *  Card (0 width, e.g. detached or in tests) leaves the CSS defaults — scale 1,
+   *  base-size footprint — in place. */
+  private _syncDeviceScale(): void {
+    const width = this.clientWidth;
+    const styles = getComputedStyle(this);
+    const base = parseFloat(styles.getPropertyValue('--ecosee-base-size')) || 460;
+    const min = parseFloat(styles.getPropertyValue('--ecosee-min-size')) || 220;
+    const max = parseFloat(styles.getPropertyValue('--ecosee-max-size')) || 460;
+    const rendered = resolveDeviceSize(width, min, max);
+    const scale = rendered > 0 && base > 0 ? rendered / base : 0;
+    // The .sizer collapses to the rendered size but the host stays full-slot
+    // width (block), so publishing these can't feed back into the observer.
+    const nextScale = scale > 0 ? String(scale) : '';
+    const nextSize = rendered > 0 ? `${rendered}px` : '';
+    if (
+      this.style.getPropertyValue('--ecosee-scale') === nextScale &&
+      this.style.getPropertyValue('--ecosee-rendered-size') === nextSize
+    ) {
+      return;
+    }
+    this._setOrClear('--ecosee-scale', nextScale);
+    this._setOrClear('--ecosee-rendered-size', nextSize);
+  }
+
+  private _setOrClear(prop: string, value: string): void {
+    if (value) {
+      this.style.setProperty(prop, value);
+    } else {
+      this.style.removeProperty(prop);
+    }
   }
 
   /** Arm the auto-revert countdown while an Overlay is open — re-arming on each
@@ -273,9 +358,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     if (!this._config || !this.hass) return nothing;
     const view = toHomeView(this.hass, this._config);
     return html`
-      <div class="root">
-        <ecosee-home-screen .view=${view} @ecosee-action=${this._onAction}></ecosee-home-screen>
-        ${this._renderOverlay()}
+      <div class="sizer">
+        <div class="root">
+          <ecosee-home-screen .view=${view} @ecosee-action=${this._onAction}></ecosee-home-screen>
+          ${this._renderOverlay()}
+        </div>
       </div>
     `;
   }

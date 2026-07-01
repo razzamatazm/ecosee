@@ -53,18 +53,19 @@ export class EcoseeFanOverlay extends LitElement {
 
     /* Title near the top with the controls beneath (fan-mode.jpeg), not a
        vertically-centered cluster. Inline-size container so everything scales with
-       cqw off the definite width, not container-type: size (issue #35). */
+       cqw off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
     .fan {
       container-type: inline-size;
       box-sizing: border-box;
-      width: 100%;
-      height: 100%;
+      width: var(--ecosee-base-size, 460px);
+      height: var(--ecosee-base-size, 460px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      gap: 6cqw;
-      padding: 13cqw 9cqw 9cqw;
+      gap: calc(6 * var(--ecosee-u, 4.6px));
+      padding: calc(13 * var(--ecosee-u, 4.6px)) calc(9 * var(--ecosee-u, 4.6px))
+        calc(9 * var(--ecosee-u, 4.6px));
       text-align: center;
     }
 

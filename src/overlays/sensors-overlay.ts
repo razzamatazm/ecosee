@@ -34,18 +34,19 @@ export class EcoseeSensorsOverlay extends LitElement {
 
     /* Breadcrumb header near the top, the card stack beneath (sensors.jpeg), not a
        vertically-centered cluster. Inline-size container so cards scale with cqw
-       off the definite width, not container-type: size (issue #35). */
+       off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
     .sensors {
       container-type: inline-size;
       box-sizing: border-box;
-      width: 100%;
-      height: 100%;
+      width: var(--ecosee-base-size, 460px);
+      height: var(--ecosee-base-size, 460px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      gap: 5cqw;
-      padding: 13cqw 8cqw 8cqw;
+      gap: calc(5 * var(--ecosee-u, 4.6px));
+      padding: calc(13 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px))
+        calc(8 * var(--ecosee-u, 4.6px));
     }
 
     .header {

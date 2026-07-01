@@ -53,25 +53,26 @@ export class EcoseeHomeScreen extends LitElement {
       display: block;
     }
 
-    /* Responsive squircle: an inline-size query container so children scale with
-       cqw, with a legible floor (min-size) and a capped ceiling (max-size). We
-       key sizing off the definite slot *width* only — NOT container-type: size —
-       because that variant also contains the block axis and made Gecko resolve
-       the aspect-ratio-derived height late/collapsed, squashing and overlapping
-       the whole layout in Firefox/Zen (issue #35). Height still comes from
-       aspect-ratio; overflow: hidden keeps the box square now that content is no
-       longer size-contained. The squircle surface itself is drawn by the inline
-       SVG (.shape) below — no background or border-radius here, so the true
-       superellipse, its glow and any clip all trace the one curve. */
+    /* Fixed layout canvas: the device is laid out ONCE at --ecosee-base-size and
+       <ecosee-card> scales the whole Card to fit its slot (issue #35 / #36), so the
+       layout never reflows per-width and renders identically at every size and in
+       every browser. This is an inline-size query container, so the children below
+       scale with cqw off this box's definite CONTENT width (its authored
+       proportions). The container's OWN padding, though, is the fixed unit
+       calc(N * --ecosee-u) — NOT cqw: an element resolves its own container-query
+       units against the *viewport* (nothing above it is a container), so a cqw
+       padding here ballooned on wide windows and collapsed the content (the real
+       issue #35 bug, in every browser). overflow: hidden keeps the box square; the
+       squircle surface is drawn by the inline SVG (.shape) below — no background or
+       border-radius here, so the superellipse, its glow and any clip trace one curve. */
     .screen {
       container-type: inline-size;
       position: relative;
       box-sizing: border-box;
-      width: clamp(var(--ecosee-min-size, 220px), 100%, var(--ecosee-max-size, 460px));
-      aspect-ratio: var(--ecosee-aspect, 1 / 1);
+      width: var(--ecosee-base-size, 460px);
+      height: var(--ecosee-base-size, 460px);
       overflow: hidden;
-      margin: 0 auto;
-      padding: 7cqw 8cqw;
+      padding: calc(7 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px));
       display: flex;
       flex-direction: column;
       color: var(--ecosee-fg, #d4eff9);
@@ -141,11 +142,17 @@ export class EcoseeHomeScreen extends LitElement {
 
     /* Top row: shortcuts (left), System Mode (center), menu (right). The 1fr side
        columns are equal, so the center indicator stays centered no matter how many
-       shortcuts sit on the left. */
+       shortcuts sit on the left. Its own inset (on top of .screen's padding) drops
+       the row below the squircle's top curve and pulls the corner glyphs in off the
+       rounded corners, matching the device (home-*.jpeg) — the superellipse cuts in
+       sharply near the top, so the padding that frames the centered cluster leaves
+       the corner glyphs too high and too close to the edge without this. */
     .top {
       position: relative;
       z-index: 1;
+      box-sizing: border-box;
       width: 100%;
+      padding: 3cqw 4cqw 0;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
@@ -353,13 +360,6 @@ export class EcoseeHomeScreen extends LitElement {
     }
     .aqi.hazardous {
       color: var(--ecosee-aqi-hazardous, #9c5a6a);
-    }
-
-    /* Adapt when the container is narrow: ease the number down. */
-    @container (max-width: 300px) {
-      .temp {
-        font-size: 38cqw;
-      }
     }
   `;
 

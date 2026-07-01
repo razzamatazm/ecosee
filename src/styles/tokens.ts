@@ -49,12 +49,30 @@ export const tokens = css`
     --ecosee-aqi-very-unhealthy: #b06fce;
     --ecosee-aqi-hazardous: #9c5a6a;
 
-    /* Responsive squircle: scale to the container between a legible floor and a
-       capped ceiling; aspect + corner radius are overridable per dashboard. */
+    /* Fixed-canvas squircle (issue #35 / #36): the device is laid out ONCE at
+       --ecosee-base-size and then the whole Card is scaled as a single unit to
+       fit its slot — the internal layout never reflows per-width, so it renders
+       identically at every width. The card measures its slot and clamps the
+       on-screen size between this legible floor and capped ceiling, then applies
+       one transform: scale(). base equals max by default, so the largest render
+       is 1:1 (crispest) and everything narrower only ever scales down. Corner
+       radius is overridable per dashboard; the device renders square. */
+    --ecosee-base-size: 460px;
     --ecosee-min-size: 220px;
     --ecosee-max-size: 460px;
-    --ecosee-aspect: 1 / 1;
     --ecosee-radius: 15%;
+
+    /* The device's layout unit: 1% of the fixed canvas edge (base-size / 100).
+       Every internal length is expressed as calc(N * var(--ecosee-u)), so the
+       whole layout is sized off this ONE fixed px scale and the transform: scale()
+       above does the responsive work. This replaced container-query units (cqw):
+       an element that is itself a container-type container resolves its OWN cqw
+       properties (e.g. its padding) against the *viewport*, not the card, because
+       nothing above it establishes a query container — so on a wide window that
+       padding ballooned and collapsed the content, shrinking every child. This
+       unit has no such coupling: it is always base-size/100 regardless of viewport
+       or browser (issue #35). Follows base-size if a dashboard overrides it. */
+    --ecosee-u: calc(var(--ecosee-base-size, 460px) / 100);
 
     /* The device's typeface is Gotham (Hoefler&Co). Gotham is proprietary and
        cannot be bundled with the card, so we request it by name first — it is used

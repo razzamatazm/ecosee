@@ -82,18 +82,21 @@ export class EcoseeTemperatureOverlay extends LitElement {
     /* Three columns: setpoint chips (left) | vertical scrubber (center) | ±
        nudge buttons (right). Chips and buttons are centered on the row so they
        sit level with the selected-value bubble at the scrubber's midpoint. An
-       inline-size container (not container-type: size), so cqw resolves off the
-       definite width and Gecko doesn't rescale the bubble late (issue #35). */
+       inline-size container so the children resolve cqw off this definite width;
+       the root's OWN padding is in the fixed unit (calc · --ecosee-u), not cqw,
+       because a container-type element resolves its own cqw against the viewport —
+       which ballooned the padding and collapsed the content on wide windows (the
+       actual issue #35 bug, in every browser, not a Gecko-only rescale). */
     .adjust {
       container-type: inline-size;
       box-sizing: border-box;
-      width: 100%;
-      height: 100%;
-      padding: 8cqw 7cqw;
+      width: var(--ecosee-base-size, 460px);
+      height: var(--ecosee-base-size, 460px);
+      padding: calc(8 * var(--ecosee-u, 4.6px)) calc(7 * var(--ecosee-u, 4.6px));
       display: grid;
       grid-template-columns: max-content 1fr max-content;
       align-items: center;
-      gap: 3cqw;
+      gap: calc(3 * var(--ecosee-u, 4.6px));
     }
 
     /* ± nudge buttons (right), stacked ＋ over −, tinted to the active setpoint. */

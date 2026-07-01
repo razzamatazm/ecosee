@@ -30,18 +30,19 @@ export class EcoseeMainMenuOverlay extends LitElement {
 
     /* Title near the top with the list beneath (visual-spec.md / menu-system.jpeg),
        not a vertically-centered cluster. Inline-size container so rows scale with
-       cqw off the definite width, not container-type: size (issue #35). */
+       cqw off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
     .menu {
       container-type: inline-size;
       box-sizing: border-box;
-      width: 100%;
-      height: 100%;
+      width: var(--ecosee-base-size, 460px);
+      height: var(--ecosee-base-size, 460px);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      gap: 7cqw;
-      padding: 15cqw 10cqw 10cqw;
+      gap: calc(7 * var(--ecosee-u, 4.6px));
+      padding: calc(15 * var(--ecosee-u, 4.6px)) calc(10 * var(--ecosee-u, 4.6px))
+        calc(10 * var(--ecosee-u, 4.6px));
     }
 
     .title {

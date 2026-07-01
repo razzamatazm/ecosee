@@ -31,17 +31,18 @@ export class EcoseeOverlay extends LitElement {
       z-index: 1;
     }
 
-    /* Mirrors <ecosee-home-screen>'s squircle sizing so the overlay lands
-       squarely on top of it. An inline-size query container (not container-type:
-       size), so cqw resolves off the definite width and Gecko doesn't collapse
-       the aspect-ratio height the way it did under size containment (issue #35).
-       Opaque background fully masks the Home Screen. */
+    /* The same fixed layout canvas as <ecosee-home-screen>'s .screen, so the
+       overlay lands squarely on top of it; the whole Card (Home Screen + Overlay)
+       is scaled as one unit by <ecosee-card> (issue #35 / #36). The shell's own
+       chrome (the ✕) is sized in the fixed unit calc(N * --ecosee-u), not cqw —
+       the shell is not a query container, and slotted overlay bodies each carry
+       their own (that context can't cross the shadow boundary anyway). Opaque
+       background fully masks the Home Screen. */
     .shell {
-      container-type: inline-size;
       position: relative;
       box-sizing: border-box;
-      width: clamp(var(--ecosee-min-size, 220px), 100%, var(--ecosee-max-size, 460px));
-      aspect-ratio: var(--ecosee-aspect, 1 / 1);
+      width: var(--ecosee-base-size, 460px);
+      height: var(--ecosee-base-size, 460px);
       background: var(--ecosee-bg, #0a0d10);
       border-radius: var(--ecosee-radius, 15%);
       color: var(--ecosee-fg, #d4eff9);
@@ -82,11 +83,11 @@ export class EcoseeOverlay extends LitElement {
       background: none;
       border: none;
       position: absolute;
-      top: 6cqw;
-      right: 6cqw;
-      width: 9cqw;
-      height: 9cqw;
-      padding: 1.4cqw;
+      top: calc(6 * var(--ecosee-u, 4.6px));
+      right: calc(6 * var(--ecosee-u, 4.6px));
+      width: calc(9 * var(--ecosee-u, 4.6px));
+      height: calc(9 * var(--ecosee-u, 4.6px));
+      padding: calc(1.4 * var(--ecosee-u, 4.6px));
       color: var(--ecosee-muted, #6f96a3);
       cursor: pointer;
       z-index: 2;
