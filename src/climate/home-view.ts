@@ -136,7 +136,7 @@ function deriveSetpoints(mode: SystemMode, attrs: Record<string, unknown>): Setp
   if (single === null) return null;
   if (mode === 'heat') return { heat: single, cool: null };
   if (mode === 'cool') return { heat: null, cool: single };
-  return null; // off / dry / fan_only / unknown ⇒ no pill
+  return null; // off / dry / fan_only / unknown ⇒ no setpoints
 }
 
 /** The configured `weather` entity's current condition, or `null` when none is

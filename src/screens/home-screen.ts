@@ -21,11 +21,23 @@ const SQUIRCLE_PATH =
  *  Overlays. */
 export type HomeAction = 'menu' | 'temperature' | 'weather' | 'system-mode';
 
+/** Which setpoint a tap should foreground. Carried on a `temperature` action when
+ *  it fires from a specific setpoint oval, so the overlay opens editing that one. */
+export type SetpointTarget = 'heat' | 'cool';
+
+/** The `ecosee-action` event detail. `setpoint` is present only on a `temperature`
+ *  action fired from a setpoint oval (absent when the current-temperature number is
+ *  tapped — the overlay then picks its own default setpoint). */
+export interface HomeActionDetail {
+  action: HomeAction;
+  setpoint?: SetpointTarget;
+}
+
 /**
  * The default Card view, laid out as the device is (see
  * docs/reference/home-*.jpeg): a top row of affordance glyphs (weather left,
  * System Mode center, menu right), the humidity line and the large current
- * temperature centered beneath, the horizontal setpoint pill below the number, and the
+ * temperature centered beneath, the setpoint ovals below the number, and the
  * optional air-quality element (issue #10) at the foot of the cluster. Active
  * equipment is shown as a colored edge glow around the squircle (blue cooling /
  * amber heating), keyed to `hvac_action` — not an icon. Purely presentational: it
@@ -172,7 +184,7 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-top-row, #ffffff);
     }
 
-    /* Centered cluster: humidity above the dominant number, setpoint pill below. */
+    /* Centered cluster: humidity above the dominant number, setpoint ovals below. */
     .body {
       position: relative;
       z-index: 1;
@@ -219,39 +231,44 @@ export class EcoseeHomeScreen extends LitElement {
       }
     }
 
-    /* Horizontal setpoint pill: heat – cool (the device's "until 5:28pm" expiry is
-       omitted — HA can't express it, ADR-0003). */
-    .pill {
+    /* Setpoint ovals: one per active setpoint, matching the device — an amber
+       Heat oval (♨ + temp) and a blue Cool oval (❄ + temp). Heat / Cool (Auto)
+       shows both side by side (heat left, cool right); a single-setpoint mode
+       shows just its own, centered by the row. Each oval is a tap target that
+       opens Temperature Adjust for that setpoint. No Hold pill / Resume ✕
+       (ADR-0004). */
+    .setpoints {
       display: inline-flex;
       align-items: center;
-      gap: 2.5cqw;
-      padding: 2.4cqw 4cqw;
-      border: 0.6cqw solid var(--ecosee-accent, #62cfe9);
+      justify-content: center;
+      gap: 3cqw;
+    }
+    /* A stadium-shaped pill tinted to its mode: colored glyph + numeral over a
+       faint same-color wash with a matching outline (the .aqi badge idiom), so
+       the amber/blue reads as a colored oval without a heavy fill fighting the
+       near-black canvas. */
+    .oval {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.8cqw;
+      padding: 1.8cqw 4.4cqw;
+      border: 0.6cqw solid currentColor;
       border-radius: 999px;
+      background: color-mix(in srgb, currentColor 14%, transparent);
       font-size: 8cqw;
-      font-weight: 500;
+      font-weight: 600;
       line-height: 1;
+      cursor: pointer;
     }
-    /* The device weights the setpoint numerals bold and the separator light. */
-    .pill .heat {
+    .oval .glyph {
+      width: 6.5cqw;
+      height: 6.5cqw;
+    }
+    .oval.heat {
       color: var(--ecosee-heat, #f3a13c);
-      font-weight: 600;
     }
-    .pill .cool {
+    .oval.cool {
       color: var(--ecosee-cool, #49b6ea);
-      font-weight: 600;
-    }
-    .pill .dash {
-      color: var(--ecosee-muted, #6f96a3);
-      font-weight: 400;
-    }
-    /* A single-setpoint pill is tinted to its mode; the dual (Auto) pill stays
-       cyan, matching the device. */
-    .pill.heat {
-      border-color: var(--ecosee-heat, #f3a13c);
-    }
-    .pill.cool {
-      border-color: var(--ecosee-cool, #49b6ea);
     }
 
     .unavailable {
@@ -330,10 +347,10 @@ export class EcoseeHomeScreen extends LitElement {
     }
   `;
 
-  private _emit(action: HomeAction): void {
+  private _emit(action: HomeAction, setpoint?: SetpointTarget): void {
     this.dispatchEvent(
-      new CustomEvent<{ action: HomeAction }>('ecosee-action', {
-        detail: { action },
+      new CustomEvent<HomeActionDetail>('ecosee-action', {
+        detail: { action, setpoint },
         bubbles: true,
         composed: true,
       }),
@@ -371,7 +388,7 @@ export class EcoseeHomeScreen extends LitElement {
                   >
                     ${formatTemp(view.currentTemp, view.unit)}
                   </button>
-                  ${this._renderPill(view)}
+                  ${this._renderSetpoints(view)}
                 `
               : html`<div class="unavailable">${view.name} unavailable</div>`
           }
@@ -446,35 +463,31 @@ export class EcoseeHomeScreen extends LitElement {
     </button>`;
   }
 
-  private _renderPill(view: HomeView): TemplateResult | typeof nothing {
+  /** The active setpoint(s) as ecobee-style ovals — the amber Heat oval and/or the
+   *  blue Cool oval, matching how the device presents them (heat left, cool right in
+   *  Heat / Cool (Auto); a single centered oval in Heat-only / Cool-only). Each oval
+   *  is a tap target that opens Temperature Adjust for its own setpoint. */
+  private _renderSetpoints(view: HomeView): TemplateResult | typeof nothing {
     const setpoints = view.setpoints;
     if (!setpoints || (setpoints.heat === null && setpoints.cool === null)) return nothing;
-    // Single-setpoint pills are tinted to their mode; dual (Auto) stays cyan.
-    const tint =
-      setpoints.heat !== null && setpoints.cool !== null
-        ? ''
-        : setpoints.heat !== null
-          ? 'heat'
-          : 'cool';
     return html`
-      <div class="pill ${tint}" part="setpoints">
-        ${
-          setpoints.heat !== null
-            ? html`<span class="heat">${formatTemp(setpoints.heat, view.unit)}</span>`
-            : nothing
-        }
-        ${
-          setpoints.heat !== null && setpoints.cool !== null
-            ? html`<span class="dash">–</span>`
-            : nothing
-        }
-        ${
-          setpoints.cool !== null
-            ? html`<span class="cool">${formatTemp(setpoints.cool, view.unit)}</span>`
-            : nothing
-        }
+      <div class="setpoints" part="setpoints">
+        ${setpoints.heat !== null ? this._renderOval('heat', setpoints.heat, view.unit) : nothing}
+        ${setpoints.cool !== null ? this._renderOval('cool', setpoints.cool, view.unit) : nothing}
       </div>
     `;
+  }
+
+  private _renderOval(setpoint: SetpointTarget, value: number, unit: string): TemplateResult {
+    const glyph = setpoint === 'heat' ? icons.heat : icons.snowflake;
+    const label = setpoint === 'heat' ? 'Adjust heat setpoint' : 'Adjust cool setpoint';
+    return html`<button
+      class="oval ${setpoint}"
+      aria-label=${label}
+      @click=${() => this._emit('temperature', setpoint)}
+    >
+      <span class="glyph">${glyph}</span>${formatTemp(value, unit)}
+    </button>`;
   }
 
   /** The optional air-quality element (issue #10). Rendered only when the seam

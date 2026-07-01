@@ -31,7 +31,7 @@ _Avoid_: fallback, compatibility mode.
 
 **Home Screen**:
 The default Card view: large **current** temperature, humidity, an Equipment Status
-indicator, the setpoint pill (when setpoints are active), a weather icon, and a menu
+indicator, the setpoint ovals (when setpoints are active), a weather icon, and a menu
 affordance. The
 Premium uses a flat **squircle** motif (big number + rounded-square bubbles), NOT a
 circular dial/ring — do not add a ring.

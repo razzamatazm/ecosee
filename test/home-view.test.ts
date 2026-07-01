@@ -48,7 +48,7 @@ describe('toHomeView — rich ecobee', () => {
     expect(view.humidity).toBe(60);
   });
 
-  it('maps the dual setpoints into the setpoint pill', () => {
+  it('maps the dual setpoints into the setpoint display', () => {
     expect(view.setpoints).toEqual({ heat: 70, cool: 75 });
   });
 
@@ -105,7 +105,7 @@ describe('toHomeView — edge cases', () => {
     expect(view.setpoints).toBeNull();
   });
 
-  it('shows no setpoint pill when the system is Off', () => {
+  it('has no setpoints when the system is Off', () => {
     const view = toHomeView(
       hass({
         climate: {
@@ -119,7 +119,7 @@ describe('toHomeView — edge cases', () => {
     expect(view.setpoints).toBeNull();
   });
 
-  it('surfaces dry / fan_only as the mode with no setpoint pill', () => {
+  it('surfaces dry / fan_only as the mode with no setpoints', () => {
     for (const state of ['dry', 'fan_only'] as const) {
       const view = toHomeView(
         hass({

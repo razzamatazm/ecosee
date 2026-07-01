@@ -2,7 +2,12 @@ import { LitElement, html, css, nothing, type TemplateResult, type PropertyValue
 import { customElement, property, state } from 'lit/decorators.js';
 import { CARD_TYPE, parseConfig, type EcoseeCardConfig } from './config';
 import { toHomeView } from './climate/home-view';
-import { toTempAdjustModel, type TempAdjustModel } from './climate/temperature-adjust';
+import {
+  toTempAdjustModel,
+  selectSetpoint,
+  type TempAdjustModel,
+  type Setpoint,
+} from './climate/temperature-adjust';
 import { toSystemModeModel } from './climate/system-mode';
 import { toComfortSettingModel } from './climate/comfort-setting';
 import { toFanModel } from './climate/fan';
@@ -21,7 +26,7 @@ import {
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
-import type { HomeAction } from './screens/home-screen';
+import type { HomeActionDetail } from './screens/home-screen';
 import './screens/home-screen';
 import './overlays/overlay-shell';
 import './overlays/temperature-overlay';
@@ -85,6 +90,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  not recomputed per render, so the overlay's in-progress edits survive `hass`
    *  updates rather than being reset on every state push. */
   @state() private _tempSeed?: TempAdjustModel;
+  /** Which setpoint the next Temperature Adjust open should foreground, set when the
+   *  open came from a specific setpoint oval (heat / cool) rather than the current-
+   *  temperature number. Consumed and cleared by the temperature descriptor's
+   *  `onOpen`; `undefined` lets the model keep its own default (cool in Auto). */
+  private _tempSetpoint?: Setpoint;
   /** Forecast data for the Weather overlay, fetched via the `weather.get_forecasts`
    *  service when it opens (modern HA exposes the forecast through a service, not a
    *  static attribute — ADR-0001). `undefined` until the fetch resolves; the seam
@@ -113,9 +123,13 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     temperature: {
       available: (hass, config) => toTempAdjustModel(hass, config).available,
       // Seed the editing model once on open and hold it by reference, so the
-      // overlay's in-progress edits survive `hass` pushes (see `_tempSeed`).
+      // overlay's in-progress edits survive `hass` pushes (see `_tempSeed`). When
+      // the open came from a specific setpoint oval, foreground that setpoint so the
+      // scrubber edits the one the user tapped (a no-op if it isn't editable).
       onOpen: (hass, config) => {
-        this._tempSeed = toTempAdjustModel(hass, config);
+        const model = toTempAdjustModel(hass, config);
+        this._tempSeed = this._tempSetpoint ? selectSetpoint(model, this._tempSetpoint) : model;
+        this._tempSetpoint = undefined;
       },
       render: (_hass, config) =>
         this._tempSeed
@@ -291,9 +305,12 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     `;
   }
 
-  private _onAction = (event: CustomEvent<{ action: HomeAction }>): void => {
+  private _onAction = (event: CustomEvent<HomeActionDetail>): void => {
     switch (event.detail.action) {
       case 'temperature':
+        // A tap on a setpoint oval carries which setpoint to foreground; a tap on
+        // the current-temperature number carries none (the model keeps its default).
+        this._tempSetpoint = event.detail.setpoint;
         this._open('temperature', 'home');
         break;
       case 'system-mode':
@@ -386,6 +403,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  Adjust seed and the Weather forecast. */
   private _clearOverlaySeeds(): void {
     this._tempSeed = undefined;
+    this._tempSetpoint = undefined;
     this._weatherForecasts = undefined;
   }
 

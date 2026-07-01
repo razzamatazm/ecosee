@@ -73,7 +73,7 @@ picker reached through the Main Menu) returns straight to Home, not one level up
 
 ### Home Screen — `reference/home-hold.jpeg`, `home-off.jpeg`, `home-heat-only.jpeg`, `home-cool-only.jpeg`
 Top row of glyphs, then the humidity line and large current temperature centered,
-then the setpoint pill — see also the equipment edge glow below.
+then the setpoint ovals — see also the equipment edge glow below.
 - **Large current temperature** (e.g., `75`) — the dominant element. This is
   `current_temperature`, NOT a setpoint. Rendered in **thin cyan** glyphs (not pale
   white) with a faint top-bright sheen (`--ecosee-temp-grad`) and proportional
@@ -89,13 +89,16 @@ then the setpoint pill — see also the equipment edge glow below.
   cooling, amber while heating, none when idle. From `hvac_action` (inferred if
   absent); see `reference/home-cooling.jpeg` / `home-heating.jpeg`. A crisp thin
   outline tracing the squircle edge with a gentle falloff inward, not a diffuse halo.
-- **Setpoint pill / setpoint display** (when setpoints are active): a **horizontal**
-  pill (as the reference photos show — the setpoints read left-to-right, not rotated)
-  with the active setpoints in **bold** (`70 – 75`, heat amber / cool blue). A
-  single-setpoint pill (Heat/Cool only) shows one value and is tinted to the mode
-  color; the dual (Auto) pill shows both, cyan. The pill is a display only — there is
-  no Resume ✕ (ADR-0004). The device's `until 5:28pm` expiry is likewise omitted — HA
-  doesn't expose the next transition time (ADR-0003).
+- **Setpoint ovals / setpoint display** (when setpoints are active): the device's
+  colored setpoint ovals — an **amber Heat oval** (♨ heat-coil glyph + temp, e.g.
+  `♨ 70`) and a **blue Cool oval** (❄ snowflake glyph + temp, e.g. `❄ 75`), each a
+  stadium pill in its mode color (colored glyph + numeral over a faint same-color
+  wash and outline). **Heat / Cool (Auto)** shows both side by side, **heat left,
+  cool right**; **Heat-only** shows just the amber oval, centered; **Cool-only** just
+  the blue oval, centered. Each oval is a **tap target** that opens Temperature
+  Adjust foregrounding *that* setpoint (as on the device). There is no combined
+  range pill, no Hold pill, and no Resume ✕ (ADR-0004); the device's `until 5:28pm`
+  expiry is likewise omitted — HA doesn't expose the next transition time (ADR-0003).
 - **Weather icon** (top row, left) — the **current condition's glyph** (sun /
   clear-night moon / partly-cloudy / …), reflecting the live `weather` entity's
   condition rather than a fixed sun, in white like the other top-row glyphs. Opens
