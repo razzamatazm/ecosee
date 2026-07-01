@@ -1,9 +1,10 @@
 // Broken-metric font quarantine (issue #85).
 //
-// The card's font stack requests 'Gotham' by name (ADR-0001 / tokens.ts), so it
-// uses whatever font the surrounding dashboard provides under that name. Some
-// dashboards provide Gotham as a webfont with DEGENERATE vertical metrics (the
-// #85 reporter's had hhea ascent/descent/lineGap all zero). Engines then
+// The card's font stack requests 'Montserrat' by name (ADR-0008 / tokens.ts), so
+// it uses whatever font the surrounding dashboard provides under that name. Some
+// dashboards provide such a face as a webfont with DEGENERATE vertical metrics
+// (the original #85 report was a CDN Gotham whose hhea ascent/descent/lineGap were
+// all zero — the same class of breakage applies to any requested family). Engines then
 // diverge: Blink falls back to the font's sane OS/2 typo metrics, but Gecko
 // synthesizes symmetric metrics (ascent = descent = ½em), which drops the text
 // baseline to the MIDDLE of every line box. Digit ink (~0.7em cap height) then
@@ -18,7 +19,7 @@
 // contain bare digits is unusable in this engine and is dropped from the
 // resolved stack (the next fallback takes over — the same face-independent
 // degradation the stack already expresses). The probe is engine-relative by
-// design: the same broken Gotham stays quarantined in Gecko but kept in Blink,
+// design: the same broken webfont stays quarantined in Gecko but kept in Blink,
 // where its typo-metric fallback renders correctly, so Chrome keeps its look.
 // See docs/adr/0005-cross-browser-typography.md.
 

@@ -5,9 +5,9 @@
  */
 
 // The Skin's typeface without asking the user for anything (issue #85 follow-up,
-// ADR-0007). The stack still requests Gotham / a dashboard-provided Montserrat
+// ADR-0007 / ADR-0008). The stack still requests a dashboard-provided Montserrat
 // first, but HACS ships exactly one file (dist/ecosee.js, see hacs.json), so the
-// only zero-config way to GUARANTEE a Gotham-alike with healthy metrics on every
+// only zero-config way to GUARANTEE the Skin face with healthy metrics on every
 // dashboard — including offline installs — is to carry the .woff2 files inside
 // the bundle as data: URIs and register them at runtime. They register under the
 // private family 'ecosee Montserrat' rather than 'Montserrat' so a theme's own

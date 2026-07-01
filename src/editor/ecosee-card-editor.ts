@@ -2,7 +2,13 @@ import { LitElement, html, nothing, css, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CARD_TYPE } from '../config';
 import type { HomeAssistant } from '../types/hass';
-import { editorSchema, toEditorData, normalizeEditorConfig, type EditorField } from './editor';
+import {
+  composeEditorSchema,
+  toEditorData,
+  normalizeEditorConfig,
+  SENSOR_NAME_PREFIX,
+  type EditorField,
+} from './editor';
 
 /** The editor element's tag — `<ecosee-card>` + `-editor`, the HA naming
  *  convention `getConfigElement` resolves to. */
@@ -28,8 +34,6 @@ export class EcoseeCardEditor extends LitElement {
   /** The raw config HA hands us (may be partial mid-edit, e.g. the empty-entity
    *  stub); kept loose — validation is `parseConfig`'s job when the Card applies it. */
   @state() private _config?: Record<string, unknown>;
-
-  private readonly _schema = editorSchema();
 
   static override styles = css`
     :host {
@@ -58,7 +62,7 @@ export class EcoseeCardEditor extends LitElement {
       <ha-form
         .hass=${this.hass}
         .data=${toEditorData(this._config)}
-        .schema=${this._schema}
+        .schema=${composeEditorSchema(this._config)}
         .computeLabel=${this._computeLabel}
         .computeHelper=${this._computeHelper}
         @value-changed=${this._valueChanged}
@@ -67,8 +71,17 @@ export class EcoseeCardEditor extends LitElement {
   }
 
   // `ha-form` hands each schema entry back to these callbacks; ours carry the
-  // device-vocabulary label/helper (CONTEXT.md) alongside the selector.
-  private readonly _computeLabel = (field: EditorField): string => field.label;
+  // device-vocabulary label/helper (CONTEXT.md) alongside the selector. The
+  // per-sensor display-name fields get their label enriched with the sensor's
+  // friendly name here (the pure schema in editor.ts only knows the entity id).
+  private readonly _computeLabel = (field: EditorField): string => {
+    if (field.name.startsWith(SENSOR_NAME_PREFIX)) {
+      const entityId = field.name.slice(SENSOR_NAME_PREFIX.length);
+      const friendly = this.hass?.states?.[entityId]?.attributes?.friendly_name;
+      return `Sensor name — ${typeof friendly === 'string' && friendly ? friendly : entityId}`;
+    }
+    return field.label;
+  };
   private readonly _computeHelper = (field: EditorField): string | undefined => field.helper;
 
   private readonly _valueChanged = (

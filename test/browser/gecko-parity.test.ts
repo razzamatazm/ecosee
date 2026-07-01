@@ -17,23 +17,23 @@ import { fakeHass, climateEntity } from '../helpers/fake-hass';
 // pixels the engine actually computed.
 //
 // The verified #85 root cause: the reporter's Home Assistant frontend loads a
-// Gotham webfont whose hhea ascent/descent/lineGap are all ZERO. Blink falls
-// back to the font's sane OS/2 typo metrics; Gecko synthesizes symmetric
-// metrics (ascent = descent = ½em), which drops the text baseline to the
+// webfont (a CDN Gotham, originally) whose hhea ascent/descent/lineGap are all
+// ZERO. Blink falls back to the font's sane OS/2 typo metrics; Gecko synthesizes
+// symmetric metrics (ascent = descent = ½em), which drops the text baseline to the
 // MIDDLE of every line box. Digit ink (~0.7em cap height) then pokes ~0.2em
 // above its line box: the Home Screen's gradient-clipped temperature loses the
 // top band of every digit (paint is clipped to the border box), and the
 // Temperature Adjust chip numeral rises into the glyph box above it.
 //
-// The @font-face below reproduces that mechanism deterministically: it
-// declares a page-scope family named 'Gotham' — the FIRST choice of the
-// card's own default font stack, exactly how the reporter's dashboard injects
-// it — whose metric overrides pin ascent = descent = 50%, the symmetric
-// metrics Gecko synthesizes for the hhea-zeroed Gotham. No network, no
-// proprietary font files. The local() chain covers macOS and Linux CI.
+// The @font-face below reproduces that mechanism deterministically: it declares a
+// page-scope family named 'Montserrat' — the FIRST choice of the card's own default
+// font stack now that Gotham is no longer requested (ADR-0008), the exact family a
+// dashboard could still inject broken — whose metric overrides pin ascent =
+// descent = 50%, the symmetric metrics Gecko synthesizes for zeroed hhea. No
+// network, no proprietary font files. The local() chain covers macOS and Linux CI.
 const BROKEN_FONT_CSS = `
 @font-face {
-  font-family: 'Gotham';
+  font-family: 'Montserrat';
   src: local('Helvetica Neue'), local('Arial'), local('Liberation Sans'), local('DejaVu Sans');
   ascent-override: 50%;
   descent-override: 50%;
@@ -76,17 +76,17 @@ beforeEach(() => {
   document.body.innerHTML = '';
   document.body.style.margin = '0';
   document.body.style.background = '#0a0d10';
-  document.head.querySelector('#broken-gotham')?.remove();
+  document.head.querySelector('#broken-montserrat')?.remove();
 });
 
 /** Mount the full card bound to a heat/cool thermostat so the host-level fixes
  *  (the broken-font quarantine probe) participate, exactly as on a dashboard.
- *  With `brokenGotham`, the page declares the degenerate-metrics 'Gotham' that
- *  the card's own default stack then resolves — the reporter's exact setup. */
-async function mountCard(brokenGotham = false): Promise<EcoseeCard> {
-  if (brokenGotham) {
+ *  With `brokenFont`, the page declares the degenerate-metrics 'Montserrat' that
+ *  the card's own default stack then resolves — the #85 breakage, post-Gotham. */
+async function mountCard(brokenFont = false): Promise<EcoseeCard> {
+  if (brokenFont) {
     const style = document.createElement('style');
-    style.id = 'broken-gotham';
+    style.id = 'broken-montserrat';
     style.textContent = BROKEN_FONT_CSS;
     document.head.appendChild(style);
   }
@@ -297,7 +297,7 @@ describe('Gecko rendering parity — broken-metric webfont (issue #85)', () => {
     expect(coverage).toBeGreaterThanOrEqual(0.9);
   });
 
-  it('registers the bundled Gotham-alike so a bare page still gets the Skin face (ADR-0007)', async () => {
+  it('registers the bundled Montserrat so a bare page still gets the Skin face (ADR-0007)', async () => {
     await mountCard();
     // The engine must be able to actually load the runtime-registered faces —
     // fonts.load() resolves the faces it matched; empty means none registered.

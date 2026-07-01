@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { parseConfig } from '../src/config';
-import { editorSchema, toEditorData, normalizeEditorConfig } from '../src/editor/editor';
+import {
+  editorSchema,
+  composeEditorSchema,
+  sensorNameFields,
+  sensorNameKey,
+  toEditorData,
+  normalizeEditorConfig,
+} from '../src/editor/editor';
 
 const base = { type: 'custom:ecosee-card', entity: 'climate.living_room' };
 
@@ -98,6 +105,37 @@ describe('editorSchema — optionality copy (#61)', () => {
   });
 });
 
+describe('composeEditorSchema — per-sensor display names', () => {
+  it('adds no display-name fields when no sensor is configured', () => {
+    expect(sensorNameFields(base)).toEqual([]);
+    expect(composeEditorSchema(base)).toEqual(editorSchema());
+  });
+
+  it('adds one text field per configured sensor, right after the Sensors picker', () => {
+    const config = {
+      ...base,
+      sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }, 'sensor.kitchen'],
+    };
+    const schema = composeEditorSchema(config);
+    const names = schema.map((field) => field.name);
+    const sensorsAt = names.indexOf('sensors');
+    // The two name fields sit immediately after the picker, in picker order.
+    expect(names.slice(sensorsAt, sensorsAt + 3)).toEqual([
+      'sensors',
+      sensorNameKey('sensor.hallway'),
+      sensorNameKey('sensor.kitchen'),
+    ]);
+    const nameField = schema.find((field) => field.name === sensorNameKey('sensor.hallway'));
+    expect(nameField?.selector).toEqual({ text: {} });
+    expect(nameField?.required).toBeFalsy();
+  });
+
+  it('leaves the base schema (one field per config key) untouched', () => {
+    // The dynamic name fields are additive; editorSchema() stays the pure base.
+    expect(editorSchema().some((field) => field.name.startsWith(sensorNameKey('')))).toBe(false);
+  });
+});
+
 describe('toEditorData', () => {
   it('maps object-form sensors to their entity ids for the picker', () => {
     const data = toEditorData({
@@ -105,6 +143,16 @@ describe('toEditorData', () => {
       sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }, 'sensor.kitchen'],
     });
     expect(data.sensors).toEqual(['sensor.hallway', 'sensor.kitchen']);
+  });
+
+  it('surfaces each stored display name under its per-sensor name field', () => {
+    const data = toEditorData({
+      ...base,
+      sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }, 'sensor.kitchen'],
+    });
+    // The named sensor exposes its name for its GUI field; the bare one does not.
+    expect(data[sensorNameKey('sensor.hallway')]).toBe('Hallway');
+    expect(sensorNameKey('sensor.kitchen') in data).toBe(false);
   });
 
   it('passes scalar keys through untouched', () => {
@@ -162,20 +210,58 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     expect('standby_screen' in normalizeEditorConfig({ ...base }, base)).toBe(false);
   });
 
-  it('preserves object-form sensor overrides when the entity set is unchanged', () => {
+  it('preserves a stored display name when the name field is untouched', () => {
     const prev = { ...base, sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }] };
-    // ha-form shows/echoes the picker's string value for the same set.
+    // If ha-form does not echo the untouched name field, fall back to the stored
+    // name rather than silently dropping it.
     const next = normalizeEditorConfig({ ...base, sensors: ['sensor.hallway'] }, prev);
     expect(next.sensors).toEqual([{ entity: 'sensor.hallway', name: 'Hallway' }]);
   });
 
-  it('adopts the shorthand list when the entity set changes', () => {
+  it('writes a display name typed in the GUI into object-form', () => {
+    const next = normalizeEditorConfig(
+      { ...base, sensors: ['sensor.hallway'], [sensorNameKey('sensor.hallway')]: 'Front Hall' },
+      base,
+    );
+    expect(next.sensors).toEqual([{ entity: 'sensor.hallway', name: 'Front Hall' }]);
+  });
+
+  it('keeps a surviving sensor’s name when another sensor is added', () => {
+    // Names are GUI-editable now, so growing the set must not drop existing names
+    // (the old "adopt shorthand on any change" behavior is gone).
     const prev = { ...base, sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }] };
     const next = normalizeEditorConfig(
-      { ...base, sensors: ['sensor.hallway', 'sensor.kitchen'] },
+      {
+        ...base,
+        sensors: ['sensor.hallway', 'sensor.kitchen'],
+        [sensorNameKey('sensor.hallway')]: 'Hallway',
+      },
       prev,
     );
-    expect(next.sensors).toEqual(['sensor.hallway', 'sensor.kitchen']);
+    expect(next.sensors).toEqual([{ entity: 'sensor.hallway', name: 'Hallway' }, 'sensor.kitchen']);
+  });
+
+  it('clears a display name when its field is emptied (back to shorthand)', () => {
+    const prev = { ...base, sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }] };
+    const next = normalizeEditorConfig(
+      { ...base, sensors: ['sensor.hallway'], [sensorNameKey('sensor.hallway')]: '   ' },
+      prev,
+    );
+    expect(next.sensors).toEqual(['sensor.hallway']);
+  });
+
+  it('keeps YAML-only occupancy_entity when a name is set via the GUI', () => {
+    const prev = {
+      ...base,
+      sensors: [{ entity: 'sensor.hallway', occupancy_entity: 'binary_sensor.hall' }],
+    };
+    const next = normalizeEditorConfig(
+      { ...base, sensors: ['sensor.hallway'], [sensorNameKey('sensor.hallway')]: 'Hall' },
+      prev,
+    );
+    expect(next.sensors).toEqual([
+      { entity: 'sensor.hallway', name: 'Hall', occupancy_entity: 'binary_sensor.hall' },
+    ]);
   });
 
   it('preserves keys the GUI does not yet surface (forward compatibility)', () => {

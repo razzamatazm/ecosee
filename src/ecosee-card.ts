@@ -298,11 +298,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       this._resizeObserver.observe(this);
     }
     this._syncDeviceScale();
-    // Register the bundled Gotham-alike faces (ADR-0007) before the first
+    // Register the bundled Montserrat faces (ADR-0007) before the first
     // probe pass, so the stack's guaranteed fallback exists document-wide.
     ensureBundledFont();
     // Quarantine broken-metric font families (issue #85) — now, once webfonts
-    // settle, and again whenever a late font load lands (the dashboard's Gotham
+    // settle, and again whenever a late font load lands (a dashboard's Montserrat
     // may only arrive after the card is first painted).
     this._syncFontQuarantine();
     if (typeof document !== 'undefined' && document.fonts) {
@@ -384,7 +384,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   private _onFontsLoaded = (): void => this._syncFontQuarantine();
 
   /** Drop font families whose metrics THIS engine reports as degenerate (issue
-   *  #85: a dashboard-provided Gotham webfont with zeroed hhea metrics makes
+   *  #85: a dashboard-provided Montserrat webfont with zeroed hhea metrics makes
    *  Gecko baseline text at the middle of every line box, mangling the gradient
    *  temperature and the Temperature Adjust chips while Chrome renders fine).
    *  The stack is re-read fresh from the cascade each pass — our own inline

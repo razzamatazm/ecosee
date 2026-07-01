@@ -86,13 +86,18 @@ export class EcoseeOverlay extends LitElement {
       pointer-events: none;
     }
 
+    /* Inset from the top-right corner. The superellipse curves inward there, so a
+       tight corner offset (was 6u) put the ✕ right on the bevel and cramped against
+       the edge — uncomfortable to reach on a touch dashboard. 9u pulls it into the
+       flat of the surface with a comfortable margin while staying clear of centered
+       overlay content below. */
     .close {
       appearance: none;
       background: none;
       border: none;
       position: absolute;
-      top: calc(6 * var(--ecosee-u, 4.6px));
-      right: calc(6 * var(--ecosee-u, 4.6px));
+      top: calc(9 * var(--ecosee-u, 4.6px));
+      right: calc(9 * var(--ecosee-u, 4.6px));
       width: calc(9 * var(--ecosee-u, 4.6px));
       height: calc(9 * var(--ecosee-u, 4.6px));
       padding: calc(1.4 * var(--ecosee-u, 4.6px));
