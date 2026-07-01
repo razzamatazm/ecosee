@@ -11,6 +11,10 @@ export const tokens = css`
     --ecosee-accent: #62cfe9;
     --ecosee-muted: #6f96a3;
     --ecosee-idle: #6f96a3;
+    /* The three top-row Home Screen affordances (weather / System Mode / menu)
+       render white, not the cyan accent — the device colors this control row white
+       (issue #37). Overridable per dashboard like every other Skin color. */
+    --ecosee-top-row: #ffffff;
 
     /* The dominant current-temperature number: cyan with the device's faint
        top-bright sheen (a near-white cyan fading into the accent). */

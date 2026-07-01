@@ -131,21 +131,23 @@ export class EcoseeHomeScreen extends LitElement {
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
     }
-    /* The weather affordance is cyan on the Home Screen, like every other top-row
-       glyph (the device reserves green for the Weather Overlay's condition art). */
+    /* The weather affordance is white on the Home Screen, like every other top-row
+       glyph (the device reserves green for the Weather Overlay's condition art, and
+       colors this control row white — issue #37). */
     .weather {
       grid-column: 1;
       justify-self: start;
       width: 9.5cqw;
       height: 9.5cqw;
-      color: var(--ecosee-accent, #62cfe9);
+      color: var(--ecosee-top-row, #ffffff);
     }
-    /* System Mode indicator (tap → System Mode picker); always cyan, like the
-       device — the heat/cool color language is reserved for setpoints/equipment. */
+    /* System Mode indicator (tap → System Mode picker); white like the rest of the
+       top row — the heat/cool color language is reserved for setpoints/equipment,
+       so the indicator does not carry mode-specific color (issue #37). */
     .mode {
       grid-column: 2;
       justify-self: center;
-      color: var(--ecosee-accent, #62cfe9);
+      color: var(--ecosee-top-row, #ffffff);
     }
     .mode .glyph {
       width: 10cqw;
@@ -167,7 +169,7 @@ export class EcoseeHomeScreen extends LitElement {
       justify-self: end;
       width: 9.5cqw;
       height: 9.5cqw;
-      color: var(--ecosee-accent, #62cfe9);
+      color: var(--ecosee-top-row, #ffffff);
     }
 
     /* Centered cluster: humidity above the dominant number, setpoint pill below. */
