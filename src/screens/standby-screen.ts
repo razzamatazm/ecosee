@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { formatTemp } from '../climate/home-view';
 import { weatherIcon } from '../icons';
+import { renderShape, shapeStyles } from '../styles/shape';
 
 /**
  * The already-degraded data the Standby Screen renders. A sibling of `HomeView`
@@ -63,7 +64,14 @@ export class EcoseeStandbyScreen extends LitElement {
 
   private _timer: ReturnType<typeof setInterval> | null = null;
 
-  static override styles = css`
+  static override styles = [
+    // The shared superellipse surface (issue #76): the Standby Screen draws the same
+    // silhouette + canvas fill as the Home Screen and every Overlay, so the Card's
+    // outer shape never changes between screens. `renderShape()` paints the near-black
+    // canvas through the squircle path (see `.screen` below — no background /
+    // border-radius, so only the superellipse shows).
+    shapeStyles,
+    css`
     :host {
       display: block;
     }
@@ -73,8 +81,10 @@ export class EcoseeStandbyScreen extends LitElement {
        fit its slot, so nothing reflows per-width. This is an inline-size query
        container so the children scale in cqw; the box's own padding uses the fixed
        --ecosee-u unit (never cqw — an element resolves its own cqw against the
-       viewport). The idle display is minimal white-on-black: the near-black canvas with
-       the overridable corner radius, everything drawn in white. */
+       viewport). The idle display is minimal white-on-black. The near-black canvas and
+       the outer silhouette come from the shared .shape SVG (issue #76) — no
+       background or border-radius here, so the superellipse (not a rounded rect) is the
+       only shape, with overflow: hidden clipping the corners outside the curve. */
     .screen {
       container-type: inline-size;
       position: relative;
@@ -86,11 +96,17 @@ export class EcoseeStandbyScreen extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: var(--ecosee-bg, #0a0d10);
-      border-radius: var(--ecosee-radius, 15%);
       color: var(--ecosee-standby-fg, #ffffff);
       font-family: var(--ecosee-font, system-ui, sans-serif);
       user-select: none;
+    }
+
+    /* The idle content sits above the shared .shape surface (z-index 0). */
+    .outdoor,
+    .current,
+    .clock {
+      position: relative;
+      z-index: 1;
     }
 
     /* Condition glyph + outdoor temperature, at the top. Hidden entirely when no
@@ -133,7 +149,8 @@ export class EcoseeStandbyScreen extends LitElement {
       letter-spacing: 0.04em;
       font-variant-numeric: tabular-nums;
     }
-  `;
+  `,
+  ];
 
   override connectedCallback(): void {
     super.connectedCallback();
@@ -157,6 +174,7 @@ export class EcoseeStandbyScreen extends LitElement {
     const view = this.view;
     return html`
       <div class="screen" part="screen">
+        ${renderShape()}
         ${this._renderOutdoor(view)}
         <div class="current" part="current">
           ${

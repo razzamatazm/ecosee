@@ -1,6 +1,7 @@
 import { LitElement, html, css, type TemplateResult } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { icons } from '../icons';
+import { renderShape, shapeStyles } from '../styles/shape';
 import { emitOverlayDismiss } from './overlay-dismiss';
 
 /**
@@ -21,7 +22,13 @@ import { emitOverlayDismiss } from './overlay-dismiss';
  */
 @customElement('ecosee-overlay')
 export class EcoseeOverlay extends LitElement {
-  static override styles = css`
+  static override styles = [
+    // The shared superellipse surface (issue #76): every Overlay rides this one shell,
+    // so drawing the shared `.shape` here gives the Temperature Adjust, Main Menu and
+    // every other Overlay the same silhouette + opaque canvas as the Home Screen and
+    // Standby Screen — the Card's outer shape no longer changes between screens.
+    shapeStyles,
+    css`
     :host {
       position: absolute;
       inset: 0;
@@ -36,15 +43,16 @@ export class EcoseeOverlay extends LitElement {
        is scaled as one unit by <ecosee-card> (issue #35 / #36). The shell's own
        chrome (the ✕) is sized in the fixed unit calc(N * --ecosee-u), not cqw —
        the shell is not a query container, and slotted overlay bodies each carry
-       their own (that context can't cross the shadow boundary anyway). Opaque
-       background fully masks the Home Screen. */
+       their own (that context can't cross the shadow boundary anyway). The opaque
+       near-black canvas and the outer silhouette come from the shared .shape SVG
+       (issue #76) — no background or border-radius here, so the superellipse (not a
+       rounded rect) fully masks the Home Screen, with overflow: hidden clipping the
+       corners outside the curve. */
     .shell {
       position: relative;
       box-sizing: border-box;
       width: var(--ecosee-base-size, 460px);
       height: var(--ecosee-base-size, 460px);
-      background: var(--ecosee-bg, #0a0d10);
-      border-radius: var(--ecosee-radius, 15%);
       color: var(--ecosee-fg, #d4eff9);
       font-family: var(--ecosee-font, system-ui, sans-serif);
       overflow: hidden;
@@ -92,7 +100,8 @@ export class EcoseeOverlay extends LitElement {
       cursor: pointer;
       z-index: 2;
     }
-  `;
+  `,
+  ];
 
   private _dismiss = (): void => {
     emitOverlayDismiss(this);
@@ -101,6 +110,7 @@ export class EcoseeOverlay extends LitElement {
   override render(): TemplateResult {
     return html`
       <div class="shell">
+        ${renderShape()}
         <div class="backdrop" @click=${this._dismiss}></div>
         <button class="close" aria-label="Close" @click=${this._dismiss}>${icons.close}</button>
         <div class="content"><slot></slot></div>

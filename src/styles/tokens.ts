@@ -71,12 +71,12 @@ export const tokens = css`
        identically at every width. The card measures its slot and clamps the
        on-screen size between this legible floor and capped ceiling, then applies
        one transform: scale(). base equals max by default, so the largest render
-       is 1:1 (crispest) and everything narrower only ever scales down. Corner
-       radius is overridable per dashboard; the device renders square. */
+       is 1:1 (crispest) and everything narrower only ever scales down. The outer
+       silhouette is the shared superellipse (styles/shape.ts, issue #76) — a fixed
+       curve, not an overridable corner radius. */
     --ecosee-base-size: 460px;
     --ecosee-min-size: 220px;
     --ecosee-max-size: 460px;
-    --ecosee-radius: 15%;
 
     /* The device's layout unit: 1% of the fixed canvas edge (base-size / 100).
        Every internal length is expressed as calc(N * var(--ecosee-u)), so the

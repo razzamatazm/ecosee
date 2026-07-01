@@ -25,9 +25,12 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
     Firefox's baseline strut can't cramp glyph-over-numeral stacks (the setpoint
     chips). `test/cross-browser-typography.test.ts` locks this contract.
 - **Motif:** flat **squircle** — big numbers and rounded-square bubbles. **No
-  circular dial/ring.** The Home Screen edge is a true **superellipse**
-  (|x|⁴ + |y|⁴ = 1), softer at the corners than a constant-radius rounded-square;
-  the equipment edge glow traces that same curve.
+  circular dial/ring.** Every surface — the Home Screen, the Standby Screen, and
+  every Overlay — shares one outer edge: a true **superellipse** (|x|⁴ + |y|⁴ = 1),
+  softer at the corners than a constant-radius rounded-square, so the Card's
+  silhouette never changes as you move between screens (ADR-0006). One shared path
+  drives the canvas fill, the clip, and the Home Screen's equipment edge glow, so
+  all trace the identical curve.
 - **Canvas:** near-black background, cyan/blue accent text and outlines.
 - **Selected state:** filled cyan fill. The System Mode picker's selected row uses
   dark text on cyan; the Temperature Adjust scrubber bubble uses a thin light
