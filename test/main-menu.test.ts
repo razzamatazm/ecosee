@@ -8,7 +8,6 @@ function hass(climate: HassEntityBase, weather?: HassEntityBase): HomeAssistant 
   if (weather) states[weather.entity_id] = weather;
   return {
     states,
-    entities: { [climate.entity_id]: { platform: 'ecobee' } },
     config: { unit_system: { temperature: '°F' } },
     callService: async () => undefined,
   };

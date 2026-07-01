@@ -9,8 +9,8 @@ import type { ServiceCall } from './service-call';
 // `preset_modes`, in the entity's own order, each with a display label, a Skin
 // glyph, and whether it is the active one — and `setPresetModeCall` turns a chosen
 // option into the `climate.set_preset_mode` payload. Selecting a Comfort Setting
-// applies it as a Hold (CONTEXT.md: a named preset overrides the schedule until the
-// next transition). All the vocabulary-reconciliation lives here (CONTEXT.md: the
+// applies the preset via `climate.set_preset_mode`. All the
+// vocabulary-reconciliation lives here (CONTEXT.md: the
 // domain's core challenge), so it is unit-testable without rendering a Lit element.
 // Like the System Mode picker, the picker owns no edit state: selection is a single
 // discrete write and the highlight follows the entity's reported `preset_mode`.
@@ -91,9 +91,8 @@ export function toComfortSettingModel(
   return { available: options.length > 0, options };
 }
 
-/** Build the `climate.set_preset_mode` call that applies the chosen Comfort Setting
- *  (a Hold until the next scheduled transition). Takes the raw `preset_mode` string
- *  (an entity-supported value). */
+/** Build the `climate.set_preset_mode` call that applies the chosen Comfort Setting.
+ *  Takes the raw `preset_mode` string (an entity-supported value). */
 export function setPresetModeCall(preset: string, entityId: string): ServiceCall {
   return {
     domain: 'climate',

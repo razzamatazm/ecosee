@@ -31,7 +31,8 @@ _Avoid_: fallback, compatibility mode.
 
 **Home Screen**:
 The default Card view: large **current** temperature, humidity, an Equipment Status
-indicator, the Hold pill (when held), a weather icon, and a menu affordance. The
+indicator, the setpoint pill (when setpoints are active), a weather icon, and a menu
+affordance. The
 Premium uses a flat **squircle** motif (big number + rounded-square bubbles), NOT a
 circular dial/ring — do not add a ring.
 _Avoid_: main view, dashboard, face, dial, ring.
@@ -75,21 +76,6 @@ An ecobee named climate preset — Home, Away, Sleep, plus user-defined ones —
 carrying its own target temperatures. Surfaces in Home Assistant as a `climate`
 `preset_mode`.
 _Avoid_: preset (in UI copy), climate (the ecobee term, too ambiguous here), profile, scene.
-
-**Hold**:
-A temporary override of the active schedule/Comfort Setting. Applied until the next
-scheduled transition (the only duration Home Assistant can express) and cleared via
-**Resume Schedule**. Surfaces on the Home Screen as the **Hold pill** (the active
-setpoints + an ✕ to clear). The device also shows an expiry time ("until 5:28pm"),
-but Home Assistant does not expose the next-transition time, so the Card omits it
-unless derivable. The device's "2h / indefinitely" duration choice is deliberately
-omitted — see ADR.
-_Avoid_: override, manual mode.
-
-**Resume Schedule**:
-The action that clears an active Hold and returns the thermostat to its program.
-Backed by the ecobee `resume_program` service; hidden for entities with no schedule.
-_Avoid_: cancel hold, clear override.
 
 **Setpoint**:
 A target temperature the system drives toward. Single in Heat/Cool/Off; dual

@@ -293,9 +293,6 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
 
   private _onAction = (event: CustomEvent<{ action: HomeAction }>): void => {
     switch (event.detail.action) {
-      case 'resume':
-        this._resumeSchedule();
-        break;
       case 'temperature':
         this._open('temperature', 'home');
         break;
@@ -406,14 +403,6 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     const { domain, service, data } = event.detail.call;
     void this.hass.callService(domain, service, data);
   };
-
-  private _resumeSchedule(): void {
-    if (!this.hass || !this._config) return;
-    void this.hass.callService('ecobee', 'resume_program', {
-      entity_id: this._config.entity,
-      resume_all: true,
-    });
-  }
 }
 
 declare global {

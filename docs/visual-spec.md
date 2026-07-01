@@ -41,7 +41,6 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 Home Screen
 ├── tap temperature ............ Temperature Adjust (scrubber + setpoint chips)
 ├── tap weather icon ........... Weather overlay (page 1 current / page 2 forecast)
-├── tap Hold pill ✕ ............ Resume Schedule
 └── menu ....................... Main Menu (hub)
                                  ├── System  → System sub-screen (hub)
                                  │            ├── System Mode selector → System Mode picker
@@ -61,7 +60,7 @@ picker reached through the Main Menu) returns straight to Home, not one level up
 
 ### Home Screen — `reference/home-hold.jpeg`, `home-off.jpeg`, `home-heat-only.jpeg`, `home-cool-only.jpeg`
 Top row of glyphs, then the humidity line and large current temperature centered,
-then the Hold pill — see also the equipment edge glow below.
+then the setpoint pill — see also the equipment edge glow below.
 - **Large current temperature** (e.g., `75`) — the dominant element. This is
   `current_temperature`, NOT a setpoint. Rendered in **thin cyan** glyphs (not pale
   white) with a faint top-bright sheen (`--ecosee-temp-grad`) and proportional
@@ -75,12 +74,13 @@ then the Hold pill — see also the equipment edge glow below.
   cooling, amber while heating, none when idle. From `hvac_action` (inferred if
   absent); see `reference/home-cooling.jpeg` / `home-heating.jpeg`. A crisp thin
   outline tracing the squircle edge with a gentle falloff inward, not a diffuse halo.
-- **Hold pill** (when on a Hold): a **horizontal** pill (as the reference photos
-  show — the setpoints read left-to-right, not rotated) with the active setpoints in
-  **bold** (`70 – 75`, heat amber / cool blue) + ✕ to **Resume Schedule**. A
+- **Setpoint pill / setpoint display** (when setpoints are active): a **horizontal**
+  pill (as the reference photos show — the setpoints read left-to-right, not rotated)
+  with the active setpoints in **bold** (`70 – 75`, heat amber / cool blue). A
   single-setpoint pill (Heat/Cool only) shows one value and is tinted to the mode
-  color. The device's `until 5:28pm` expiry is omitted — HA doesn't expose the next
-  transition time (ADR-0003).
+  color; the dual (Auto) pill shows both, cyan. The pill is a display only — there is
+  no Resume ✕ (ADR-0004). The device's `until 5:28pm` expiry is likewise omitted — HA
+  doesn't expose the next transition time (ADR-0003).
 - **Weather icon** (top row, left) — the **current condition's glyph** (sun /
   clear-night moon / partly-cloudy / …), reflecting the live `weather` entity's
   condition rather than a fixed sun, in cyan like the other top-row glyphs. Opens
@@ -134,7 +134,8 @@ edit.
   - **Single setpoint** (Heat/Cool): one chip, one scrubber.
   - **Dual setpoint** (Heat / Cool (Auto)): both chips; tap a chip to choose which
     setpoint the scrubber edits. Maps to `target_temp_low` / `target_temp_high`.
-- Applying a change creates a **Hold** (until next transition).
+- Applying a change writes the setpoint(s) (effective until the next scheduled
+  transition — the only duration HA can express, ADR-0003).
 
 ### System Mode picker — `reference/system-mode-picker.jpeg`
 - Vertical segmented list with the device's exact labels: **Heat**, **Cool**,
@@ -148,7 +149,7 @@ edit.
   the entity's `preset_modes` (Home / Away / Sleep / custom), in the entity's own
   order. Each row pairs a **glyph** with the Comfort Setting's name. The active
   Comfort Setting's row is filled cyan with dark text.
-- Selecting one applies it as a **Hold** (`climate.set_preset_mode`) and the
+- Selecting one applies the preset (`climate.set_preset_mode`) and the
   highlight follows the entity's reported `preset_mode`. Tapping the active row is a
   no-op.
 - **Icons:** the named ecobee Comfort Settings map to Skin glyphs — **Home** (house),
@@ -235,14 +236,13 @@ on black (the umbrella/droplet read as cyan, not green).
     intra-day periods) when the Overlay opens. An entity that offers no forecast
     simply **drops page 2 and the PoP / periods** rather than rendering them
     broken.
-  - Weather is **read-only** — no service write, no Hold; the only interaction is
+  - Weather is **read-only** — no service write; the only interaction is
     paging (local view state). Dismissal is the shell's (✕ / outside-tap).
 
 ## v1 / v2 / excluded
 
 - **v1:** everything above with a **static** background.
 - **v2:** dynamic weather/time-of-day background; GUI config editor; optional
-  air-quality (`air_quality_entity`) element; optional Hold expiry time if a
-  schedule/next-transition source is wired.
+  air-quality (`air_quality_entity`) element.
 - **Excluded:** schedule view; installer/device settings; sensor
   "participating-in-average"; reminders/alerts; status orb.

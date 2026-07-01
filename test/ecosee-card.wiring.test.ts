@@ -84,24 +84,6 @@ describe('ecosee-card wiring — apply path', () => {
       data: { entity_id: 'climate.t', temperature: 71 },
     });
   });
-
-  it('forwards Resume Schedule as the ecobee.resume_program service call', async () => {
-    const { hass, calls } = fakeHass({
-      entities: [climateEntity('heat', { hvac_modes: ['off', 'heat'] })],
-      platforms: { 'climate.t': 'ecobee' },
-    });
-    const card = await mountCard(hass);
-
-    fireAction(card, 'resume');
-
-    expect(calls).toMatchObject([
-      {
-        domain: 'ecobee',
-        service: 'resume_program',
-        data: { entity_id: 'climate.t', resume_all: true },
-      },
-    ]);
-  });
 });
 
 describe('ecosee-card wiring — navigation (hub-and-picker)', () => {

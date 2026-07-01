@@ -13,7 +13,6 @@ export interface Fixture {
 
 function makeHass(options: {
   climate: HassEntityBase;
-  platform?: string;
   weather?: boolean;
   unit?: string;
   extra?: HassEntityBase[];
@@ -38,9 +37,6 @@ function makeHass(options: {
   for (const entity of options.extra ?? []) states[entity.entity_id] = entity;
   return {
     states,
-    entities: {
-      [options.climate.entity_id]: { platform: options.platform ?? 'generic_thermostat' },
-    },
     config: { unit_system: { temperature: options.unit ?? '°F' } },
     callService: async (domain, service, data, _target, _notify, returnResponse) => {
       console.info('[dev] callService', `${domain}.${service}`, data);
@@ -101,17 +97,16 @@ const HOURLY_FORECAST = [
   { datetime: '2026-06-30T06:00:00', condition: 'partlycloudy', temperature: 59 },
 ];
 
-// Reproduces docs/reference/home-hold.jpeg: Heat/Cool (Auto) hold 70–75,
+// Reproduces docs/reference/home-hold.jpeg: Heat/Cool (Auto) setpoints 70–75,
 // current 75, 60% humidity, actively cooling, weather present, ecobee-backed.
-const ecobeeAutoHold: Fixture = {
-  label: 'ecobee · Auto hold (the photo)',
+const ecobeeAuto: Fixture = {
+  label: 'ecobee · Auto (the photo)',
   config: {
     type: 'custom:ecosee-card',
     entity: 'climate.living_room',
     weather_entity: 'weather.home',
   },
   hass: makeHass({
-    platform: 'ecobee',
     weather: true,
     climate: {
       entity_id: 'climate.living_room',
@@ -137,7 +132,6 @@ const ecobeeHeating: Fixture = {
   label: 'ecobee · Heating',
   config: { type: 'custom:ecosee-card', entity: 'climate.bedroom', weather_entity: 'weather.home' },
   hass: makeHass({
-    platform: 'ecobee',
     weather: true,
     climate: {
       entity_id: 'climate.bedroom',
@@ -158,8 +152,8 @@ const ecobeeHeating: Fixture = {
   }),
 };
 
-// A bare generic thermostat: no humidity, no hvac_action, no weather, not ecobee.
-// The rail collapses, equipment is softly inferred, and the pill shows no ✕.
+// A bare generic thermostat: no humidity, no hvac_action, no weather.
+// The rail collapses and equipment is softly inferred from the setpoints.
 const genericDegraded: Fixture = {
   label: 'Generic · degraded',
   config: { type: 'custom:ecosee-card', entity: 'climate.garage' },
@@ -181,7 +175,6 @@ const ecobeeCooling: Fixture = {
   label: 'ecobee · Cool',
   config: { type: 'custom:ecosee-card', entity: 'climate.office', weather_entity: 'weather.home' },
   hass: makeHass({
-    platform: 'ecobee',
     weather: true,
     climate: {
       entity_id: 'climate.office',
@@ -201,12 +194,11 @@ const ecobeeCooling: Fixture = {
   }),
 };
 
-// Off: (OFF) System Mode glyph, no Hold pill, no equipment ring.
+// Off: (OFF) System Mode glyph, no setpoint pill, no equipment ring.
 const ecobeeOff: Fixture = {
   label: 'ecobee · Off',
   config: { type: 'custom:ecosee-card', entity: 'climate.den', weather_entity: 'weather.home' },
   hass: makeHass({
-    platform: 'ecobee',
     weather: true,
     climate: {
       entity_id: 'climate.den',
@@ -243,7 +235,6 @@ const ecobeeSensors: Fixture = {
     ],
   },
   hass: makeHass({
-    platform: 'ecobee',
     weather: true,
     climate: {
       entity_id: 'climate.living_room',
@@ -283,7 +274,6 @@ const ecobeeAirQuality: Fixture = {
     air_quality_entity: 'sensor.air_quality_index',
   },
   hass: makeHass({
-    platform: 'ecobee',
     weather: true,
     climate: {
       entity_id: 'climate.living_room',
@@ -347,7 +337,7 @@ const unavailableWithAirQuality: Fixture = {
 };
 
 export const fixtures: Fixture[] = [
-  ecobeeAutoHold,
+  ecobeeAuto,
   ecobeeHeating,
   ecobeeCooling,
   ecobeeOff,

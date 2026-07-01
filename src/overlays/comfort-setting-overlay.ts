@@ -30,8 +30,8 @@ const GLYPHS: Record<ComfortIcon, TemplateResult> = {
  * motif); the rest are cyan on black.
  *
  * Like the System Mode picker, this owns no edit state. Choosing a Comfort Setting
- * is a single discrete write that applies it as a Hold: it emits the shared
- * `ecosee-service-call` with the `climate.set_preset_mode` call and lets the
+ * is a single discrete write that applies the preset via `climate.set_preset_mode`:
+ * it emits the shared `ecosee-service-call` with that call and lets the
  * highlight follow the entity's reported `preset_mode` once `hass` reflects it.
  * Tapping the already-active row is a no-op. Dismissal is the shell's job (✕ /
  * outside-tap).

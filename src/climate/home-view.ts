@@ -13,9 +13,9 @@ export type EquipmentStatus = 'heating' | 'cooling' | 'idle';
  *  run in `dry` or `fan_only`, so the Card recognizes those too. */
 export type SystemMode = 'heat' | 'cool' | 'heat_cool' | 'dry' | 'fan_only' | 'off' | 'unknown';
 
-/** Active setpoints shown in the Hold pill. Either side may be `null` when the
- *  System Mode only drives one setpoint (Heat-only / Cool-only). */
-export interface HoldView {
+/** The active heat/cool setpoints. Either side may be `null` when the System Mode
+ *  only drives one setpoint (Heat-only / Cool-only). */
+export interface Setpoints {
   heat: number | null;
   cool: number | null;
 }
@@ -47,9 +47,7 @@ export interface HomeView {
   equipment: EquipmentStatus | null;
   mode: SystemMode;
   /** Active setpoints, or `null` when none are expressible (e.g. System Mode Off). */
-  hold: HoldView | null;
-  /** Whether a Resume Schedule action is backable (gates the pill's ✕). */
-  canResume: boolean;
+  setpoints: Setpoints | null;
   /** Whether a usable `weather` entity is configured (gates the weather icon). */
   weatherAvailable: boolean;
   /** The weather entity's current condition (`sunny` / `clear-night` / … ), or
@@ -111,24 +109,24 @@ function fromHvacAction(action: string | undefined): EquipmentStatus | null {
 function inferEquipment(
   mode: SystemMode,
   currentTemp: number | null,
-  hold: HoldView | null,
+  setpoints: Setpoints | null,
 ): EquipmentStatus | null {
-  if (currentTemp === null || hold === null) return null;
-  if (mode === 'heat' && hold.heat !== null) {
-    return currentTemp < hold.heat ? 'heating' : 'idle';
+  if (currentTemp === null || setpoints === null) return null;
+  if (mode === 'heat' && setpoints.heat !== null) {
+    return currentTemp < setpoints.heat ? 'heating' : 'idle';
   }
-  if (mode === 'cool' && hold.cool !== null) {
-    return currentTemp > hold.cool ? 'cooling' : 'idle';
+  if (mode === 'cool' && setpoints.cool !== null) {
+    return currentTemp > setpoints.cool ? 'cooling' : 'idle';
   }
   if (mode === 'heat_cool') {
-    if (hold.heat !== null && currentTemp < hold.heat) return 'heating';
-    if (hold.cool !== null && currentTemp > hold.cool) return 'cooling';
+    if (setpoints.heat !== null && currentTemp < setpoints.heat) return 'heating';
+    if (setpoints.cool !== null && currentTemp > setpoints.cool) return 'cooling';
     return 'idle';
   }
   return null;
 }
 
-function deriveSetpoints(mode: SystemMode, attrs: Record<string, unknown>): HoldView | null {
+function deriveSetpoints(mode: SystemMode, attrs: Record<string, unknown>): Setpoints | null {
   if (mode === 'heat_cool') {
     const heat = num(attrs.target_temp_low);
     const cool = num(attrs.target_temp_high);
@@ -150,12 +148,6 @@ function weatherCondition(hass: HomeAssistant, weatherEntity: string | undefined
   const entity = hass.states[weatherEntity];
   if (!entity || UNAVAILABLE.has(entity.state)) return null;
   return entity.state;
-}
-
-/** Resume Schedule is ecobee-specific (`ecobee.resume_program`); only offer it
- *  when the bound entity is actually backed by the ecobee integration. */
-function canResume(hass: HomeAssistant, entityId: string, mode: SystemMode): boolean {
-  return mode !== 'off' && hass.entities?.[entityId]?.platform === 'ecobee';
 }
 
 /** Categorize a US-EPA air-quality index into its band. The thresholds are the
@@ -201,8 +193,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
       humidity: null,
       equipment: null,
       mode: 'unknown',
-      hold: null,
-      canResume: false,
+      setpoints: null,
       weatherAvailable: weather !== null,
       weatherCondition: weather,
       airQuality: toAirQuality(hass, config),
@@ -212,9 +203,9 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
   const attrs = entity.attributes;
   const mode = toMode(entity.state);
   const currentTemp = num(attrs.current_temperature);
-  const hold = deriveSetpoints(mode, attrs);
+  const setpoints = deriveSetpoints(mode, attrs);
   const equipment =
-    fromHvacAction(str(attrs.hvac_action)) ?? inferEquipment(mode, currentTemp, hold);
+    fromHvacAction(str(attrs.hvac_action)) ?? inferEquipment(mode, currentTemp, setpoints);
   const humidity =
     num(attrs.current_humidity) ??
     (config.humidity_entity ? num(hass.states[config.humidity_entity]?.state) : null);
@@ -227,8 +218,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     humidity,
     equipment,
     mode,
-    hold,
-    canResume: canResume(hass, config.entity, mode),
+    setpoints,
     weatherAvailable: weather !== null,
     weatherCondition: weather,
     airQuality: toAirQuality(hass, config),

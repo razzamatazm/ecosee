@@ -10,7 +10,6 @@ function hass(...entities: HassEntityBase[]): HomeAssistant {
   for (const entity of entities) states[entity.entity_id] = entity;
   return {
     states,
-    entities: { 'climate.t': { platform: 'ecobee' } },
     config: { unit_system: { temperature: '°F' } },
     callService: async () => undefined,
   };

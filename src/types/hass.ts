@@ -31,15 +31,8 @@ export interface ClimateAttributes {
   supported_features?: number;
 }
 
-/** Entity-registry slice — used to detect the backing integration (e.g. ecobee),
- *  which gates integration-specific actions like `ecobee.resume_program`. */
-export interface HassEntityRegistryEntry {
-  platform?: string;
-}
-
 export interface HomeAssistant {
   states: Record<string, HassEntityBase>;
-  entities?: Record<string, HassEntityRegistryEntry>;
   config?: {
     unit_system?: {
       temperature?: string;

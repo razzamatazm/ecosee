@@ -21,9 +21,6 @@ export interface FakeHassOptions {
   entities?: HassEntityBase[];
   /** The system temperature unit (default `°F`). */
   unit?: string;
-  /** `entity_id` → backing integration platform, for the entity registry (e.g.
-   *  `{ 'climate.t': 'ecobee' }` so Resume Schedule is offered). */
-  platforms?: Record<string, string>;
   /** Canned value returned by `callService` — used for the `return_response`
    *  forecast fetch (`weather.get_forecasts`). */
   response?: unknown;
@@ -36,18 +33,14 @@ export interface FakeHassOptions {
  * control, and assert the call the card forwarded to Home Assistant.
  */
 export function fakeHass(options: FakeHassOptions = {}): FakeHass {
-  const { entities = [], unit = '°F', platforms = {}, response } = options;
+  const { entities = [], unit = '°F', response } = options;
 
   const states: Record<string, HassEntityBase> = {};
   for (const entity of entities) states[entity.entity_id] = entity;
 
-  const registry: Record<string, { platform: string }> = {};
-  for (const [id, platform] of Object.entries(platforms)) registry[id] = { platform };
-
   const calls: RecordedCall[] = [];
   const hass: HomeAssistant = {
     states,
-    entities: registry,
     config: { unit_system: { temperature: unit } },
     callService: async (domain, service, data, _target, _notifyOnError, returnResponse) => {
       calls.push({ domain, service, data, returnResponse });

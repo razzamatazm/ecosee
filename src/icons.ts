@@ -64,7 +64,7 @@ export const icons = {
     <circle cx="12" cy="12" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8" />
   `),
 
-  /** Resume Schedule — the ✕ inside the Hold pill; also the overlay close. */
+  /** The overlay close ✕. */
   close: wrap(svg`
     <path d="M7.5 7.5 L16.5 16.5 M16.5 7.5 L7.5 16.5" fill="none" stroke="currentColor"
       stroke-width="2.2" stroke-linecap="round" />

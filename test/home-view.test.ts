@@ -5,13 +5,11 @@ import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 
 function hass(options: {
   climate: HassEntityBase;
-  platform?: string;
   extraStates?: Record<string, HassEntityBase>;
   unit?: string;
 }): HomeAssistant {
   return {
     states: { [options.climate.entity_id]: options.climate, ...options.extraStates },
-    entities: { [options.climate.entity_id]: { platform: options.platform } },
     config: { unit_system: { temperature: options.unit ?? '°F' } },
     callService: async () => undefined,
   };
@@ -26,7 +24,6 @@ const config = (overrides: Partial<EcoseeCardConfig> = {}): EcoseeCardConfig => 
 describe('toHomeView — rich ecobee', () => {
   const view = toHomeView(
     hass({
-      platform: 'ecobee',
       climate: {
         entity_id: 'climate.t',
         state: 'heat_cool',
@@ -51,16 +48,15 @@ describe('toHomeView — rich ecobee', () => {
     expect(view.humidity).toBe(60);
   });
 
-  it('maps the dual setpoints into the hold pill', () => {
-    expect(view.hold).toEqual({ heat: 70, cool: 75 });
+  it('maps the dual setpoints into the setpoint pill', () => {
+    expect(view.setpoints).toEqual({ heat: 70, cool: 75 });
   });
 
   it('reads equipment status from hvac_action', () => {
     expect(view.equipment).toBe('cooling');
   });
 
-  it('offers Resume only for ecobee-backed entities and shows weather', () => {
-    expect(view.canResume).toBe(true);
+  it('shows weather when a weather entity is configured', () => {
     expect(view.weatherAvailable).toBe(true);
   });
 
@@ -72,7 +68,6 @@ describe('toHomeView — rich ecobee', () => {
 describe('toHomeView — graceful degradation', () => {
   const view = toHomeView(
     hass({
-      platform: 'generic_thermostat',
       climate: {
         entity_id: 'climate.t',
         state: 'heat',
@@ -88,12 +83,8 @@ describe('toHomeView — graceful degradation', () => {
     expect(view.weatherCondition).toBeNull();
   });
 
-  it('hides Resume for non-ecobee entities', () => {
-    expect(view.canResume).toBe(false);
-  });
-
   it('still surfaces the single heat setpoint', () => {
-    expect(view.hold).toEqual({ heat: 68, cool: null });
+    expect(view.setpoints).toEqual({ heat: 68, cool: null });
   });
 
   it('infers equipment from setpoints when hvac_action is missing', () => {
@@ -111,10 +102,10 @@ describe('toHomeView — edge cases', () => {
       config(),
     );
     expect(view.available).toBe(false);
-    expect(view.hold).toBeNull();
+    expect(view.setpoints).toBeNull();
   });
 
-  it('shows no hold pill when the system is Off', () => {
+  it('shows no setpoint pill when the system is Off', () => {
     const view = toHomeView(
       hass({
         climate: {
@@ -125,11 +116,10 @@ describe('toHomeView — edge cases', () => {
       }),
       config(),
     );
-    expect(view.hold).toBeNull();
-    expect(view.canResume).toBe(false);
+    expect(view.setpoints).toBeNull();
   });
 
-  it('surfaces dry / fan_only as the mode with no hold pill', () => {
+  it('surfaces dry / fan_only as the mode with no setpoint pill', () => {
     for (const state of ['dry', 'fan_only'] as const) {
       const view = toHomeView(
         hass({
@@ -142,7 +132,7 @@ describe('toHomeView — edge cases', () => {
         config(),
       );
       expect(view.mode).toBe(state);
-      expect(view.hold).toBeNull();
+      expect(view.setpoints).toBeNull();
       expect(view.equipment).toBeNull();
     }
   });

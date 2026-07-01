@@ -11,7 +11,6 @@ function hass(entities: HassEntityBase[], unit = '°F'): HomeAssistant {
   for (const entity of entities) states[entity.entity_id] = entity;
   return {
     states,
-    entities: {},
     config: { unit_system: { temperature: unit } },
     callService: async () => undefined,
   };

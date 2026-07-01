@@ -18,14 +18,14 @@ const SQUIRCLE_PATH =
 
 /** Actions the Home Screen surfaces to the host card. `temperature` opens the
  *  Temperature Adjust overlay; `system-mode` / `weather` / `menu` open later
- *  Overlays; `resume` clears the active Hold. */
-export type HomeAction = 'menu' | 'temperature' | 'weather' | 'resume' | 'system-mode';
+ *  Overlays. */
+export type HomeAction = 'menu' | 'temperature' | 'weather' | 'system-mode';
 
 /**
  * The default Card view, laid out as the device is (see
  * docs/reference/home-*.jpeg): a top row of affordance glyphs (weather left,
  * System Mode center, menu right), the humidity line and the large current
- * temperature centered beneath, the horizontal Hold pill below the number, and the
+ * temperature centered beneath, the horizontal setpoint pill below the number, and the
  * optional air-quality element (issue #10) at the foot of the cluster. Active
  * equipment is shown as a colored edge glow around the squircle (blue cooling /
  * amber heating), keyed to `hvac_action` — not an icon. Purely presentational: it
@@ -170,7 +170,7 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-accent, #62cfe9);
     }
 
-    /* Centered cluster: humidity above the dominant number, Hold pill below. */
+    /* Centered cluster: humidity above the dominant number, setpoint pill below. */
     .body {
       position: relative;
       z-index: 1;
@@ -217,8 +217,8 @@ export class EcoseeHomeScreen extends LitElement {
       }
     }
 
-    /* Horizontal Hold pill: heat – cool, then the Resume ✕ (the device's
-       "until 5:28pm" expiry is omitted — HA can't express it, ADR-0003). */
+    /* Horizontal setpoint pill: heat – cool (the device's "until 5:28pm" expiry is
+       omitted — HA can't express it, ADR-0003). */
     .pill {
       display: inline-flex;
       align-items: center;
@@ -250,23 +250,6 @@ export class EcoseeHomeScreen extends LitElement {
     }
     .pill.cool {
       border-color: var(--ecosee-cool, #49b6ea);
-    }
-    .resume {
-      width: 8.5cqw;
-      height: 8.5cqw;
-      border-radius: 50%;
-      border: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      color: var(--ecosee-accent, #62cfe9);
-      padding: 1.4cqw;
-      margin-left: 0.5cqw;
-    }
-    .pill.heat .resume {
-      border-color: var(--ecosee-heat, #f3a13c);
-      color: var(--ecosee-heat, #f3a13c);
-    }
-    .pill.cool .resume {
-      border-color: var(--ecosee-cool, #49b6ea);
-      color: var(--ecosee-cool, #49b6ea);
     }
 
     .unavailable {
@@ -462,33 +445,30 @@ export class EcoseeHomeScreen extends LitElement {
   }
 
   private _renderPill(view: HomeView): TemplateResult | typeof nothing {
-    const hold = view.hold;
-    if (!hold || (hold.heat === null && hold.cool === null)) return nothing;
+    const setpoints = view.setpoints;
+    if (!setpoints || (setpoints.heat === null && setpoints.cool === null)) return nothing;
     // Single-setpoint pills are tinted to their mode; dual (Auto) stays cyan.
     const tint =
-      hold.heat !== null && hold.cool !== null ? '' : hold.heat !== null ? 'heat' : 'cool';
+      setpoints.heat !== null && setpoints.cool !== null
+        ? ''
+        : setpoints.heat !== null
+          ? 'heat'
+          : 'cool';
     return html`
-      <div class="pill ${tint}" part="hold-pill">
+      <div class="pill ${tint}" part="setpoints">
         ${
-          hold.heat !== null
-            ? html`<span class="heat">${formatTemp(hold.heat, view.unit)}</span>`
-            : nothing
-        }
-        ${hold.heat !== null && hold.cool !== null ? html`<span class="dash">–</span>` : nothing}
-        ${
-          hold.cool !== null
-            ? html`<span class="cool">${formatTemp(hold.cool, view.unit)}</span>`
+          setpoints.heat !== null
+            ? html`<span class="heat">${formatTemp(setpoints.heat, view.unit)}</span>`
             : nothing
         }
         ${
-          view.canResume
-            ? html`<button
-                class="resume"
-                aria-label="Resume schedule"
-                @click=${() => this._emit('resume')}
-              >
-                ${icons.close}
-              </button>`
+          setpoints.heat !== null && setpoints.cool !== null
+            ? html`<span class="dash">–</span>`
+            : nothing
+        }
+        ${
+          setpoints.cool !== null
+            ? html`<span class="cool">${formatTemp(setpoints.cool, view.unit)}</span>`
             : nothing
         }
       </div>

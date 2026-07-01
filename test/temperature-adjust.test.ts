@@ -13,7 +13,6 @@ import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 function hass(climate: HassEntityBase, unit = '°F'): HomeAssistant {
   return {
     states: { [climate.entity_id]: climate },
-    entities: { [climate.entity_id]: { platform: 'ecobee' } },
     config: { unit_system: { temperature: unit } },
     callService: async () => undefined,
   };
