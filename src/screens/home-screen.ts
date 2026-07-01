@@ -152,13 +152,16 @@ export class EcoseeHomeScreen extends LitElement {
        the row below the squircle's top curve and pulls the corner glyphs in off the
        rounded corners, matching the device (home-*.jpeg) — the superellipse cuts in
        sharply near the top, so the padding that frames the centered cluster leaves
-       the corner glyphs too high and too close to the edge without this. */
+       the corner glyphs too high and too close to the edge without this. The
+       horizontal inset also gives the top-left and top-right clusters an even bit of
+       breathing room off the edges so they don't hug the border (issue #54); the 1fr
+       side tracks keep the center indicator put as both corners pull in. */
     .top {
       position: relative;
       z-index: 1;
       box-sizing: border-box;
       width: 100%;
-      padding: 3cqw 4cqw 0;
+      padding: 3cqw 6cqw 0;
       display: grid;
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
