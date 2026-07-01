@@ -71,6 +71,26 @@ describe('editorSchema — coverage', () => {
   });
 });
 
+describe('editorSchema — optionality copy (#61)', () => {
+  it('marks the required Thermostat and every other field as optional in its helper', () => {
+    for (const field of editorSchema()) {
+      expect(field.helper, `field ${field.name} needs a helper`).toBeTruthy();
+      if (field.required) {
+        expect(field.helper?.startsWith('Required.')).toBe(true);
+      } else {
+        expect(field.helper?.startsWith('Optional.')).toBe(true);
+      }
+    }
+  });
+
+  it('tells users each feature-gated element only appears once its entity is added', () => {
+    const byName = Object.fromEntries(editorSchema().map((field) => [field.name, field.helper]));
+    for (const name of ['weather_entity', 'air_quality_entity', 'uv_index_entity', 'sensors']) {
+      expect(byName[name], `field ${name} should note it is hidden until set`).toMatch(/hidden until/);
+    }
+  });
+});
+
 describe('toEditorData', () => {
   it('maps object-form sensors to their entity ids for the picker', () => {
     const data = toEditorData({

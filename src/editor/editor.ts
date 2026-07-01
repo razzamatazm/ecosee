@@ -71,45 +71,46 @@ export function editorSchema(): EditorField[] {
     {
       name: 'entity',
       label: 'Thermostat',
-      helper: 'The climate entity this Card is bound to.',
+      helper: 'Required. The climate entity this Card is bound to.',
       required: true,
       selector: { entity: { domain: 'climate' } },
     },
     {
       name: 'name',
       label: 'Name',
-      helper: "Overrides the thermostat's friendly name.",
+      helper: "Optional. Overrides the thermostat's friendly name.",
       selector: { text: {} },
     },
     {
       name: 'weather_entity',
       label: 'Weather entity',
-      helper: 'Enables the weather icon and the Weather sub-screen.',
+      helper: 'Optional. Adds the weather icon and Weather sub-screen; hidden until an entity is set.',
       selector: { entity: { domain: 'weather' } },
     },
     {
       name: 'humidity_entity',
       label: 'Humidity entity',
-      helper: 'Humidity source when the thermostat reports none.',
+      helper: 'Optional. Humidity source used only when the thermostat reports none.',
       selector: { entity: { domain: 'sensor', device_class: 'humidity' } },
     },
     {
       name: 'air_quality_entity',
       label: 'Air quality entity',
-      helper: 'Surfaces the air-quality element (a US-EPA air-quality index).',
+      helper:
+        'Optional. Adds the air-quality element (a US-EPA air-quality index); hidden until an entity is set.',
       selector: { entity: { domain: 'sensor', device_class: 'aqi' } },
     },
     {
       name: 'uv_index_entity',
       label: 'UV index entity',
-      helper: 'Surfaces the UV-index gauge (a sensor carrying a UV index).',
+      helper: 'Optional. Adds the UV-index gauge; hidden until an entity is set.',
       selector: { entity: { domain: 'sensor' } },
     },
     {
       name: 'sensors',
       label: 'Sensors',
       helper:
-        'Extra temperature entities for the Sensors sub-screen. Per-sensor name and occupancy overrides remain YAML-only.',
+        'Optional. Extra temperature entities for the Sensors sub-screen, hidden until you add one. Per-sensor name and occupancy overrides remain YAML-only.',
       selector: {
         entity: {
           multiple: true,
@@ -121,7 +122,7 @@ export function editorSchema(): EditorField[] {
       name: 'inactivity_timeout',
       label: 'Inactivity timeout',
       helper:
-        'Seconds an open overlay waits before reverting to the Home Screen. 0 disables; unset uses 12s.',
+        'Optional. Seconds an open overlay waits before reverting to the Home Screen. 0 disables; unset uses 12s.',
       selector: { number: { min: 0, mode: 'box', unit_of_measurement: 'seconds' } },
     },
   ];

@@ -35,6 +35,12 @@ export class EcoseeCardEditor extends LitElement {
     :host {
       display: block;
     }
+    .intro {
+      margin: 0 0 16px;
+      color: var(--secondary-text-color);
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
   `;
 
   setConfig(config: Record<string, unknown>): void {
@@ -44,6 +50,11 @@ export class EcoseeCardEditor extends LitElement {
   override render(): TemplateResult | typeof nothing {
     if (!this._config) return nothing;
     return html`
+      <p class="intro">
+        Only the Thermostat is required. Every other field is optional — each optional element
+        appears on the Card only once you add its entity, so leaving a field blank simply hides that
+        piece.
+      </p>
       <ha-form
         .hass=${this.hass}
         .data=${toEditorData(this._config)}
