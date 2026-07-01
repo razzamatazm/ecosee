@@ -3,6 +3,7 @@ import {
   toTempAdjustModel,
   nudge,
   setValue,
+  scrub,
   selectSetpoint,
   scrubberWindow,
   setTemperatureCall,
@@ -187,6 +188,59 @@ describe('setValue', () => {
     );
     // active is cool by default; dragging it below heat (70) floors at 70.
     expect(setValue(auto, 66).cool?.value).toBe(70);
+  });
+});
+
+describe('scrub — inverted drag-to-scrub (#53)', () => {
+  const cool = () =>
+    toTempAdjustModel(hass(climate('cool', { temperature: 74, ...BOUNDS })), config);
+
+  it('drags DOWN to raise and UP to lower the setpoint', () => {
+    // `deltaY` is currentY − startY; screen Y grows downward, so a positive
+    // deltaY means the finger moved down. Down raises, up lowers (the inversion).
+    expect(scrub(cool(), 74, 22, 22).cool?.value).toBe(75); // one step down → +1
+    expect(scrub(cool(), 74, -22, 22).cool?.value).toBe(73); // one step up → −1
+  });
+
+  it('maps whole multiples of pxPerStep to whole steps', () => {
+    expect(scrub(cool(), 74, 66, 22).cool?.value).toBe(77); // 3 steps down
+    expect(scrub(cool(), 74, -44, 22).cool?.value).toBe(72); // 2 steps up
+  });
+
+  it('rounds a partial drag to the nearest step', () => {
+    expect(scrub(cool(), 74, 10, 22).cool?.value).toBe(74); // <½ step → no change
+    expect(scrub(cool(), 74, 12, 22).cool?.value).toBe(75); // >½ step → +1
+  });
+
+  it('snaps + clamps the scrubbed value like setValue', () => {
+    expect(scrub(cool(), 74, 10000, 22).cool?.value).toBe(92); // clamps at max
+    expect(scrub(cool(), 74, -10000, 22).cool?.value).toBe(45); // clamps at min
+  });
+
+  it('honors the active setpoint step (°C half-degrees)', () => {
+    const c = toTempAdjustModel(
+      hass(climate('cool', { temperature: 21, min_temp: 10, max_temp: 32 }), '°C'),
+      config,
+    );
+    expect(scrub(c, 21, 22, 22).cool?.value).toBe(21.5); // one step down → +0.5
+  });
+
+  it('does not let the cool setpoint cross below heat in Auto', () => {
+    const auto = toTempAdjustModel(
+      hass(climate('heat_cool', { target_temp_low: 70, target_temp_high: 75, ...BOUNDS })),
+      config,
+    );
+    // active is cool (75); dragging up 6 steps → 69, floored at heat (70).
+    expect(scrub(auto, 75, -6 * 22, 22).cool?.value).toBe(70);
+  });
+
+  it('is a no-op on an unavailable model', () => {
+    const model = toTempAdjustModel(hass(climate('off', {})), config);
+    expect(scrub(model, 70, 100, 22)).toBe(model);
+  });
+
+  it('degrades a non-positive pxPerStep to no movement', () => {
+    expect(scrub(cool(), 74, 100, 0).cool?.value).toBe(74);
   });
 });
 

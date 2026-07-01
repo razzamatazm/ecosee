@@ -3,7 +3,7 @@ import { customElement, property, state } from 'lit/decorators.js';
 import { formatTemp } from '../climate/home-view';
 import {
   nudge,
-  setValue,
+  scrub,
   selectSetpoint,
   scrubberWindow,
   setTemperatureCall,
@@ -222,9 +222,9 @@ export class EcoseeTemperatureOverlay extends LitElement {
     }
   `;
 
-  /** In-progress drag: the pointer Y and active value at press, plus the step,
-   *  so each move maps absolute travel → whole steps without drift. */
-  private _drag: { startY: number; startValue: number; step: number } | null = null;
+  /** In-progress drag: the pointer Y and active value at press, so each move maps
+   *  the absolute travel from `startY` → a scrubbed value without drift. */
+  private _drag: { startY: number; startValue: number } | null = null;
 
   override willUpdate(changed: PropertyValues<this>): void {
     // Seed (and re-seed on a fresh open) the live edit state from the model.
@@ -244,21 +244,28 @@ export class EcoseeTemperatureOverlay extends LitElement {
     this._emit(next);
   }
 
-  // Drag-to-scrub: the scrubber is a vertical wheel — drag up to raise the active
-  // setpoint, down to lower it (~PX_PER_STEP px = one step). The value tracks the
-  // finger live, but the service call fires once on release, not per move.
+  // Drag-to-scrub: the scrubber is a vertical wheel — drag DOWN to raise the
+  // active setpoint, UP to lower it (inverted, #53; ~PX_PER_STEP px = one step).
+  // The value tracks the finger live, but the service call fires once on release,
+  // not per move.
   private _onScrubberDown = (event: PointerEvent): void => {
     const model = this._edit;
     const edit = model && model[model.active];
     if (!edit) return;
-    this._drag = { startY: event.clientY, startValue: edit.value, step: edit.step };
+    this._drag = { startY: event.clientY, startValue: edit.value };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   };
 
   private _onScrubberMove = (event: PointerEvent): void => {
     if (!this._drag || !this._edit) return;
-    const steps = Math.round((this._drag.startY - event.clientY) / PX_PER_STEP);
-    this._edit = setValue(this._edit, this._drag.startValue + steps * this._drag.step);
+    // Downward pointer travel (currentY − startY) raises the value; `scrub` owns
+    // the (inverted) direction and the px → step mapping.
+    this._edit = scrub(
+      this._edit,
+      this._drag.startValue,
+      event.clientY - this._drag.startY,
+      PX_PER_STEP,
+    );
   };
 
   private _onScrubberUp = (event: PointerEvent): void => {
@@ -273,8 +280,10 @@ export class EcoseeTemperatureOverlay extends LitElement {
     if (this._edit && edit && edit.value !== drag.startValue) this._emit(this._edit);
   };
 
-  // Keyboard equivalent of the drag, so the scrubber slider is operable without a
-  // pointer: ↑/→ raise, ↓/← lower the active setpoint by one step.
+  // Keyboard operation of the scrubber slider (operable without a pointer): ↑/→
+  // raise, ↓/← lower the active setpoint by one step. This follows the ARIA slider
+  // convention and the unchanged "higher values up" layout, so it intentionally
+  // stays as-is rather than inverting with the drag gesture (#53).
   private _onScrubberKey = (event: KeyboardEvent): void => {
     const model = this._edit;
     if (!model) return;

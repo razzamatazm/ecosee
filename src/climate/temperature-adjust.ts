@@ -175,6 +175,25 @@ export function setValue(model: TempAdjustModel, value: number): TempAdjustModel
   return withValue(model, value);
 }
 
+/** Map a vertical drag on the scrubber to a scrubbed value (snapped + clamped
+ *  like `setValue`). Screen Y grows downward, and the scrubber is *inverted*
+ *  (#53): a positive `deltaY` (the finger moved DOWN from where it pressed)
+ *  *raises* the active setpoint and a negative one (finger moved UP) lowers it —
+ *  the reverse of the earlier "higher values up" drag. `startValue` is the active
+ *  value at press; every `pxPerStep` screen pixels map to one step, and a
+ *  non-positive `pxPerStep` degrades to "no movement". */
+export function scrub(
+  model: TempAdjustModel,
+  startValue: number,
+  deltaY: number,
+  pxPerStep: number,
+): TempAdjustModel {
+  const edit = activeEdit(model);
+  if (!edit) return model;
+  const steps = pxPerStep > 0 ? Math.round(deltaY / pxPerStep) : 0;
+  return withValue(model, startValue + steps * edit.step);
+}
+
 /** Choose which setpoint the scrubber edits. A no-op unless that setpoint exists
  *  (i.e. only meaningful in Heat / Cool (Auto)). */
 export function selectSetpoint(model: TempAdjustModel, setpoint: Setpoint): TempAdjustModel {

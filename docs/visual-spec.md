@@ -152,8 +152,9 @@ edit.
 - **Vertical value scrubber** down the center, higher values up:
   `77 / 76 / [75] / 74 / 73` top-to-bottom, the selected value in a big squircle
   bubble (blue gradient for cool, warm gradient for heat) with a thin light numeral.
-  **Drag the scrubber vertically** to change the value (the primary gesture); the
-  neighbors are display-only context.
+  **Drag the scrubber vertically** to change the value (the primary gesture) — drag
+  **down** to raise the setpoint, **up** to lower it (inverted, #53); the neighbors
+  are display-only context.
 - **+ / −** buttons stacked on the right (＋ above −) nudge the selected setpoint
   one step; tinted to the active setpoint's color.
 - **Setpoint chips** stacked on the left as small circular pucks (glyph over temp):
