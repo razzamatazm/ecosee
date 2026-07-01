@@ -27,9 +27,17 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   - **Cool** — blue/cyan, **❄ snowflake** icon.
   - **Heat** — amber/orange, **♨ heat-coil** icon. The active heat bubble uses a warm
     yellow→orange gradient; the active cool bubble a blue gradient.
+  - **Heat / Cool (Auto)** — the ecobee **Auto** mark: the left half of a six-pointed
+    snowflake (cool) fused with a two-leaf eco sprig (heat/eco) as one glyph, reading
+    as "both heating and cooling" (`reference/home-hold.jpeg`).
   - **Idle / neutral** — default cyan on black.
+- **Top-row affordances:** the three Home Screen top-row control glyphs (weather,
+  System Mode, menu) render **white** (`--ecosee-top-row`), not the cyan accent — the
+  device colors this control row white. The System Mode indicator does **not** carry
+  mode-specific color; the heat/cool color language stays reserved for
+  setpoints/equipment.
 - **Weather glyphs:** green — but only the **condition** glyphs inside the Weather
-  Overlay. The Home Screen's weather **affordance** is cyan like the other top-row
+  Overlay. The Home Screen's weather **affordance** is white like the other top-row
   glyphs (the device colors it the same as the mode/menu icons, not green).
 - **Sizing:** preserve the device's square-ish aspect ratio, scale to the card's
   column width, cap max size (no circular dial to preserve, but keep the squircle
@@ -67,9 +75,11 @@ then the setpoint pill — see also the equipment edge glow below.
   lining figures, matching the device's number.
 - **Humidity** `◊ 60%` — `current_humidity` (hidden if absent). The glyph is the
   device's small **water droplet** (the `◊` is shorthand), cyan.
-- **System Mode indicator** (top row, center) — the device's mode glyph: `OFF` pill,
-  ♨ Heat, ❄ Cool, ❄-leaf Heat / Cool (Auto). From `hvac_mode`; tapping it opens the
-  **System Mode picker**. (This is *not* the equipment status — see the edge glow.)
+- **System Mode indicator** (top row, center) — the device's mode glyph, rendered
+  **white**: `OFF` pill, ♨ Heat, ❄ Cool, ❄+leaf Heat / Cool (Auto) (the ecobee Auto
+  mark — half-snowflake fused with a two-leaf eco sprig). From `hvac_mode`; tapping it
+  opens the **System Mode picker**. (This is *not* the equipment status — see the edge
+  glow.)
 - **Equipment Status edge glow** — a colored glow around the screen edge: blue while
   cooling, amber while heating, none when idle. From `hvac_action` (inferred if
   absent); see `reference/home-cooling.jpeg` / `home-heating.jpeg`. A crisp thin
@@ -83,9 +93,9 @@ then the setpoint pill — see also the equipment edge glow below.
   doesn't expose the next transition time (ADR-0003).
 - **Weather icon** (top row, left) — the **current condition's glyph** (sun /
   clear-night moon / partly-cloudy / …), reflecting the live `weather` entity's
-  condition rather than a fixed sun, in cyan like the other top-row glyphs. Opens
+  condition rather than a fixed sun, in white like the other top-row glyphs. Opens
   the Weather overlay; shown only if a `weather` entity is configured/detected.
-- **Menu affordance** (top row, right) — opens Main Menu.
+- **Menu affordance** (top row, right) — a **cog** (gear) glyph; opens the Main Menu.
 - **Omitted (no generic data source):** reminder/alert glyph, glowing status orb (the
   distinct center orb; the equipment *edge glow* above is backed by `hvac_action`).
 

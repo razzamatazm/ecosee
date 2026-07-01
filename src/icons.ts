@@ -10,13 +10,19 @@ const wrap = (body: SVGTemplateResult): SVGTemplateResult =>
   svg`<svg viewBox="0 0 24 24" width="100%" height="100%" aria-hidden="true">${body}</svg>`;
 
 export const icons = {
-  /** Main Menu affordance — three ascending bars. */
+  /** Main Menu affordance — a cog (gear): a toothed ring with a hollow hub (the
+   *  inner circle is a second sub-path, so the even-odd fill punches the hub out).
+   *  Opens the Main Menu. */
   menu: wrap(svg`
-    <g fill="currentColor">
-      <rect x="3" y="13" width="4" height="8" rx="1.5" />
-      <rect x="10" y="9" width="4" height="12" rx="1.5" />
-      <rect x="17" y="5" width="4" height="16" rx="1.5" />
-    </g>
+    <path fill="currentColor" fill-rule="evenodd" d="M19.14 12.94c.04-.3.06-.61.06-.94
+      0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22
+      l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41
+      l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61
+      l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32
+      c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84
+      c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32
+      c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6
+      3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
   `),
 
   /** Humidity — the device's water-droplet glyph: a teardrop with a pointed top
@@ -49,7 +55,9 @@ export const icons = {
     </g>
   `),
 
-  /** Weather affordance — a sun (rendered green per the visual spec). */
+  /** Weather affordance / clear-day condition — a sun. Rendered white on the Home
+   *  Screen top row (issue #37) and green inside the Weather Overlay, per the visual
+   *  spec — the color comes from the consuming element, not the glyph. */
   sun: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
       <circle cx="12" cy="12" r="4.2" />
@@ -124,14 +132,19 @@ export const icons = {
     </g>
   `),
 
-  /** Heat / Cool (Auto) System Mode — a snowflake fused with a leaf (cool + eco),
-   *  matching the device's combined Auto glyph. */
+  /** Heat / Cool (Auto) System Mode — the ecobee Auto mark (see
+   *  docs/reference/home-hold.jpeg): the left half of a six-pointed snowflake (cool)
+   *  fused with a two-leaf eco sprig (heat/eco) on the right, reading as "both
+   *  heating and cooling" (issue #41). The vertical spine is the seam between the
+   *  two halves; the leaves are hollow outlines that bulge away from it. */
   auto: wrap(svg`
-    <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+    <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
       stroke-linejoin="round">
-      <path d="M8.5 3 V12 M4.6 5.25 L12.4 9.75 M12.4 5.25 L4.6 9.75" />
-      <path d="M20.8 11.4 C14.6 11.9 11.9 15.5 12.4 21.2 C18.6 20.7 21.3 17.1 20.8 11.4 Z" />
-      <path d="M14 19.4 C15.6 16.2 17.8 14 20.2 12.8" />
+      <path d="M10.8 2 V22 M10.8 12 L3.5 7.4 M10.8 12 L3.5 16.6 M10.8 5.6 L8.5 4.2
+        M10.8 18.4 L8.5 19.8 M4.8 8.6 L4.4 6.4 L6.4 7.1 M4.8 15.4 L4.4 17.6 L6.4 16.9" />
+      <path d="M15 11.2 C13 9 12.9 5 15.9 2.9 C18.4 4.8 17.6 9 15 11.2 Z" />
+      <path d="M13.2 16.8 C14.2 12.6 16.6 9.6 20 8.4 C21.5 11 21.3 15.2 19.2 17.7
+        C17.6 19.5 14.8 19 13.2 16.8 Z" />
     </g>
   `),
 
@@ -188,10 +201,11 @@ export const icons = {
     </g>
   `),
 
-  // Weather-condition glyphs (rendered green per the visual spec). Mapped from a
-  // Home Assistant `weather` condition by `weatherIcon` below; `sun` (above) covers
-  // a clear day. Deliberately simple, recognizable shapes — not the device's exact
-  // vector art (a later fidelity pass).
+  // Weather-condition glyphs. Mapped from a Home Assistant `weather` condition by
+  // `weatherIcon` below; `sun` (above) covers a clear day. Green inside the Weather
+  // Overlay, white as the Home Screen top-row affordance (issue #37) — the color
+  // comes from the consuming element. Deliberately simple, recognizable shapes — not
+  // the device's exact vector art (a later fidelity pass).
 
   /** Clear night — a crescent moon. */
   moon: wrap(svg`
