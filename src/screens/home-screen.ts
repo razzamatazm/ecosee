@@ -132,8 +132,8 @@ export class EcoseeHomeScreen extends LitElement {
       align-items: center;
     }
     /* The weather affordance is white on the Home Screen, like every other top-row
-       glyph (the device reserves green for the Weather Overlay's condition art, and
-       colors this control row white — issue #37). */
+       glyph (the condition's natural color is reserved for the Weather Overlay's
+       glyphs; the device colors this control row white — issue #37). */
     .weather {
       grid-column: 1;
       justify-self: start;

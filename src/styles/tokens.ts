@@ -24,7 +24,20 @@ export const tokens = css`
     --ecosee-heat-grad: linear-gradient(150deg, #f7c84d 0%, #ee7a2c 100%);
     --ecosee-cool: #49b6ea;
     --ecosee-cool-grad: linear-gradient(150deg, #74d4f3 0%, #2d7ed6 100%);
-    --ecosee-weather: #7fd08a;
+    /* Weather Overlay condition-glyph colors (issue #31): a natural per-condition
+       palette so a sunny day and a cloudy day read from color, not glyph shape
+       alone. conditionColor (icons.ts) maps each HA condition to one of these;
+       overridable per dashboard like the other accents. Tuned to sit within the
+       near-black premium aesthetic. */
+    --ecosee-weather-sun: #f4c74a;
+    --ecosee-weather-clear: #b7c4da;
+    --ecosee-weather-partly: #cdd6dc;
+    --ecosee-weather-cloud: #9fabb4;
+    --ecosee-weather-rain: #5aa6e6;
+    /* Violet, not another yellow — a storm must stay legible from the sun by color
+       alone, not just glyph shape (issue #31). */
+    --ecosee-weather-storm: #c9a4f0;
+    --ecosee-weather-snow: #dcecf5;
 
     /* Air-quality element severity bands (issue #10): the US-EPA AQI scale, green
        (Good) → maroon (Hazardous). The optional element colors its number/glyph by

@@ -56,8 +56,9 @@ export const icons = {
   `),
 
   /** Weather affordance / clear-day condition — a sun. Rendered white on the Home
-   *  Screen top row (issue #37) and green inside the Weather Overlay, per the visual
-   *  spec — the color comes from the consuming element, not the glyph. */
+   *  Screen top row (issue #37) and warm-yellow inside the Weather Overlay
+   *  (`conditionColor`, issue #31) — the color comes from the consuming element,
+   *  not the glyph. */
   sun: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
       <circle cx="12" cy="12" r="4.2" />
@@ -202,10 +203,11 @@ export const icons = {
   `),
 
   // Weather-condition glyphs. Mapped from a Home Assistant `weather` condition by
-  // `weatherIcon` below; `sun` (above) covers a clear day. Green inside the Weather
-  // Overlay, white as the Home Screen top-row affordance (issue #37) — the color
-  // comes from the consuming element. Deliberately simple, recognizable shapes — not
-  // the device's exact vector art (a later fidelity pass).
+  // `weatherIcon` below; `sun` (above) covers a clear day. Tinted a natural
+  // per-condition color inside the Weather Overlay (`conditionColor`, issue #31),
+  // and white as the Home Screen top-row affordance (issue #37) — the color comes
+  // from the consuming element. Deliberately simple, recognizable shapes — not the
+  // device's exact vector art (a later fidelity pass).
 
   /** Clear night — a crescent moon. */
   moon: wrap(svg`
@@ -313,5 +315,38 @@ export function weatherIcon(condition: string): SVGTemplateResult {
     case 'partlycloudy':
     default:
       return icons.cloudSun;
+  }
+}
+
+/** The natural per-condition color the Weather Overlay tints a condition's glyph
+ *  (issue #31): a warm-yellow sun, grey clouds, blue rain, icy snow — so the
+ *  condition reads from color, not glyph shape alone. Each color is an overridable
+ *  `--ecosee-weather-*` token (declared in styles/tokens.ts) with a baked-in hex
+ *  fallback, matching the Skin's `var(--token, #hex)` convention. Grouped like
+ *  `weatherIcon` (pouring rides the rain color, hail the snow color; fog folds into
+ *  the cloud grey rather than taking its own tint); an unrecognized condition takes
+ *  the partly-cloudy tint alongside the partly-cloudy glyph it degrades to. */
+export function conditionColor(condition: string): string {
+  switch (condition) {
+    case 'sunny':
+      return 'var(--ecosee-weather-sun, #f4c74a)';
+    case 'clear-night':
+      return 'var(--ecosee-weather-clear, #b7c4da)';
+    case 'cloudy':
+    case 'fog':
+      return 'var(--ecosee-weather-cloud, #9fabb4)';
+    case 'rainy':
+    case 'pouring':
+      return 'var(--ecosee-weather-rain, #5aa6e6)';
+    case 'lightning':
+    case 'lightning-rainy':
+      return 'var(--ecosee-weather-storm, #c9a4f0)';
+    case 'snowy':
+    case 'snowy-rainy':
+    case 'hail':
+      return 'var(--ecosee-weather-snow, #dcecf5)';
+    case 'partlycloudy':
+    default:
+      return 'var(--ecosee-weather-partly, #cdd6dc)';
   }
 }

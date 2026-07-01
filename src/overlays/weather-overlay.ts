@@ -1,7 +1,8 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import { styleMap } from 'lit/directives/style-map.js';
 import { formatTemp } from '../climate/home-view';
-import { icons, weatherIcon } from '../icons';
+import { conditionColor, icons, weatherIcon } from '../icons';
 import type { WeatherDay, WeatherModel, WeatherPeriod } from '../weather/weather';
 
 /**
@@ -9,14 +10,17 @@ import type { WeatherDay, WeatherModel, WeatherPeriod } from '../weather/weather
  * <ecosee-overlay>). Laid out as the device is across two pages (see
  * docs/reference/weather-current.jpeg / weather-forecast.jpeg):
  *
- *   page 1 — current: the condition text + "as of" line, a large green condition
- *            glyph beside the current outdoor temp, the PoP / Hum. line, and the
- *            next intra-day periods (Evening / Overnight / Morning);
- *   page 2 — a 4-day forecast: per day a glyph, the high, "Night [low]", "PoP %".
+ *   page 1 — current: the condition text + "as of" line, a large condition glyph
+ *            beside the current outdoor temp, the chance-of-precip / Hum. line, and
+ *            the next intra-day periods (Evening / Overnight / Morning);
+ *   page 2 — a 4-day forecast: per day a glyph, the high, a labeled "Lo [low]", and
+ *            an umbrella ☂ + chance-of-precip %.
  *
  * Both pages carry the "N of 2" pager and the "Data provided by …" footer. The
- * condition glyphs are green per the visual spec; everything else is cyan on
- * black. Unlike the editing overlays, Weather is read-only: it derives no service
+ * condition glyphs take a natural per-condition color (`conditionColor`, issue #31 —
+ * yellow sun, grey cloud, blue rain); everything else is cyan on black. The
+ * chance-of-precip is shown as an umbrella glyph + % rather than the "PoP" jargon
+ * (issue #32). Unlike the editing overlays, Weather is read-only: it derives no service
  * call and emits no domain event — the only interaction is paging, which is local
  * view state (the overlay shell still owns dismissal via ✕ / outside-tap).
  *
@@ -103,7 +107,6 @@ export class EcoseeWeatherOverlay extends LitElement {
     .current-main .glyph {
       width: 22cqw;
       height: 22cqw;
-      color: var(--ecosee-weather, #7fd08a);
     }
     .current-temp {
       font-size: 30cqw;
@@ -146,7 +149,6 @@ export class EcoseeWeatherOverlay extends LitElement {
     .period .glyph {
       width: 7.5cqw;
       height: 7.5cqw;
-      color: var(--ecosee-weather, #7fd08a);
     }
     .period-temp {
       font-size: 7cqw;
@@ -180,7 +182,6 @@ export class EcoseeWeatherOverlay extends LitElement {
     .day .glyph {
       width: 11cqw;
       height: 11cqw;
-      color: var(--ecosee-weather, #7fd08a);
     }
     .day-high {
       font-size: 13cqw;
@@ -188,11 +189,28 @@ export class EcoseeWeatherOverlay extends LitElement {
       line-height: 1;
       color: var(--ecosee-accent, #62cfe9);
     }
-    .day-low,
+    /* The low sits muted beneath the (accent) high so the pair reads as high/low at
+       a glance — the "Lo" label plus the demoted color keep it from being mistaken
+       for a section heading the way the old "Night NN" did (issue #33). */
+    .day-low {
+      font-size: 4.6cqw;
+      font-weight: 400;
+      color: var(--ecosee-muted, #6f96a3);
+    }
+    /* Chance-of-precip as an umbrella glyph + %, no "PoP" jargon (issue #32).
+       nowrap keeps the glyph + "100%" on one line in the narrow day column. */
     .day-pop {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.2cqw;
+      white-space: nowrap;
       font-size: 4.6cqw;
       font-weight: 400;
       color: var(--ecosee-accent, #62cfe9);
+    }
+    .day-pop .glyph {
+      width: 4.4cqw;
+      height: 4.4cqw;
     }
 
     /* footer — pager + provider credit */
@@ -272,7 +290,9 @@ export class EcoseeWeatherOverlay extends LitElement {
     const c = model.current;
     return html`
       <div class="current-main">
-        <span class="glyph">${weatherIcon(c.condition)}</span>
+        <span class="glyph" style=${styleMap({ color: conditionColor(c.condition) })}
+          >${weatherIcon(c.condition)}</span
+        >
         <span class="current-temp">${formatTemp(c.temp, model.unit)}</span>
       </div>
       ${
@@ -281,7 +301,7 @@ export class EcoseeWeatherOverlay extends LitElement {
               ${
                 c.pop !== null
                   ? html`<span class="stat"
-                      ><span class="glyph">${icons.umbrella}</span>PoP ${Math.round(c.pop)}%</span
+                      ><span class="glyph">${icons.umbrella}</span>${Math.round(c.pop)}%</span
                     >`
                   : nothing
               }
@@ -310,7 +330,9 @@ export class EcoseeWeatherOverlay extends LitElement {
     return html`
       <div class="period">
         <span class="period-top">
-          <span class="glyph">${weatherIcon(period.condition)}</span>
+          <span class="glyph" style=${styleMap({ color: conditionColor(period.condition) })}
+            >${weatherIcon(period.condition)}</span
+          >
           <span class="period-temp">${formatTemp(period.temp, unit)}</span>
         </span>
         <span class="period-label">${period.label}</span>
@@ -328,10 +350,16 @@ export class EcoseeWeatherOverlay extends LitElement {
     return html`
       <div class="day">
         <span class="day-name">${this._formatDay(day.datetime)}</span>
-        <span class="glyph">${weatherIcon(day.condition)}</span>
+        <span class="glyph" style=${styleMap({ color: conditionColor(day.condition) })}
+          >${weatherIcon(day.condition)}</span
+        >
         <span class="day-high">${formatTemp(day.high, unit)}</span>
-        <span class="day-low">Night ${formatTemp(day.low, unit)}</span>
-        <span class="day-pop">PoP ${day.pop !== null ? `${Math.round(day.pop)}%` : '–'}</span>
+        <span class="day-low">Lo ${formatTemp(day.low, unit)}</span>
+        <span class="day-pop"
+          ><span class="glyph">${icons.umbrella}</span>${
+            day.pop !== null ? `${Math.round(day.pop)}%` : '–'
+          }</span
+        >
       </div>
     `;
   }

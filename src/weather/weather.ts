@@ -24,16 +24,16 @@ export interface ForecastEntry {
   condition?: string;
   /** Daily high (daily forecast) or the period temperature (hourly forecast). */
   temperature?: number;
-  /** Daily low — the device's "Night [low]". */
+  /** Daily low — rendered as the forecast column's "Lo [low]". */
   templow?: number;
-  /** Probability of precipitation, 0–100 — the device's "PoP %". */
+  /** Probability of precipitation, 0–100 — rendered as the ☂ + % chance-of-precip. */
   precipitation_probability?: number;
 }
 
 /** The forecast bundle the host fetches and threads into the seam. Either kind may
  *  be missing when the entity does not support that forecast `type`. */
 export interface WeatherForecasts {
-  /** Per-day entries — back page 2 (the 4-day forecast) and today's PoP. */
+  /** Per-day entries — back page 2 (the 4-day forecast) and today's chance-of-precip. */
   daily?: ForecastEntry[];
   /** Per-hour entries — bucketed into the named intra-day periods on page 1. */
   hourly?: ForecastEntry[];
@@ -70,7 +70,7 @@ export interface WeatherCurrent {
   conditionLabel: string;
   temp: number | null;
   humidity: number | null;
-  /** Today's probability of precipitation; `null` ⇒ the PoP line is hidden. */
+  /** Today's probability of precipitation; `null` ⇒ the ☂ + % stat is hidden. */
   pop: number | null;
   /** Raw entity timestamp for the "as of [time]" line; `null` ⇒ hidden. */
   asOf: string | null;

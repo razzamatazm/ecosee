@@ -36,9 +36,14 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   device colors this control row white. The System Mode indicator does **not** carry
   mode-specific color; the heat/cool color language stays reserved for
   setpoints/equipment.
-- **Weather glyphs:** green — but only the **condition** glyphs inside the Weather
-  Overlay. The Home Screen's weather **affordance** is white like the other top-row
-  glyphs (the device colors it the same as the mode/menu icons, not green).
+- **Weather glyphs:** the **condition** glyphs inside the Weather Overlay take a
+  **natural per-condition color** so the condition reads at a glance from color, not
+  shape alone (issue #31): warm-yellow sun, pale clear-night moon, grey cloud/fog,
+  blue rain, violet lightning, icy-white snow, and a light-grey partly-cloudy default.
+  Each is an overridable `--ecosee-weather-*` token, tuned to sit within the
+  near-black premium aesthetic. The Home Screen's weather **affordance** stays white
+  like the other top-row glyphs (the device colors it the same as the mode/menu
+  icons).
 - **Sizing:** preserve the device's square-ish aspect ratio, scale to the card's
   column width, cap max size (no circular dial to preserve, but keep the squircle
   proportions). Units follow Home Assistant's configured system.
@@ -217,19 +222,22 @@ edit.
 ### Weather — `reference/weather-current.jpeg` (page 1), `weather-forecast.jpeg` (page 2)
 The Overlay reached from the Home Screen weather icon and from Main Menu › Weather,
 backed by the configured `weather_entity`. Two pages, each with the pager and the
-provider footer. **Condition glyphs are green** (`--ecosee-weather`); the PoP
-umbrella and Hum. droplet, the temperatures, the day names and the pager are cyan
-on black (the umbrella/droplet read as cyan, not green).
+provider footer. **Condition glyphs take a natural per-condition color**
+(`--ecosee-weather-*`, issue #31 — yellow sun, grey cloud, blue rain, …); the
+chance-of-precip umbrella and Hum. droplet, the temperatures, the day names and the
+pager are cyan on black.
 - **Page 1 — current:** the **condition text** as the title ("Mostly Clear" /
   "Partly Cloudy") with **"[date] as of [time]"** beneath it (only when the entity
-  carries a timestamp); a large green **condition glyph** beside the big cyan
-  **current outdoor temp**; then a **PoP** ☂ / **Hum.** ◊ line and the next three
-  **intra-day periods** (Evening / Overnight / Morning) — each a glyph + temp over
-  a label.
+  carries a timestamp); a large **condition glyph** (colored to the condition) beside
+  the big cyan **current outdoor temp**; then a **chance-of-precip** (☂ + %) /
+  **Hum.** ◊ line and the next three **intra-day periods** (Evening / Overnight /
+  Morning) — each a glyph + temp over a label. The precip figure is the umbrella glyph
+  and a percentage — no "PoP" shorthand (issue #32).
 - **Page 2 — 4-day forecast:** title "4 Day Forecast"; the four days **after
   today** (today already owns page 1), each a column with a short **day name**
-  (Tue / Wed / …), a green glyph, the cyan **high**, **"Night [low]"**, and
-  **"PoP %"**.
+  (Tue / Wed / …), a condition-colored glyph, the cyan **high**, a muted labeled low
+  **"Lo [low]"** (legible as the day's low, not a section heading — issue #33), and a
+  **☂ + %** chance-of-precip (no "PoP" jargon — issue #32).
 - **Pager:** `1 of 2` / `2 of 2` centered above the footer, a chevron on each side;
   the arrows wrap (both stay live on both pages, as on the device). When the entity
   offers no forecast the pager collapses to a single page (page 1 only).
@@ -242,10 +250,10 @@ on black (the umbrella/droplet read as cyan, not green).
     temperature unit follows the weather entity's `temperature_unit` when present.
   - The forecast comes from the **`weather.get_forecasts` service** (modern HA),
     not a static attribute: the Card fetches **daily** (the four days after today
-    for page 2, plus today's PoP from the first entry) and **hourly** (the
-    intra-day periods) when the Overlay opens. An entity that offers no forecast
-    simply **drops page 2 and the PoP / periods** rather than rendering them
-    broken.
+    for page 2, plus today's chance-of-precip from the first entry) and **hourly**
+    (the intra-day periods) when the Overlay opens. An entity that offers no forecast
+    simply **drops page 2 and the chance-of-precip / periods** rather than rendering
+    them broken.
   - Weather is **read-only** — no service write; the only interaction is
     paging (local view state). Dismissal is the shell's (✕ / outside-tap).
 
