@@ -140,35 +140,49 @@ export class EcoseeHomeScreen extends LitElement {
       height: 100%;
     }
 
-    /* Top row: shortcuts (left), System Mode (center), menu (right). The 1fr side
-       columns are equal, so the center indicator stays centered no matter how many
-       shortcuts sit on the left. Its own inset (on top of .screen's padding) drops
-       the row below the squircle's top curve and pulls the corner glyphs in off the
-       rounded corners, matching the device (home-*.jpeg) — the superellipse cuts in
-       sharply near the top, so the padding that frames the centered cluster leaves
-       the corner glyphs too high and too close to the edge without this. The
-       horizontal inset also gives the top-left and top-right clusters an even bit of
-       breathing room off the edges so they don't hug the border (issue #54); the 1fr
-       side tracks keep the center indicator put as both corners pull in. */
+    /* Top row: the affordance glyphs spread EVENLY across the full width — weather
+       (left corner), the optional fan shortcut, System Mode, menu (right corner) —
+       rather than bunching a left cluster (issue #77). space-between distributes them
+       with equal gaps, so the row reads the same whether it holds 3 or 4 glyphs, and
+       the middle glyph(s) carry the .raised class to lift them off the baseline. A
+       persistent left anchor (rendered when neither weather nor fan is present) holds
+       the left corner so the mode stays centered and the arrangement stays stable as
+       the fan affordance appears/disappears. Its own inset (on top of .screen's
+       padding) drops the row below the squircle's top curve and pulls the corner
+       glyphs in off the rounded corners, matching the device (home-*.jpeg) — the
+       superellipse cuts in sharply near the top, so without this the corner glyphs sit
+       too high and too close to the edge; the horizontal inset also keeps the end
+       glyphs off the border (issue #54). */
     .top {
       position: relative;
       z-index: 1;
       box-sizing: border-box;
       width: 100%;
       padding: 3cqw 6cqw 0;
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      display: flex;
+      justify-content: space-between;
       align-items: center;
     }
     /* The left shortcut cluster: weather and/or the fan shortcut, each gated on its
-       own data (issue #45). An empty cluster still holds the 1fr track, so the center
-       indicator does not drift. */
+       own data (issue #45). display: contents flattens it so weather/fan/anchor sit
+       directly in the row's flex flow and take part in the even spread — the cluster
+       is a grouping seam only, with no box of its own. */
     .top-left {
-      grid-column: 1;
-      justify-self: start;
-      display: inline-flex;
-      align-items: center;
-      gap: 3cqw;
+      display: contents;
+    }
+    /* Zero-width left-corner anchor, rendered only when neither weather nor fan is
+       present. It occupies the leftmost flex slot so space-between keeps the System
+       Mode indicator dead center instead of collapsing it to the left edge. */
+    .top-anchor {
+      width: 0;
+    }
+    /* The middle glyph(s) sit higher than the corner glyphs, following the
+       superellipse's top edge, which curves down toward the corners — the fan
+       shortcut and System Mode indicator in the four-glyph case, the lone centered
+       System Mode indicator in the three-glyph case (issue #77). A slight, even lift;
+       the corner glyphs (weather, menu) stay on the baseline. */
+    .raised {
+      transform: translateY(-3cqw);
     }
     /* The weather and fan affordances are white on the Home Screen, like every other
        top-row glyph (the weather condition's natural color is reserved for the Weather
@@ -183,8 +197,6 @@ export class EcoseeHomeScreen extends LitElement {
        top row — the heat/cool color language is reserved for setpoints/equipment,
        so the indicator does not carry mode-specific color (issue #37). */
     .mode {
-      grid-column: 2;
-      justify-self: center;
       color: var(--ecosee-top-row, #ffffff);
     }
     .mode .glyph {
@@ -203,8 +215,6 @@ export class EcoseeHomeScreen extends LitElement {
       letter-spacing: 0.08em;
     }
     .menu {
-      grid-column: 3;
-      justify-self: end;
       width: 9.5cqw;
       height: 9.5cqw;
       color: var(--ecosee-top-row, #ffffff);
@@ -534,7 +544,13 @@ export class EcoseeHomeScreen extends LitElement {
                 >
                   ${weatherIcon(view.weatherCondition ?? '')}
                 </button>`
-              : nothing
+              : // A zero-width anchor holds the leftmost slot when there is no weather
+                // affordance, so the even spread keeps the System Mode indicator
+                // centered instead of collapsing it to the left edge (issue #77). When
+                // the fan affordance is present it becomes the visible middle glyph.
+                view.fanAvailable
+                ? nothing
+                : html`<span class="top-anchor" aria-hidden="true"></span>`
           }
           ${
             // Fan affordance — the quick shortcut into fan speed selection, shown only
@@ -543,9 +559,15 @@ export class EcoseeHomeScreen extends LitElement {
             // with the center Fan-Only mode indicator, but the two never conflate: the
             // fixed slots carry the distinction — a corner glyph is always an
             // affordance (tap → its Overlay), the center glyph is always the System
-            // Mode indicator (issue #45's note).
+            // Mode indicator (issue #45's note). It is raised as a middle glyph only
+            // when weather holds the left corner; a weatherless row makes the fan the
+            // left corner, so it stays on the baseline like the other corners (#77).
             view.fanAvailable
-              ? html`<button class="fan" aria-label="Fan" @click=${() => this._emit('fan')}>
+              ? html`<button
+                  class=${view.weatherAvailable ? 'fan raised' : 'fan'}
+                  aria-label="Fan"
+                  @click=${() => this._emit('fan')}
+                >
                   ${icons.fan}
                 </button>`
               : nothing
@@ -567,7 +589,7 @@ export class EcoseeHomeScreen extends LitElement {
         ? html`<span class="mode-off">OFF</span>`
         : html`<span class="glyph">${systemModeGlyph(mode)}</span>`;
     return html`<button
-      class="mode"
+      class="mode raised"
       aria-label=${this._modeLabel(mode)}
       @click=${() => this._emit('system-mode')}
     >

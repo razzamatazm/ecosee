@@ -48,6 +48,16 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   not the cyan accent — the device colors this control row white. The System Mode
   indicator does **not** carry mode-specific color; the heat/cool color language stays
   reserved for setpoints/equipment.
+- **Top-row arrangement:** the glyphs **spread evenly** across the full row (not
+  bunched into a left cluster), and the **middle glyph(s) sit raised** above the
+  corner glyphs — following the superellipse's top edge, which curves down toward the
+  corners (the device's physical layout). With the fan affordance present (four
+  glyphs: weather, fan, System Mode, menu) the **middle two** — fan and System Mode —
+  are raised and the corners (weather, menu) sit lower; without it (three glyphs) the
+  **center** System Mode indicator is raised and the two corners sit lower. The
+  arrangement stays stable as the fan affordance appears/disappears: the System Mode
+  indicator stays centered, and the even spread simply redistributes the three or four
+  glyphs (issue #77).
 - **Weather glyphs:** the **condition** glyphs inside the Weather Overlay take a
   **natural per-condition color** so the condition reads at a glance from color, not
   shape alone (issue #31): warm-yellow sun, pale clear-night moon, grey cloud/fog,

@@ -150,6 +150,65 @@ describe('Home Screen fan affordance', () => {
   });
 });
 
+// The top-row layout (issue #77): the affordance glyphs spread evenly across the
+// row (not clustered left), with the middle glyph(s) RAISED — following the
+// superellipse's top curve, which drops toward the corners. The System Mode
+// indicator stays centered as the fan affordance appears/disappears, so a
+// persistent left anchor holds the left corner even when neither weather nor fan
+// is present. The `raised` class carries the vertical lift and is the seam here.
+describe('Home Screen top-row layout', () => {
+  function topChildClasses(el: EcoseeHomeScreen): string[] {
+    // The layout order across the flattened flex row: the left cluster's contents
+    // (weather/anchor, then fan) followed by the centered mode and the right menu.
+    const top = el.shadowRoot!.querySelector('.top')!;
+    const left = top.querySelector('.top-left')!;
+    return [
+      ...[...left.children].map((c) => c.className),
+      ...[...top.children]
+        .filter((c) => !c.classList.contains('top-left'))
+        .map((c) => c.className),
+    ];
+  }
+
+  it('raises the two middle glyphs (fan + System Mode) in the four-glyph case', async () => {
+    const el = await mount(
+      view({ weatherAvailable: true, weatherCondition: 'sunny', fanAvailable: true }),
+    );
+    const weather = el.shadowRoot!.querySelector('.weather')!;
+    const fan = el.shadowRoot!.querySelector('.fan')!;
+    const mode = el.shadowRoot!.querySelector('.mode')!;
+    const menu = el.shadowRoot!.querySelector('.menu')!;
+    // Corner glyphs stay on the baseline; the middle two are raised.
+    expect(weather.classList.contains('raised')).toBe(false);
+    expect(fan.classList.contains('raised')).toBe(true);
+    expect(mode.classList.contains('raised')).toBe(true);
+    expect(menu.classList.contains('raised')).toBe(false);
+    // Left-to-right order across the spread row.
+    expect(topChildClasses(el)).toEqual(['weather', 'fan raised', 'mode raised', 'menu']);
+  });
+
+  it('raises only the center System Mode indicator in the three-glyph case', async () => {
+    const el = await mount(
+      view({ weatherAvailable: true, weatherCondition: 'sunny', fanAvailable: false }),
+    );
+    expect(el.shadowRoot!.querySelector('.fan')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.weather')!.classList.contains('raised')).toBe(false);
+    expect(el.shadowRoot!.querySelector('.mode')!.classList.contains('raised')).toBe(true);
+    expect(el.shadowRoot!.querySelector('.menu')!.classList.contains('raised')).toBe(false);
+    expect(topChildClasses(el)).toEqual(['weather', 'mode raised', 'menu']);
+  });
+
+  it('keeps a left anchor so the mode stays centered when neither weather nor fan is present', async () => {
+    const el = await mount(view({ weatherAvailable: false, fanAvailable: false }));
+    // No weather/fan, but a zero-width anchor holds the left corner so space-between
+    // keeps the mode dead center rather than collapsing it to the left edge.
+    expect(el.shadowRoot!.querySelector('.weather')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.fan')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.top-anchor')).not.toBeNull();
+    expect(topChildClasses(el)).toEqual(['top-anchor', 'mode raised', 'menu']);
+  });
+});
+
 // The optional UV-index gauge (design import): an arc meter at the foot of the
 // cluster, backed by its own uv_index_entity and tinted by the reading's WHO band.
 describe('Home Screen UV-index gauge', () => {
