@@ -13,6 +13,7 @@ import {
 } from '../climate/temperature-adjust';
 import { icons } from '../icons';
 import { emitServiceCall } from './service-call-event';
+import { emitOverlayDismiss } from './overlay-dismiss';
 
 /** Neighbors shown on each side of the selected value in the scrubber. */
 const SCRUBBER_RADIUS = 2;
@@ -39,7 +40,9 @@ const PX_PER_STEP = 22;
  * with the `climate.set_temperature` call so the host card writes the setpoint.
  * Each ± nudge commits immediately; a drag tracks the finger live but commits
  * once on release. There is no separate Apply step (and no hold-duration prompt,
- * ADR-0003).
+ * ADR-0003). A value-neutral *tap* on the selected value (a press/release that
+ * never moved it) dismisses the overlay without writing — matching the device —
+ * while a scrub or a ± nudge, which change the value, keep it open (#93).
  */
 @customElement('ecosee-temperature-overlay')
 export class EcoseeTemperatureOverlay extends LitElement {
@@ -244,8 +247,11 @@ export class EcoseeTemperatureOverlay extends LitElement {
   `;
 
   /** In-progress drag: the pointer Y and active value at press, so each move maps
-   *  the absolute travel from `startY` → a scrubbed value without drift. */
-  private _drag: { startY: number; startValue: number } | null = null;
+   *  the absolute travel from `startY` → a scrubbed value without drift. `moved`
+   *  records whether the gesture ever changed the value, so release can tell a
+   *  value-neutral *tap* (dismisses, #93) from a *scrub* that netted back to the
+   *  start (stays open — a scrub is not a tap). */
+  private _drag: { startY: number; startValue: number; moved: boolean } | null = null;
 
   override willUpdate(changed: PropertyValues<this>): void {
     // Seed (and re-seed on a fresh open) the live edit state from the model.
@@ -273,7 +279,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
     const model = this._edit;
     const edit = model && model[model.active];
     if (!edit) return;
-    this._drag = { startY: event.clientY, startValue: edit.value };
+    this._drag = { startY: event.clientY, startValue: edit.value, moved: false };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   };
 
@@ -287,6 +293,10 @@ export class EcoseeTemperatureOverlay extends LitElement {
       event.clientY - this._drag.startY,
       PX_PER_STEP,
     );
+    // Latch once the value leaves its start — this gesture is a scrub, not a tap,
+    // even if it later drags back to where it began.
+    const edit = this._edit[this._edit.active];
+    if (edit && edit.value !== this._drag.startValue) this._drag.moved = true;
   };
 
   private _onScrubberUp = (event: PointerEvent): void => {
@@ -298,7 +308,16 @@ export class EcoseeTemperatureOverlay extends LitElement {
     // Commit only when the drag actually moved the value — a tap (or a drag that
     // nets back to where it started) must not write an unrequested setpoint.
     const edit = this._edit && this._edit[this._edit.active];
-    if (this._edit && edit && edit.value !== drag.startValue) this._emit(this._edit);
+    if (this._edit && edit && edit.value !== drag.startValue) {
+      this._emit(this._edit);
+    } else if (event.type === 'pointerup' && !drag.moved) {
+      // Value-neutral tap on the selected value: dismiss the overlay, matching the
+      // device, and send NO setpoint write since nothing changed (#93). Gated to a
+      // real pointerup — a `pointercancel` is the browser aborting the gesture, not a
+      // deliberate tap — and skipped for a scrub that netted back to start (`moved`),
+      // which is a gesture, not a tap.
+      emitOverlayDismiss(this);
+    }
   };
 
   // Keyboard operation of the scrubber slider (operable without a pointer): ↑/→

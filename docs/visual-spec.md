@@ -106,6 +106,12 @@ Overlay resets the countdown, and setting it to `0` disables auto-revert (✕/ou
 tap still dismiss). The revert collapses the whole nav stack — a deep view (e.g. a
 picker reached through the Main Menu) returns straight to Home, not one level up.
 
+Individual overlays may add their own dismiss affordance on top of the shared ✕ /
+outside-tap / inactivity paths: the value pickers auto-close a beat after a
+selection (#38, #39), and **Temperature Adjust closes on a value-neutral tap of the
+selected value** (#93; see below). These never write anything the interaction did
+not explicitly change.
+
 ## Screens
 
 ### Home Screen — `reference/home-hold.jpeg`, `home-off.jpeg`, `home-heat-only.jpeg`, `home-cool-only.jpeg`
@@ -206,6 +212,12 @@ edit.
   **Drag the scrubber vertically** to change the value (the primary gesture) — drag
   **down** to raise the setpoint, **up** to lower it (inverted, #53); the neighbors
   are display-only context.
+- **Tap the selected value to dismiss** — a *value-neutral* tap on the scrubber (the
+  selected-value column, anchored by the bubble; a press/release that never moves the
+  value) closes the overlay back to the Home Screen, matching the device (#93).
+  Because nothing changed, the dismissing tap writes **no** setpoint. Anything that
+  changes the value keeps the overlay open: a scrub (even one that nets back to its
+  start — it is a gesture, not a tap) and the ± nudges below.
 - **+ / −** buttons stacked on the right (＋ above −) nudge the selected setpoint
   one step; tinted to the active setpoint's color.
 - **Setpoint chips** stacked on the left as small circular pucks (glyph over temp):
