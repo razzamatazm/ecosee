@@ -215,3 +215,50 @@ describe('Home Screen air-quality element', () => {
     expect(sr?.textContent).toContain('Unhealthy for Sensitive Groups');
   });
 });
+
+// The foot cluster (issue #75): the air-quality element and UV-index gauge share a
+// single count-aware row. Both present → they sit side by side (so the taller gauge
+// no longer stacks below and clips against the bottom squircle curve); only one
+// present → that indicator is centered on its own, the same single-vs-both pattern
+// the setpoint ovals already use.
+describe('Home Screen foot cluster (air quality + UV index)', () => {
+  const aq = { aqi: 42, category: 'Good', level: 'good' } as const;
+  const uv = { uvi: 7, category: 'High', level: 'high', fraction: 7 / 11 } as const;
+
+  it('renders no foot row when neither indicator is present', async () => {
+    const el = await mount(view({ airQuality: null, uvIndex: null }));
+    expect(el.shadowRoot!.querySelector('.foot')).toBeNull();
+  });
+
+  it('lays both indicators side by side in one foot row when both are present', async () => {
+    const el = await mount(view({ airQuality: aq, uvIndex: uv }));
+    const foot = el.shadowRoot!.querySelector('.foot');
+    expect(foot).not.toBeNull();
+    const aqi = el.shadowRoot!.querySelector('.aqi');
+    const uvi = el.shadowRoot!.querySelector('.uvi');
+    expect(aqi).not.toBeNull();
+    expect(uvi).not.toBeNull();
+    // Both share the single foot row (siblings), so they lay out side by side
+    // rather than stacking one below the other.
+    expect(aqi!.parentElement).toBe(foot);
+    expect(uvi!.parentElement).toBe(foot);
+  });
+
+  it('centers the air-quality element alone in the foot row when it is the only indicator', async () => {
+    const el = await mount(view({ airQuality: aq, uvIndex: null }));
+    const foot = el.shadowRoot!.querySelector('.foot');
+    expect(foot).not.toBeNull();
+    expect(el.shadowRoot!.querySelector('.uvi')).toBeNull();
+    expect(foot!.querySelector('.aqi')).not.toBeNull();
+    expect(foot!.childElementCount).toBe(1);
+  });
+
+  it('centers the UV-index gauge alone in the foot row when it is the only indicator', async () => {
+    const el = await mount(view({ airQuality: null, uvIndex: uv }));
+    const foot = el.shadowRoot!.querySelector('.foot');
+    expect(foot).not.toBeNull();
+    expect(el.shadowRoot!.querySelector('.aqi')).toBeNull();
+    expect(foot!.querySelector('.uvi')).not.toBeNull();
+    expect(foot!.childElementCount).toBe(1);
+  });
+});

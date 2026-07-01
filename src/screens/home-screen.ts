@@ -316,6 +316,20 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-muted, #6f96a3);
     }
 
+    /* Foot cluster (issue #75): the air-quality element and UV-index gauge share one
+       count-aware row. flex row + justify-content: center lays the pair side by side
+       when both are present — so the taller UV gauge no longer stacks below the AQI
+       badge and clips against the bottom squircle curve — and centers a single
+       indicator when only one is (the setpoint-oval single-vs-both idiom). Their
+       differing heights are centered on the cross axis. Gap in cqw like the rest of
+       .body (issue #35). */
+    .foot {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5cqw;
+    }
+
     /* Optional air-quality element (issue #10): a subtle badge at the foot of the
        cluster — a wind glyph + the AQI number (issue #66 dropped the visible category
        word). The CSS color carries the severity band (the glyph and number inherit it;
@@ -484,15 +498,12 @@ export class EcoseeHomeScreen extends LitElement {
               : html`<div class="unavailable">${view.name} unavailable</div>`
           }
           ${
-            // The air-quality element is backed by its own entity, independent of
-            // the bound climate entity — so it sits at the foot of the cluster below
-            // either the live readout or the unavailable shell (issue #10).
-            this._renderAirQuality(view.airQuality)
-          }
-          ${
-            // The UV-index gauge is likewise backed by its own entity — it sits at the
-            // foot of the cluster, below the air-quality element when both are present.
-            this._renderUvIndex(view.uvIndex)
+            // The optional air-quality element and UV-index gauge share one
+            // count-aware foot row: side by side when both are present, a single
+            // centered indicator when only one is (issue #75). Both are backed by
+            // their own entities, independent of the bound climate entity, so the
+            // row sits below either the live readout or the unavailable shell.
+            this._renderFoot(view)
           }
         </div>
       </div>
@@ -599,6 +610,23 @@ export class EcoseeHomeScreen extends LitElement {
     >
       <span class="glyph">${glyph}</span>${formatTemp(value, unit)}
     </button>`;
+  }
+
+  /** The foot cluster: the optional air-quality element and UV-index gauge in a
+   *  single count-aware row (issue #75). Each is independently optional and only
+   *  rendered when its own sub-model is present (ADR-0001 graceful degradation).
+   *  When both are present they lay out side by side, so the taller UV gauge no
+   *  longer stacks below the AQI badge and clips against the bottom squircle curve;
+   *  when only one is present the row centers it on its own — the same
+   *  single-vs-both centering the setpoint ovals use. When neither is present the
+   *  row is omitted entirely so it adds no gap to the cluster. */
+  private _renderFoot(view: HomeView): TemplateResult | typeof nothing {
+    if (!view.airQuality && !view.uvIndex) return nothing;
+    return html`
+      <div class="foot" part="foot">
+        ${this._renderAirQuality(view.airQuality)} ${this._renderUvIndex(view.uvIndex)}
+      </div>
+    `;
   }
 
   /** The optional air-quality element (issue #10). Rendered only when the seam
