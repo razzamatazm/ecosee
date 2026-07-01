@@ -179,3 +179,39 @@ describe('Home Screen UV-index gauge', () => {
     expect(Number(arc!.getAttribute('stroke-dashoffset'))).toBeCloseTo(0);
   });
 });
+
+// The optional air-quality element (issue #10) simplified to just the glyph and
+// number (issue #66): the color carries the severity band, so the visible category
+// word is dropped — but the band stays announced via an accessible label.
+describe('Home Screen air-quality element', () => {
+  it('hides the element when no air quality is available', async () => {
+    const el = await mount(view({ airQuality: null }));
+    expect(el.shadowRoot!.querySelector('.aqi')).toBeNull();
+  });
+
+  it('shows the glyph and number with the band tint, and no visible category text', async () => {
+    const el = await mount(view({ airQuality: { aqi: 42, category: 'Good', level: 'good' } }));
+    const aqi = el.shadowRoot!.querySelector('.aqi');
+    expect(aqi).not.toBeNull();
+    expect(aqi!.classList.contains('good')).toBe(true);
+    expect(aqi!.getAttribute('part')).toBe('air-quality');
+    expect(aqi!.querySelector('.num')?.textContent?.trim()).toBe('42');
+    // The visible category word is gone (issue #66).
+    expect(aqi!.querySelector('.cat')).toBeNull();
+  });
+
+  it('keeps the category in an accessible label for screen readers', async () => {
+    const el = await mount(
+      view({
+        airQuality: {
+          aqi: 143,
+          category: 'Unhealthy for Sensitive Groups',
+          level: 'sensitive',
+        },
+      }),
+    );
+    const sr = el.shadowRoot!.querySelector('.aqi .sr-only');
+    // Not rendered as visible text, but still announced to assistive tech.
+    expect(sr?.textContent).toContain('Unhealthy for Sensitive Groups');
+  });
+});

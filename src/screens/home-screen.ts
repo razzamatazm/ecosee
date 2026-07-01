@@ -316,18 +316,13 @@ export class EcoseeHomeScreen extends LitElement {
     }
 
     /* Optional air-quality element (issue #10): a subtle badge at the foot of the
-       cluster — a wind glyph + the AQI number on top, the category beneath. The CSS
-       color carries the severity band (the glyph and number inherit it; the badge
-       tints from it), so the band reads at a glance the way the device colors air
-       quality. The category sits on its own centered line and the badge is capped at
-       the container width, so the long "Unhealthy for Sensitive Groups" label wraps
-       instead of overflowing the squircle at any size. */
+       cluster — a wind glyph + the AQI number (issue #66 dropped the visible category
+       word). The CSS color carries the severity band (the glyph and number inherit it;
+       the badge tints from it), so the band reads at a glance the way the device colors
+       air quality. */
     .aqi {
       display: inline-flex;
-      flex-direction: column;
       align-items: center;
-      gap: 0.6cqw;
-      max-width: 100%;
       box-sizing: border-box;
       padding: 1.6cqw 3.6cqw;
       border-radius: 6cqw;
@@ -346,20 +341,6 @@ export class EcoseeHomeScreen extends LitElement {
     .aqi .glyph {
       width: 6cqw;
       height: 6cqw;
-    }
-    /* The category stays a muted neutral so the colored number carries the band;
-       smaller and centered. Capped at a fraction of the container so the long
-       "Unhealthy for Sensitive Groups" label wraps between words onto a few centered
-       lines instead of overflowing the squircle — at any card size, since the cap is
-       proportional (cqw). */
-    .aqi .cat {
-      max-width: 66cqw;
-      font-size: 4.4cqw;
-      font-weight: 500;
-      letter-spacing: 0.02em;
-      text-align: center;
-      text-wrap: balance;
-      color: var(--ecosee-muted, #6f96a3);
     }
     .aqi.moderate {
       color: var(--ecosee-aqi-moderate, #e6c84d);
@@ -621,18 +602,19 @@ export class EcoseeHomeScreen extends LitElement {
 
   /** The optional air-quality element (issue #10). Rendered only when the seam
    *  supplies a model — absent/unavailable data leaves `airQuality` null, so the
-   *  element simply isn't shown (ADR-0001 graceful degradation). The `sr-only`
-   *  prefix gives the bare number + category screen-reader context. */
+   *  element simply isn't shown (ADR-0001 graceful degradation). Shows just the glyph
+   *  and AQI number (issue #66): the band color already carries the severity, so the
+   *  visible category word is dropped — the `sr-only` label still announces the band
+   *  ("Air quality: Good") so the reading stays accessible. */
   private _renderAirQuality(airQuality: AirQualityView | null): TemplateResult | typeof nothing {
     if (!airQuality) return nothing;
     return html`
       <div class="aqi ${airQuality.level}" part="air-quality">
-        <span class="sr-only">Air quality</span>
+        <span class="sr-only">Air quality: ${airQuality.category}</span>
         <span class="reading">
           <span class="glyph">${icons.wind}</span>
           <span class="num">${airQuality.aqi}</span>
         </span>
-        <span class="cat">${airQuality.category}</span>
       </div>
     `;
   }
