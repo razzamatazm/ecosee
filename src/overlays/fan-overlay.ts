@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import {
   setFanModeCall,
   setFanMinOnTimeCall,
@@ -9,6 +9,7 @@ import {
 } from '../climate/fan';
 import { icons } from '../icons';
 import { emitServiceCall } from './service-call-event';
+import { reschedulePickerClose } from './overlay-dismiss';
 
 /**
  * `<ecosee-fan-overlay>` — the Fan sub-screen's content (slotted into
@@ -19,12 +20,16 @@ import { emitServiceCall } from './service-call-event';
  * cyan with dark text (the squircle "selected" motif); the rest are cyan on black.
  *
  * Like the System Mode picker (and unlike the Temperature Adjust overlay), this
- * owns no edit state: each choice is a single discrete write. Selecting a fan mode
- * emits the shared `ecosee-service-call` with the `climate.set_fan_mode` call;
- * choosing a runtime emits the same event with the `number.set_value` call. The host card recomputes
- * the model from `hass`, so the highlight / selection follows the entity's reported
- * values once they reflect. Tapping the already-selected mode is a no-op. Dismissal
- * is the shell's job (✕ / outside-tap).
+ * owns no lasting edit state: each choice is a single discrete write. Selecting a
+ * fan mode highlights it optimistically on tap (`_pending`, issue #38), emits the
+ * shared `ecosee-service-call` with the `climate.set_fan_mode` call, then auto-closes
+ * after a brief confirm beat (issue #39) — a correction tap during the beat re-points
+ * the pick and restarts it, and tapping the already-active mode commits nothing but
+ * still closes. The minimum-runtime dropdown is a secondary setting on the same
+ * screen: choosing a runtime emits the same event with the `number.set_value` call
+ * but keeps the screen open (so you can set runtime *and* a fan mode in one visit;
+ * closing on a native-select change would also be jarring). A runtime change is
+ * ignored once a fan-mode pick has started the closing beat.
  */
 @customElement('ecosee-fan-overlay')
 export class EcoseeFanOverlay extends LitElement {
@@ -32,6 +37,12 @@ export class EcoseeFanOverlay extends LitElement {
   @property({ attribute: false }) model?: FanModel;
   /** The bound climate entity the emitted `set_fan_mode` call targets. */
   @property({ attribute: false }) entityId = '';
+  /** The optimistically-chosen fan mode, set on tap so the segment fills before the
+   *  device echoes back (issue #38); `null` until a pick. Doubles as the
+   *  "a pick is settling" guard until the overlay auto-closes. */
+  @state() private _pending: string | null = null;
+  /** Handle for the pending auto-close, cancelled if the overlay is torn down first. */
+  private _closeTimer?: ReturnType<typeof setTimeout>;
 
   static override styles = css`
     :host {
@@ -184,12 +195,23 @@ export class EcoseeFanOverlay extends LitElement {
     }
   `;
 
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._closeTimer !== undefined) clearTimeout(this._closeTimer);
+  }
+
   private _selectMode(option: FanOption): void {
-    if (option.selected) return; // already the active mode — nothing to write
-    emitServiceCall(this, setFanModeCall(option.fanMode, this.entityId));
+    if (this._pending === option.fanMode) return; // already the settling pick — nothing to do
+    // Tapping the current fan mode with no pick in flight: nothing to write, but
+    // honour "nothing left to do" by closing anyway (issue #39).
+    const noChange = this._pending === null && option.selected;
+    this._pending = option.fanMode; // fill / hold the segment now (issue #38)
+    if (!noChange) emitServiceCall(this, setFanModeCall(option.fanMode, this.entityId));
+    this._closeTimer = reschedulePickerClose(this, this._closeTimer); // confirm beat, then close
   }
 
   private _onRuntimeChange(event: Event, runtime: MinRuntimeModel): void {
+    if (this._pending !== null) return; // a fan-mode pick is settling — ignore
     const value = Number((event.target as HTMLSelectElement).value);
     if (!Number.isFinite(value) || value === runtime.value) return;
     emitServiceCall(this, setFanMinOnTimeCall(value, runtime.entityId));
@@ -202,17 +224,21 @@ export class EcoseeFanOverlay extends LitElement {
       <div class="fan">
         <h2 class="title">Fan Mode</h2>
         <div class="toggle" role="group" aria-label="Fan Mode">
-          ${model.options.map(
-            (option) => html`
+          ${model.options.map((option) => {
+            // Once a pick is settling, the optimistic choice wins the fill;
+            // otherwise it follows the entity's reported fan mode.
+            const selected =
+              this._pending !== null ? option.fanMode === this._pending : option.selected;
+            return html`
               <button
-                class="segment ${option.selected ? 'selected' : ''}"
-                aria-pressed=${option.selected}
+                class="segment ${selected ? 'selected' : ''}"
+                aria-pressed=${selected}
                 @click=${() => this._selectMode(option)}
               >
                 ${option.label}
               </button>
-            `,
-          )}
+            `;
+          })}
         </div>
         ${this._renderRuntime(model.minRuntime)}
       </div>

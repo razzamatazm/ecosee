@@ -1,6 +1,7 @@
 import { LitElement, html, css, type TemplateResult } from 'lit';
 import { customElement } from 'lit/decorators.js';
 import { icons } from '../icons';
+import { emitOverlayDismiss } from './overlay-dismiss';
 
 /**
  * `<ecosee-overlay>` — the overlay shell. A content-agnostic squircle that mounts
@@ -54,10 +55,15 @@ export class EcoseeOverlay extends LitElement {
       cursor: pointer;
     }
 
+    /* Sits above the backdrop but stays pointer-transparent so empty taps fall
+       through to .backdrop (→ dismiss); each Overlay's controls opt back in with
+       pointer-events: auto. Without this the wrapper itself would swallow
+       empty-area taps and outside-tap dismissal would never fire (issue #40). */
     .content {
       position: absolute;
       inset: 0;
       z-index: 1;
+      pointer-events: none;
     }
     ::slotted(*) {
       display: block;
@@ -85,9 +91,7 @@ export class EcoseeOverlay extends LitElement {
   `;
 
   private _dismiss = (): void => {
-    this.dispatchEvent(
-      new CustomEvent('ecosee-overlay-dismiss', { bubbles: true, composed: true }),
-    );
+    emitOverlayDismiss(this);
   };
 
   override render(): TemplateResult {
