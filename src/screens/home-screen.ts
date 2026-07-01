@@ -147,6 +147,18 @@ export class EcoseeHomeScreen extends LitElement {
       justify-content: center;
     }
 
+    /* Render inline glyphs as block replaced elements. An inline SVG carries a
+       baseline strut (phantom descender leading) that Firefox reserves but Blink
+       effectively swallows — that divergence is what cramped the glyph-over-numeral
+       chips and misaligned stacked glyphs in Firefox/Zen (issue #74). Block layout
+       removes the strut in every engine; the SVG still fills its sized .glyph box
+       (width/height 100%). See docs/adr/0005-cross-browser-typography.md. */
+    .glyph svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
     /* Top row: shortcuts (left), System Mode (center), menu (right). The 1fr side
        columns are equal, so the center indicator stays centered no matter how many
        shortcuts sit on the left. Its own inset (on top of .screen's padding) drops
@@ -251,8 +263,16 @@ export class EcoseeHomeScreen extends LitElement {
 
     /* The dominant number: thin cyan glyphs with the device's faint top-bright
        sheen. Proportional lining figures match the device's narrow 1 / 7. The
-       gradient is layered as progressive enhancement over a solid cyan fallback. */
+       gradient is layered as progressive enhancement over a solid cyan fallback.
+       display: inline-block (NOT the base button's inline-flex): Firefox does not
+       reliably clip a gradient background to text inside a flex/inline-flex
+       container, which rendered the number mangled in Firefox/Zen — an oversized
+       slanted "7" split from the "4" (issue #74). Block-level text layout clips
+       the gradient identically in every engine. Do NOT restore flex here.
+       See docs/adr/0005-cross-browser-typography.md. */
     .temp {
+      display: inline-block;
+      text-align: center;
       font-size: 42cqw;
       font-weight: 200;
       line-height: 0.84;

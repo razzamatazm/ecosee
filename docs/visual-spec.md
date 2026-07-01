@@ -15,6 +15,15 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   first (used when the user's HA frontend/theme/system provides it) and falls back
   to **Montserrat** — the closest freely-licensed Gotham-alike — then the system
   stack. Numbers use proportional lining figures.
+  - **Cross-browser (Firefox/Zen ↔ Chrome) typography constraints — read before
+    touching numeral/glyph CSS** ([ADR-0005](./adr/0005-cross-browser-typography.md),
+    issue #74): gradient (`background-clip: text`) text — the large current
+    temperature — must be laid out **`display: inline-block`**, never a flex/grid
+    container (Firefox mis-clips the gradient in a flex box, mangling the digits),
+    and must keep **both** the unprefixed and `-webkit-` `background-clip: text` over
+    a solid-color fallback. Inline glyph SVGs must render **`display: block`** so
+    Firefox's baseline strut can't cramp glyph-over-numeral stacks (the setpoint
+    chips). `test/cross-browser-typography.test.ts` locks this contract.
 - **Motif:** flat **squircle** — big numbers and rounded-square bubbles. **No
   circular dial/ring.** The Home Screen edge is a true **superellipse**
   (|x|⁴ + |y|⁴ = 1), softer at the corners than a constant-radius rounded-square;

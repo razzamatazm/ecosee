@@ -203,6 +203,21 @@ export class EcoseeTemperatureOverlay extends LitElement {
     .chip .glyph {
       width: 7cqw;
       height: 7cqw;
+      /* Keep the glyph its full size in the flex column — never let it shrink out
+         of its box under the numeral (the other half of the cramped Firefox chip,
+         issue #74). */
+      flex: none;
+    }
+    /* Render the chip glyph as a block replaced element: an inline SVG's baseline
+       strut (phantom descender leading) is reserved by Firefox but swallowed by
+       Blink, so the glyph rendered taller than its box in Firefox/Zen and
+       overlapped the setpoint number. Block layout removes the strut in every
+       engine while the SVG still fills its 7cqw box (width/height 100%). See
+       docs/adr/0005-cross-browser-typography.md. */
+    .glyph svg {
+      display: block;
+      width: 100%;
+      height: 100%;
     }
     .chip.cool {
       color: var(--ecosee-cool, #49b6ea);
