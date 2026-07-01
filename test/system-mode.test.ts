@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { toSystemModeModel, setHvacModeCall } from '../src/climate/system-mode';
+import { toSystemModeModel, setHvacModeCall, systemModeGlyph } from '../src/climate/system-mode';
+import { icons } from '../src/icons';
 import type { EcoseeCardConfig } from '../src/config';
 import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 
@@ -121,5 +122,56 @@ describe('setHvacModeCall', () => {
       service: 'set_hvac_mode',
       data: { entity_id: 'climate.t', hvac_mode: 'heat_cool' },
     });
+  });
+});
+
+/** Concatenate the static SVG source of a Lit template, recursing into nested
+ *  templates (each glyph body lives one template deep inside its `<svg>` wrapper). */
+function flattenTemplate(node: unknown): string {
+  if (node && typeof node === 'object' && 'strings' in node && 'values' in node) {
+    const t = node as { strings: readonly string[]; values: readonly unknown[] };
+    return t.strings.reduce(
+      (acc, s, i) => acc + s + (i < t.values.length ? flattenTemplate(t.values[i]) : ''),
+      '',
+    );
+  }
+  return typeof node === 'string' ? node : '';
+}
+
+// The mode -> indicator-glyph mapping the Home Screen renders. Fan-only and Dry
+// must select glyphs drawn in the same visual language as Heat / Cool / Auto so
+// every System Mode reads consistently (issue #59).
+describe('systemModeGlyph', () => {
+  it('selects the matching glyph for each System Mode', () => {
+    expect(systemModeGlyph('heat')).toBe(icons.heat);
+    expect(systemModeGlyph('cool')).toBe(icons.snowflake);
+    expect(systemModeGlyph('heat_cool')).toBe(icons.auto);
+    expect(systemModeGlyph('dry')).toBe(icons.drop);
+    expect(systemModeGlyph('fan_only')).toBe(icons.fan);
+  });
+
+  it('gives Dry and Fan only their own glyphs, distinct from the other modes', () => {
+    const dry = systemModeGlyph('dry');
+    const fan = systemModeGlyph('fan_only');
+    const others = [
+      systemModeGlyph('heat'),
+      systemModeGlyph('cool'),
+      systemModeGlyph('heat_cool'),
+    ];
+    expect(others).not.toContain(dry);
+    expect(others).not.toContain(fan);
+    expect(dry).not.toBe(fan);
+  });
+
+  it('draws Dry and Fan only in the same stroke language as Heat / Cool / Auto', () => {
+    // The shared mode-glyph language: single-color line art, `currentColor` stroke,
+    // 1.8 weight, round caps and joins (issue #59). Each glyph nests its body one
+    // template deep inside the `<svg>` wrapper, so flatten the static SVG source to
+    // assert the two generic-only glyphs carry the same stroke attributes.
+    const family = ['fill="none"', 'stroke-width="1.8"', 'stroke-linecap="round"', 'stroke-linejoin="round"'];
+    for (const glyph of [icons.drop, icons.fan]) {
+      const markup = flattenTemplate(glyph);
+      for (const token of family) expect(markup).toContain(token);
+    }
   });
 });

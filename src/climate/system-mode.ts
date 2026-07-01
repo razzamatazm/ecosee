@@ -1,8 +1,10 @@
+import type { SVGTemplateResult } from 'lit';
 import type { HomeAssistant } from '../types/hass';
 import type { EcoseeCardConfig } from '../config';
 import type { SystemMode } from './home-view';
 import { toMode, UNAVAILABLE } from './home-view';
 import type { ServiceCall } from './service-call';
+import { icons } from '../icons';
 
 // The derivation seam for the System Mode picker (the sibling of `toHomeView` /
 // `toTempAdjustModel`). `toSystemModeModel` builds an already-degraded list of
@@ -98,4 +100,28 @@ export function setHvacModeCall(hvacMode: string, entityId: string): ServiceCall
     service: 'set_hvac_mode',
     data: { entity_id: entityId, hvac_mode: hvacMode },
   };
+}
+
+/** The centered System Mode indicator glyph the Home Screen renders for a mode
+ *  (issue #59). Every mode resolves to a glyph drawn in the same visual language —
+ *  single-color line art, `currentColor` stroke, 1.8 weight, round caps/joins,
+ *  filling the viewBox — so the generic-only Dry and Fan only read consistently
+ *  alongside Heat, Cool and Heat / Cool (Auto). Off is shown as a text mark rather
+ *  than a glyph, so it never reaches here (it shares the `heat_cool` default
+ *  harmlessly). */
+export function systemModeGlyph(mode: DeviceMode): SVGTemplateResult {
+  switch (mode) {
+    case 'heat':
+      return icons.heat;
+    case 'cool':
+      return icons.snowflake;
+    case 'dry':
+      return icons.drop;
+    case 'fan_only':
+      return icons.fan;
+    case 'heat_cool':
+    case 'off':
+    default:
+      return icons.auto;
+  }
 }

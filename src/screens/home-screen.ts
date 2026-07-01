@@ -8,6 +8,7 @@ import type {
   UvIndexView,
 } from '../climate/home-view';
 import { formatTemp } from '../climate/home-view';
+import { systemModeGlyph } from '../climate/system-mode';
 import { icons, weatherIcon } from '../icons';
 
 /**
@@ -563,7 +564,7 @@ export class EcoseeHomeScreen extends LitElement {
     const content =
       mode === 'off'
         ? html`<span class="mode-off">OFF</span>`
-        : html`<span class="glyph">${this._modeGlyph(mode)}</span>`;
+        : html`<span class="glyph">${systemModeGlyph(mode)}</span>`;
     return html`<button
       class="mode"
       aria-label=${this._modeLabel(mode)}
@@ -656,14 +657,6 @@ export class EcoseeHomeScreen extends LitElement {
         <span class="cat">${uvIndex.category}</span>
       </div>
     `;
-  }
-
-  private _modeGlyph(mode: SystemMode): TemplateResult {
-    if (mode === 'cool') return icons.snowflake;
-    if (mode === 'heat') return icons.heat;
-    if (mode === 'dry') return icons.drop;
-    if (mode === 'fan_only') return icons.fan;
-    return icons.auto; // heat_cool
   }
 
   private _modeLabel(mode: SystemMode): string {
