@@ -54,6 +54,10 @@ export interface EcoseeCardConfig {
    *  mirroring the device's auto-return (issue #13). `0` disables auto-revert; an
    *  unset key uses the device-default (12s). See `inactivityTimeoutMs`. */
   inactivity_timeout?: number;
+  /** Opt-in Standby Screen (issue #64). Off by default: absent/`false` means the Card
+   *  behaves exactly as today (no standby). The switching behavior that reads this
+   *  flag is a separate issue (#65) — this key is only the on/off setting. */
+  standby_screen?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -103,7 +107,19 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     uv_index_entity: optionalString('uv_index_entity'),
     sensors: parseSensors(raw.sensors),
     inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
+    standby_screen: parseStandbyScreen(raw.standby_screen),
   };
+}
+
+/** Parse the optional `standby_screen` toggle (issue #64). Returns `undefined` when
+ *  absent so the feature stays off by default (graceful degradation); a boolean is
+ *  taken verbatim. Throws a user-facing error for any non-boolean value. */
+function parseStandbyScreen(raw: unknown): boolean | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'boolean') {
+    throw new Error('ecosee: `standby_screen` must be a boolean.');
+  }
+  return raw;
 }
 
 /** Parse the optional `inactivity_timeout` (seconds before an open Overlay

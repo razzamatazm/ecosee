@@ -18,6 +18,7 @@ describe('editorSchema — coverage', () => {
       'uv_index_entity',
       'sensors',
       'inactivity_timeout',
+      'standby_screen',
     ]);
   });
 
@@ -60,6 +61,12 @@ describe('editorSchema — coverage', () => {
   it('uses a number selector for inactivity_timeout', () => {
     const byName = Object.fromEntries(editorSchema().map((field) => [field.name, field.selector]));
     expect(byName.inactivity_timeout).toMatchObject({ number: { min: 0 } });
+  });
+
+  it('uses a boolean selector for the opt-in standby_screen toggle (#64)', () => {
+    const standby = editorSchema().find((field) => field.name === 'standby_screen');
+    expect(standby?.selector).toEqual({ boolean: {} });
+    expect(standby?.required).toBeFalsy();
   });
 
   it('has no comfort-icon field (removed in #58)', () => {
@@ -145,6 +152,14 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     expect(
       normalizeEditorConfig({ ...base, sensors: ['sensor.kitchen', 'sensor.den'] }, base).sensors,
     ).toEqual(['sensor.kitchen', 'sensor.den']);
+  });
+
+  it('keeps standby_screen when on but drops it when off or unset (#64)', () => {
+    expect(normalizeEditorConfig({ ...base, standby_screen: true }, base).standby_screen).toBe(true);
+    expect('standby_screen' in normalizeEditorConfig({ ...base, standby_screen: false }, base)).toBe(
+      false,
+    );
+    expect('standby_screen' in normalizeEditorConfig({ ...base }, base)).toBe(false);
   });
 
   it('preserves object-form sensor overrides when the entity set is unchanged', () => {

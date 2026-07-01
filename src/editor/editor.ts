@@ -31,7 +31,8 @@ export interface EntityFilter {
 /** An `ha-form` selector descriptor — the subset of HA's selectors this editor
  *  uses. A bare entity id → a domain- (and optionally device-class-) scoped `entity`
  *  picker; the sensors list → a `multiple` entity picker filtered to temperature
- *  sensors; a free string → `text`; the idle timeout → `number`. */
+ *  sensors; a free string → `text`; the idle timeout → `number`; an opt-in toggle →
+ *  `boolean`. */
 export type EditorSelector =
   | {
       entity: {
@@ -42,7 +43,8 @@ export type EditorSelector =
       };
     }
   | { text: Record<string, never> }
-  | { number: { min?: number; mode?: 'box'; unit_of_measurement?: string } };
+  | { number: { min?: number; mode?: 'box'; unit_of_measurement?: string } }
+  | { boolean: Record<string, never> };
 
 /** One `ha-form` field. `name`/`selector`/`required` are what `ha-form` consumes;
  *  `label`/`helper` ride along for the element's `computeLabel`/`computeHelper`
@@ -125,6 +127,12 @@ export function editorSchema(): EditorField[] {
         'Optional. Seconds an open overlay waits before reverting to the Home Screen. 0 disables; unset uses 12s.',
       selector: { number: { min: 0, mode: 'box', unit_of_measurement: 'seconds' } },
     },
+    {
+      name: 'standby_screen',
+      label: 'Standby Screen',
+      helper: 'Optional. Enables the Standby Screen. Off by default.',
+      selector: { boolean: {} },
+    },
   ];
 }
 
@@ -201,6 +209,13 @@ export function normalizeEditorConfig(
     }
     if ('number' in field.selector) {
       if (typeof raw === 'number' && Number.isFinite(raw)) next[field.name] = raw;
+      else delete next[field.name];
+      continue;
+    }
+    if ('boolean' in field.selector) {
+      // An opt-in toggle stays absent when off (graceful default), so only `true`
+      // is written back; `false`/unset drops the key.
+      if (raw === true) next[field.name] = true;
       else delete next[field.name];
       continue;
     }

@@ -124,3 +124,20 @@ describe('parseConfig — inactivity_timeout', () => {
     );
   });
 });
+
+describe('parseConfig — standby_screen', () => {
+  it('leaves standby_screen undefined when the key is absent (off by default)', () => {
+    expect(parseConfig(base).standby_screen).toBeUndefined();
+  });
+
+  it('accepts an explicit boolean', () => {
+    expect(parseConfig({ ...base, standby_screen: true }).standby_screen).toBe(true);
+    expect(parseConfig({ ...base, standby_screen: false }).standby_screen).toBe(false);
+  });
+
+  it('throws when standby_screen is not a boolean', () => {
+    expect(() => parseConfig({ ...base, standby_screen: 'on' })).toThrow(
+      /`standby_screen` must be a boolean/,
+    );
+  });
+});
