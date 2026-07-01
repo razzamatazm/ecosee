@@ -1,11 +1,12 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import {
   setHvacModeCall,
   type SystemModeModel,
   type SystemModeOption,
 } from '../climate/system-mode';
 import { emitServiceCall } from './service-call-event';
+import { reschedulePickerClose } from './overlay-dismiss';
 
 /**
  * `<ecosee-system-mode-overlay>` — the System Mode picker's content (slotted into
@@ -17,12 +18,16 @@ import { emitServiceCall } from './service-call-event';
  * dark text (the squircle "selected" motif); the rest are cyan text on black.
  *
  * Unlike the Temperature Adjust overlay — which holds in-progress edit state so a
- * multi-step scrub survives `hass` pushes — this picker owns no edit state.
- * Choosing a mode is a single discrete write: it emits the shared
- * `ecosee-service-call` with the `climate.set_hvac_mode` call and lets the highlight follow the
- * entity's reported `hvac_mode` once `hass` reflects it (the host card recomputes
- * the model live, so the selection updates in place). Tapping the already-selected
- * row is a no-op. Dismissal is the shell's job (✕ / outside-tap).
+ * multi-step scrub survives `hass` pushes — this picker owns no lasting edit state.
+ * Choosing a mode is a single discrete write that emits the shared
+ * `ecosee-service-call` with the `climate.set_hvac_mode` call. So the tap reads as
+ * instant rather than waiting on the device's echo (issue #38), the chosen row is
+ * highlighted optimistically (`_pending`) the moment it is tapped; the picker then
+ * auto-closes after a brief confirm beat (issue #39), returning to the screen it was
+ * opened from (Home, or the System sub-screen when reached through the Main Menu),
+ * which reflects the real `hvac_mode` once `hass` catches up. A correction tap during
+ * the beat re-points the pick and restarts it; tapping the already-active row commits
+ * nothing but still closes (nothing left to do).
  */
 @customElement('ecosee-system-mode-overlay')
 export class EcoseeSystemModeOverlay extends LitElement {
@@ -30,6 +35,12 @@ export class EcoseeSystemModeOverlay extends LitElement {
   @property({ attribute: false }) model?: SystemModeModel;
   /** The bound entity the emitted `set_hvac_mode` call targets. */
   @property({ attribute: false }) entityId = '';
+  /** The optimistically-chosen `hvac_mode`, set on tap so the highlight moves before
+   *  the device echoes back (issue #38); `null` until a pick. Doubles as the
+   *  "a pick is settling" guard until the overlay auto-closes. */
+  @state() private _pending: string | null = null;
+  /** Handle for the pending auto-close, cancelled if the overlay is torn down first. */
+  private _closeTimer?: ReturnType<typeof setTimeout>;
 
   static override styles = css`
     :host {
@@ -95,9 +106,19 @@ export class EcoseeSystemModeOverlay extends LitElement {
     }
   `;
 
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._closeTimer !== undefined) clearTimeout(this._closeTimer);
+  }
+
   private _select(option: SystemModeOption): void {
-    if (option.selected) return; // already the active mode — nothing to write
-    emitServiceCall(this, setHvacModeCall(option.hvacMode, this.entityId));
+    if (this._pending === option.hvacMode) return; // already the settling pick — nothing to do
+    // Tapping the current device mode with no pick in flight: nothing to write, but
+    // honour "nothing left to do" by closing anyway (issue #39).
+    const noChange = this._pending === null && option.selected;
+    this._pending = option.hvacMode; // move / hold the highlight now (issue #38)
+    if (!noChange) emitServiceCall(this, setHvacModeCall(option.hvacMode, this.entityId));
+    this._closeTimer = reschedulePickerClose(this, this._closeTimer); // confirm beat, then close
   }
 
   override render(): TemplateResult | typeof nothing {
@@ -106,17 +127,21 @@ export class EcoseeSystemModeOverlay extends LitElement {
     return html`
       <div class="picker">
         <div class="list" role="group" aria-label="System Mode">
-          ${model.options.map(
-            (option) => html`
+          ${model.options.map((option) => {
+            // Once a pick is settling, the optimistic choice wins the highlight;
+            // otherwise it follows the entity's reported mode.
+            const selected =
+              this._pending !== null ? option.hvacMode === this._pending : option.selected;
+            return html`
               <button
-                class="option ${option.selected ? 'selected' : ''}"
-                aria-pressed=${option.selected}
+                class="option ${selected ? 'selected' : ''}"
+                aria-pressed=${selected}
                 @click=${() => this._select(option)}
               >
                 ${option.label}
               </button>
-            `,
-          )}
+            `;
+          })}
         </div>
       </div>
     `;

@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import type { LitElement } from 'lit';
 // Side-effect import: registers <ecosee-card> and every overlay via @customElement.
 // Imported for effect (not just the type) so esbuild can't elide it under
@@ -7,6 +7,7 @@ import type { LitElement } from 'lit';
 import '../src/ecosee-card';
 import type { EcoseeCard } from '../src/ecosee-card';
 import type { HomeAssistant } from '../src/types/hass';
+import { PICKER_CONFIRM_MS } from '../src/overlays/overlay-dismiss';
 import { fakeHass, climateEntity } from './helpers/fake-hass';
 
 // Wiring tests: these mount the real <ecosee-card> and drive it through the
@@ -35,6 +36,13 @@ function fireAction(card: EcoseeCard, action: string): void {
 function fireMenuSelect(card: EcoseeCard, target: string): void {
   card.shadowRoot!.querySelector('ecosee-main-menu-overlay')!.dispatchEvent(
     new CustomEvent('ecosee-menu-select', { detail: { target }, bubbles: true, composed: true }),
+  );
+}
+
+/** Dispatch a System sub-screen selection the way <ecosee-system-overlay> does. */
+function fireSystemSelect(card: EcoseeCard, target: string): void {
+  card.shadowRoot!.querySelector('ecosee-system-overlay')!.dispatchEvent(
+    new CustomEvent('ecosee-system-select', { detail: { target }, bubbles: true, composed: true }),
   );
 }
 
@@ -126,5 +134,75 @@ describe('ecosee-card wiring — navigation (hub-and-picker)', () => {
     await card.updateComplete;
     expect(overlayPresent(card, 'ecosee-system-mode-overlay')).toBe(false);
     expect(overlayPresent(card, 'ecosee-overlay')).toBe(false);
+  });
+});
+
+describe('ecosee-card wiring — pickers close on selection (issues #38/#39)', () => {
+  // Only setTimeout/clearTimeout are faked so Lit's microtask-based render still runs.
+  beforeEach(() => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] }));
+  afterEach(() => vi.useRealTimers());
+
+  it('applies the mode and then auto-closes a Home-opened System Mode picker back to Home', async () => {
+    const { hass, calls } = fakeHass({
+      entities: [climateEntity('cool', { hvac_modes: ['off', 'heat', 'cool'] })],
+    });
+    const card = await mountCard(hass);
+
+    fireAction(card, 'system-mode');
+    await card.updateComplete;
+    const overlay = card.shadowRoot!.querySelector('ecosee-system-mode-overlay') as LitElement;
+    await overlay.updateComplete;
+
+    const heat = [...overlay.shadowRoot!.querySelectorAll('.option')].find(
+      (o) => o.textContent?.trim() === 'Heat',
+    ) as HTMLButtonElement;
+    heat.click();
+
+    // The write goes out immediately…
+    expect(calls).toEqual([
+      {
+        domain: 'climate',
+        service: 'set_hvac_mode',
+        data: { entity_id: 'climate.t', hvac_mode: 'heat' },
+        returnResponse: undefined,
+      },
+    ]);
+    // …the picker is still up during the confirm beat…
+    expect(overlayPresent(card, 'ecosee-system-mode-overlay')).toBe(true);
+
+    // …then it auto-closes all the way back to the bare Home Screen.
+    vi.advanceTimersByTime(PICKER_CONFIRM_MS);
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-overlay')).toBe(false);
+  });
+
+  it('a menu-reached picker returns to the previous screen (System sub-screen), not Home', async () => {
+    const { hass } = fakeHass({
+      entities: [climateEntity('cool', { hvac_modes: ['off', 'heat', 'cool'] })],
+    });
+    const card = await mountCard(hass);
+
+    fireAction(card, 'menu');
+    await card.updateComplete;
+    fireMenuSelect(card, 'system');
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(true);
+
+    fireSystemSelect(card, 'system-mode');
+    await card.updateComplete;
+    const overlay = card.shadowRoot!.querySelector('ecosee-system-mode-overlay') as LitElement;
+    await overlay.updateComplete;
+
+    (
+      [...overlay.shadowRoot!.querySelectorAll('.option')].find(
+        (o) => o.textContent?.trim() === 'Heat',
+      ) as HTMLButtonElement
+    ).click();
+    vi.advanceTimersByTime(PICKER_CONFIRM_MS);
+    await card.updateComplete;
+
+    // One level popped: back to the System sub-screen, not all the way Home.
+    expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(true);
+    expect(overlayPresent(card, 'ecosee-system-mode-overlay')).toBe(false);
   });
 });

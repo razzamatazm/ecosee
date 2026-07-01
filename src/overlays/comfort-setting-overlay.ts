@@ -1,5 +1,5 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import { customElement, property, state } from 'lit/decorators.js';
 import {
   setPresetModeCall,
   type ComfortIcon,
@@ -8,6 +8,7 @@ import {
 } from '../climate/comfort-setting';
 import { icons } from '../icons';
 import { emitServiceCall } from './service-call-event';
+import { reschedulePickerClose } from './overlay-dismiss';
 
 /** Maps a derived glyph key onto a Skin icon. The seam emits only these keys, so a
  *  custom preset whose configured override is unknown has already degraded to
@@ -29,12 +30,14 @@ const GLYPHS: Record<ComfortIcon, TemplateResult> = {
  * Comfort Setting's row is filled cyan with dark text (the squircle "selected"
  * motif); the rest are cyan on black.
  *
- * Like the System Mode picker, this owns no edit state. Choosing a Comfort Setting
- * is a single discrete write that applies the preset via `climate.set_preset_mode`:
- * it emits the shared `ecosee-service-call` with that call and lets the
- * highlight follow the entity's reported `preset_mode` once `hass` reflects it.
- * Tapping the already-active row is a no-op. Dismissal is the shell's job (✕ /
- * outside-tap).
+ * Like the System Mode picker, this owns no lasting edit state. Choosing a Comfort
+ * Setting is a single discrete write that applies the preset via
+ * `climate.set_preset_mode`: it highlights the chosen row optimistically on tap
+ * (`_pending`, issue #38), emits the shared `ecosee-service-call` with that call,
+ * then auto-closes after a brief confirm beat (issue #39), returning to the screen it
+ * was opened from (the System sub-screen), which reflects the real `preset_mode` once
+ * `hass` catches up. A correction tap during the beat re-points the pick and restarts
+ * it; tapping the already-active row commits nothing but still closes.
  */
 @customElement('ecosee-comfort-setting-overlay')
 export class EcoseeComfortSettingOverlay extends LitElement {
@@ -42,6 +45,12 @@ export class EcoseeComfortSettingOverlay extends LitElement {
   @property({ attribute: false }) model?: ComfortSettingModel;
   /** The bound entity the emitted `set_preset_mode` call targets. */
   @property({ attribute: false }) entityId = '';
+  /** The optimistically-chosen preset, set on tap so the highlight moves before the
+   *  device echoes back (issue #38); `null` until a pick. Doubles as the
+   *  "a pick is settling" guard until the overlay auto-closes. */
+  @state() private _pending: string | null = null;
+  /** Handle for the pending auto-close, cancelled if the overlay is torn down first. */
+  private _closeTimer?: ReturnType<typeof setTimeout>;
 
   static override styles = css`
     :host {
@@ -117,9 +126,19 @@ export class EcoseeComfortSettingOverlay extends LitElement {
     }
   `;
 
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    if (this._closeTimer !== undefined) clearTimeout(this._closeTimer);
+  }
+
   private _select(option: ComfortSettingOption): void {
-    if (option.selected) return; // already the active Comfort Setting — nothing to write
-    emitServiceCall(this, setPresetModeCall(option.preset, this.entityId));
+    if (this._pending === option.preset) return; // already the settling pick — nothing to do
+    // Tapping the current Comfort Setting with no pick in flight: nothing to write,
+    // but honour "nothing left to do" by closing anyway (issue #39).
+    const noChange = this._pending === null && option.selected;
+    this._pending = option.preset; // move / hold the highlight now (issue #38)
+    if (!noChange) emitServiceCall(this, setPresetModeCall(option.preset, this.entityId));
+    this._closeTimer = reschedulePickerClose(this, this._closeTimer); // confirm beat, then close
   }
 
   override render(): TemplateResult | typeof nothing {
@@ -128,18 +147,22 @@ export class EcoseeComfortSettingOverlay extends LitElement {
     return html`
       <div class="picker">
         <div class="list" role="group" aria-label="Comfort Setting">
-          ${model.options.map(
-            (option) => html`
+          ${model.options.map((option) => {
+            // Once a pick is settling, the optimistic choice wins the highlight;
+            // otherwise it follows the entity's reported preset.
+            const selected =
+              this._pending !== null ? option.preset === this._pending : option.selected;
+            return html`
               <button
-                class="option ${option.selected ? 'selected' : ''}"
-                aria-pressed=${option.selected}
+                class="option ${selected ? 'selected' : ''}"
+                aria-pressed=${selected}
                 @click=${() => this._select(option)}
               >
                 <span class="glyph">${GLYPHS[option.icon]}</span>
                 <span class="label">${option.label}</span>
               </button>
-            `,
-          )}
+            `;
+          })}
         </div>
       </div>
     `;
