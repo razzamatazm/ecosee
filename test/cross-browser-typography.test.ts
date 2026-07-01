@@ -4,6 +4,7 @@ import type { CSSResult, CSSResultArray } from 'lit';
 
 import { EcoseeHomeScreen } from '../src/screens/home-screen';
 import { EcoseeTemperatureOverlay } from '../src/overlays/temperature-overlay';
+import { tokens } from '../src/styles/tokens';
 
 // Issue #74 (regression of #52): Firefox/Zen mis-renders the Home Screen's large
 // current temperature (digits mis-sized/overlapping — an oversized slanted "7"
@@ -98,6 +99,27 @@ describe('cross-browser typography contract (issue #74)', () => {
       const chipGlyph = ruleBlockContaining(OVERLAY_CSS, '.chip .glyph');
       expect(chipGlyph).not.toBeNull();
       expect(OVERLAY_CSS).toMatch(/\.chip \.glyph\s*\{[^}]*flex:\s*none/);
+    });
+  });
+
+  describe('temp gradient default (issue #85 paint-box compensation)', () => {
+    // The default --ecosee-temp-grad stops are recomputed for the .temp
+    // paint-box padding (14%/66% land the fade where 0%/72% did over the bare
+    // line box). The token default and the .temp var() fallback must stay the
+    // SAME literal, or the fade shifts depending on whether tokens are in scope.
+    it('declares identical stops in tokens and in the .temp fallback', () => {
+      const grad = (css: string, pattern: RegExp): string | undefined =>
+        pattern.exec(css)?.[1]?.replace(/\s+/g, ' ');
+      const tokenGrad = grad(
+        cssTextOf(tokens),
+        /--ecosee-temp-grad:\s*(linear-gradient\([^)]+\))/,
+      );
+      const fallbackGrad = grad(
+        HOME_CSS,
+        /var\(\s*--ecosee-temp-grad,\s*(linear-gradient\([^)]+\))/,
+      );
+      expect(tokenGrad).toBeTruthy();
+      expect(fallbackGrad).toBe(tokenGrad);
     });
   });
 });

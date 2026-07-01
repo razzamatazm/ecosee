@@ -191,7 +191,13 @@ export class EcoseeTemperatureOverlay extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 0.5cqw;
+      /* Clearance between glyph box and numeral line box. The numeral's INK
+         sits where the font's baseline puts it, and a broken-metric webfont
+         can baseline at the middle of the line box (issue #85), floating the
+         ink ~0.2em above the box — a hair's gap lets it crash into the glyph.
+         1.2cqw (~0.17em of the 7cqw numeral) absorbs that drift while the
+         glyph + gap + numeral column still fits the 15.6cqw content box. */
+      gap: 1.2cqw;
       width: 17cqw;
       height: 17cqw;
       border-radius: 50%;

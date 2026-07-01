@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:browser": "vitest run --config vitest.browser.config.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
@@ -22,8 +23,10 @@
     "lit": "^3.2.1"
   },
   "devDependencies": {
+    "@vitest/browser": "^2.1.8",
     "eslint": "^9.17.0",
     "happy-dom": "^20.10.6",
+    "playwright": "^1.61.1",
     "prettier": "^3.4.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2",

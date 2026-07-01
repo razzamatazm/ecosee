@@ -25,6 +25,7 @@ import {
 } from './weather/weather';
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
+import { createCanvasMeasure, filterDegenerateFamilies } from './styles/font-probe';
 import { resolveDeviceSize } from './device-size';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
 import type { HomeActionDetail } from './screens/home-screen';
@@ -296,6 +297,16 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       this._resizeObserver.observe(this);
     }
     this._syncDeviceScale();
+    // Quarantine broken-metric font families (issue #85) — now, once webfonts
+    // settle, and again whenever a late font load lands (the dashboard's Gotham
+    // may only arrive after the card is first painted).
+    this._syncFontQuarantine();
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.addEventListener('loadingdone', this._onFontsLoaded);
+      void document.fonts.ready.then(() => {
+        if (this.isConnected) this._syncFontQuarantine();
+      });
+    }
   }
 
   override disconnectedCallback(): void {
@@ -306,6 +317,9 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     this._standbyTimer.stop();
     this._resizeObserver?.disconnect();
     this._resizeObserver = undefined;
+    if (typeof document !== 'undefined' && document.fonts) {
+      document.fonts.removeEventListener('loadingdone', this._onFontsLoaded);
+    }
   }
 
   protected override firstUpdated(): void {
@@ -361,6 +375,27 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     } else {
       this.style.removeProperty(prop);
     }
+  }
+
+  private _onFontsLoaded = (): void => this._syncFontQuarantine();
+
+  /** Drop font families whose metrics THIS engine reports as degenerate (issue
+   *  #85: a dashboard-provided Gotham webfont with zeroed hhea metrics makes
+   *  Gecko baseline text at the middle of every line box, mangling the gradient
+   *  temperature and the Temperature Adjust chips while Chrome renders fine).
+   *  The stack is re-read fresh from the cascade each pass — our own inline
+   *  override is cleared first so a theme change or a healthier late-loading
+   *  font can undo a quarantine rather than feed back into it. Inert wherever
+   *  canvas TextMetrics are unavailable (SSR, jsdom/happy-dom tests).
+   *  See src/styles/font-probe.ts and docs/adr/0005-cross-browser-typography.md. */
+  private _syncFontQuarantine(): void {
+    const measure = createCanvasMeasure();
+    if (!measure) return;
+    this.style.removeProperty('--ecosee-font');
+    const stack = getComputedStyle(this).getPropertyValue('--ecosee-font');
+    if (!stack.trim()) return;
+    const filtered = filterDegenerateFamilies(stack, measure);
+    if (filtered !== null) this.style.setProperty('--ecosee-font', filtered);
   }
 
   /** Arm the auto-revert countdown while an Overlay is open — re-arming on each

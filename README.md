@@ -84,6 +84,7 @@ with a `weather_entity`). A non-ecobee entity still yields a coherent card.
 npm install
 npm run dev        # preview harness with fixtures + a width slider (dev/)
 npm run test       # unit tests for the degradation logic
+npm run test:browser  # rendering parity in real headless Firefox (npx playwright install firefox first)
 npm run typecheck
 npm run lint
 npm run build      # single ES module → dist/ecosee.js

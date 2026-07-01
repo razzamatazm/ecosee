@@ -14,16 +14,25 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   **not bundled** with the card; the font stack (`--ecosee-font`) requests Gotham
   first (used when the user's HA frontend/theme/system provides it) and falls back
   to **Montserrat** — the closest freely-licensed Gotham-alike — then the system
-  stack. Numbers use proportional lining figures.
+  stack. Numbers use proportional lining figures. Per ADR-0005 Constraint 3
+  (issue #85), the card drops a provided family **in the engine that reports
+  degenerate metrics for it** (a webfont Gotham with zeroed `hhea` metrics broke
+  Firefox/Zen while Chrome rendered it fine), so the resolved face can
+  legitimately differ per engine on such dashboards.
   - **Cross-browser (Firefox/Zen ↔ Chrome) typography constraints — read before
     touching numeral/glyph CSS** ([ADR-0005](./adr/0005-cross-browser-typography.md),
-    issue #74): gradient (`background-clip: text`) text — the large current
+    issues #74/#85): gradient (`background-clip: text`) text — the large current
     temperature — must be laid out **`display: inline-block`**, never a flex/grid
     container (Firefox mis-clips the gradient in a flex box, mangling the digits),
-    and must keep **both** the unprefixed and `-webkit-` `background-clip: text` over
-    a solid-color fallback. Inline glyph SVGs must render **`display: block`** so
-    Firefox's baseline strut can't cramp glyph-over-numeral stacks (the setpoint
-    chips). `test/cross-browser-typography.test.ts` locks this contract.
+    must keep **both** the unprefixed and `-webkit-` `background-clip: text` over
+    a solid-color fallback, and must keep the cancelled-padding paint box (ink
+    drifts near/past the tight line box's edge under compact or broken font
+    metrics). Inline glyph SVGs must render **`display: block`** so Firefox's
+    baseline strut can't cramp glyph-over-numeral stacks (the setpoint chips),
+    and those stacks keep drift clearance between glyph and numeral.
+    `test/browser/gecko-parity.test.ts` (real headless Firefox,
+    `npm run test:browser`) is the primary guard; `test/cross-browser-typography.test.ts`
+    remains the cheap jsdom contract check.
 - **Motif:** flat **squircle** — big numbers and rounded-square bubbles. **No
   circular dial/ring.** Every surface — the Home Screen, the Standby Screen, and
   every Overlay — shares one outer edge: a true **superellipse** (|x|⁴ + |y|⁴ = 1),
