@@ -1,7 +1,7 @@
 import type { HomeAssistant } from '../types/hass';
 import type { EcoseeCardConfig } from '../config';
 import { num } from './parse';
-import { toFanModel } from './fan';
+import { toFanModel, hasFanSpeedControls } from './fan';
 
 // The graceful-degradation seam (ADR-0001). `toHomeView` is a pure function from
 // raw `hass` + config to a normalized, already-degraded view model: every field
@@ -68,11 +68,12 @@ export interface HomeView {
   setpoints: Setpoints | null;
   /** Whether a usable `weather` entity is configured (gates the weather icon). */
   weatherAvailable: boolean;
-  /** Whether the bound entity currently exposes fan control. Gates the Home Screen's
-   *  fan affordance — the quick shortcut into the Fan sub-screen — the same way
-   *  `weatherAvailable` gates the weather glyph (issue #45). This is the Fan
-   *  sub-screen's own availability (`toFanModel().available`), reused verbatim, so the
-   *  affordance shows iff opening it would have something to show. */
+  /** Whether the bound entity exposes a real fan *speed* control (a mode beyond
+   *  On/Auto). Gates the Home Screen's top-row fan glyph — the quick shortcut into
+   *  fan speed selection — the same way `weatherAvailable` gates the weather glyph
+   *  (issue #45). Tightened for issue #73: an On/Auto-only fan shows no glyph and
+   *  stays reachable through Main Menu → Fan, so this is `hasFanSpeedControls(model)`,
+   *  strictly narrower than the Fan sub-screen's own `toFanModel().available`. */
   fanAvailable: boolean;
   /** The weather entity's current condition (`sunny` / `clear-night` / … ), or
    *  `null` when no usable weather entity is configured. The Home Screen's weather
@@ -278,7 +279,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     setpoints,
     weatherAvailable: weather !== null,
     weatherCondition: weather,
-    fanAvailable: toFanModel(hass, config).available,
+    fanAvailable: hasFanSpeedControls(toFanModel(hass, config)),
     airQuality: toAirQuality(hass, config),
     uvIndex: toUvIndex(hass, config),
   };

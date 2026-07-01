@@ -537,8 +537,9 @@ export class EcoseeHomeScreen extends LitElement {
               : nothing
           }
           ${
-            // Fan affordance — the quick shortcut into the Fan sub-screen, shown only
-            // when the entity exposes fan control (issue #45). It shares `icons.fan`
+            // Fan affordance — the quick shortcut into fan speed selection, shown only
+            // when the entity exposes a real speed control beyond On/Auto (issues #45,
+            // #73); On/Auto-only fans stay reachable via Main Menu → Fan. It shares `icons.fan`
             // with the center Fan-Only mode indicator, but the two never conflate: the
             // fixed slots carry the distinction — a corner glyph is always an
             // affordance (tap → its Overlay), the center glyph is always the System

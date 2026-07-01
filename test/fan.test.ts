@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { toFanModel, setFanModeCall, setFanMinOnTimeCall } from '../src/climate/fan';
+import {
+  toFanModel,
+  hasFanSpeedControls,
+  setFanModeCall,
+  setFanMinOnTimeCall,
+} from '../src/climate/fan';
 import type { EcoseeCardConfig } from '../src/config';
 import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 
@@ -89,6 +94,30 @@ describe('toFanModel — generic fan modes (graceful degradation)', () => {
   it('is unavailable for a missing or unavailable entity', () => {
     expect(toFanModel(hass(climate('unavailable', {})), config).available).toBe(false);
     expect(toFanModel(hass(FULL), { ...config, entity: 'climate.none' }).available).toBe(false);
+  });
+});
+
+describe('hasFanSpeedControls — Home Screen fan-glyph gate (issue #73)', () => {
+  const model = (fan_modes: unknown[]) =>
+    toFanModel(hass(climate('cool', { fan_modes })), config);
+
+  it('is false for an On/Auto-only fan (no real speed control)', () => {
+    expect(hasFanSpeedControls(model(['auto', 'on']))).toBe(false);
+    expect(hasFanSpeedControls(model(['on', 'auto']))).toBe(false);
+  });
+
+  it('is true when the fan exposes a speed mode beyond On/Auto', () => {
+    expect(hasFanSpeedControls(model(['auto', 'on', 'low', 'medium', 'high']))).toBe(true);
+    expect(hasFanSpeedControls(model(['auto', 'on', 'medium_high']))).toBe(true);
+  });
+
+  it('is true for a speed-only fan that lists no On/Auto', () => {
+    expect(hasFanSpeedControls(model(['low', 'high']))).toBe(true);
+  });
+
+  it('is false when the fan sub-screen itself is unavailable', () => {
+    expect(hasFanSpeedControls(model([]))).toBe(false);
+    expect(hasFanSpeedControls(toFanModel(hass(climate('unavailable', {})), config))).toBe(false);
   });
 });
 

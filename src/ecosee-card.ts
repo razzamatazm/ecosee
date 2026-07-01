@@ -464,8 +464,9 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         break;
       case 'fan':
         // Top-row shortcut into the Fan sub-screen (issue #45); opened from Home, so
-        // dismissing returns Home. The availability gate in `_open` matches the same
-        // predicate that gated the affordance, so a shown shortcut always opens.
+        // dismissing returns Home. `_open`'s gate is `toFanModel().available` — broader
+        // than the affordance's `hasFanSpeedControls` gate (issue #73) but a superset of
+        // it, so a shown shortcut always opens; the On/Auto-only case never reaches here.
         this._open('fan', 'home');
         break;
       case 'menu':

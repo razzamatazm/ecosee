@@ -54,7 +54,7 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 Home Screen
 ├── tap temperature ............ Temperature Adjust (scrubber + setpoint chips)
 ├── tap weather icon ........... Weather overlay (page 1 current / page 2 forecast)
-├── tap fan affordance ......... Fan overlay (shortcut; shown only when fan control exists)
+├── tap fan affordance ......... Fan overlay (shortcut; shown only for real fan speed controls)
 └── menu ....................... Main Menu (hub)
                                  ├── System  → System sub-screen (hub)
                                  │            ├── System Mode selector → System Mode picker
@@ -106,9 +106,12 @@ then the setpoint ovals — see also the equipment edge glow below.
   the Weather overlay; shown only if a `weather` entity is configured/detected. It
   shares the left cluster with the fan affordance.
 - **Fan affordance** (top row, left cluster, beside weather) — a **fan** glyph; a
-  shortcut that opens the Fan overlay directly. Shown only when the bound entity
-  exposes fan control (`fan_modes`), gated on the same availability as the Fan
-  sub-screen. A Card addition, not on the physical device (issue #45). It uses the
+  shortcut into fan **speed** selection that opens the Fan overlay directly. Shown
+  only when the bound entity exposes a real speed control — a `fan_modes` value
+  beyond On/Auto, e.g. Low/Medium/High (issue #73). An On/Auto-only fan shows no
+  glyph and stays reachable through Main Menu → Fan, which keeps its broader
+  `fan_modes` availability. A Card addition, not on the physical device (issue #45).
+  It uses the
   same fan glyph as the center Fan-Only mode indicator, but the fixed slots keep them
   distinct: a corner glyph is always an affordance, the center glyph is the System
   Mode indicator.
