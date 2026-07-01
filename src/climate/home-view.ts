@@ -1,6 +1,7 @@
 import type { HomeAssistant } from '../types/hass';
 import type { EcoseeCardConfig } from '../config';
 import { num } from './parse';
+import { toFanModel } from './fan';
 
 // The graceful-degradation seam (ADR-0001). `toHomeView` is a pure function from
 // raw `hass` + config to a normalized, already-degraded view model: every field
@@ -50,6 +51,12 @@ export interface HomeView {
   setpoints: Setpoints | null;
   /** Whether a usable `weather` entity is configured (gates the weather icon). */
   weatherAvailable: boolean;
+  /** Whether the bound entity currently exposes fan control. Gates the Home Screen's
+   *  fan affordance — the quick shortcut into the Fan sub-screen — the same way
+   *  `weatherAvailable` gates the weather glyph (issue #45). This is the Fan
+   *  sub-screen's own availability (`toFanModel().available`), reused verbatim, so the
+   *  affordance shows iff opening it would have something to show. */
+  fanAvailable: boolean;
   /** The weather entity's current condition (`sunny` / `clear-night` / … ), or
    *  `null` when no usable weather entity is configured. The Home Screen's weather
    *  affordance shows this condition's glyph — the device reflects the live weather,
@@ -196,6 +203,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
       setpoints: null,
       weatherAvailable: weather !== null,
       weatherCondition: weather,
+      fanAvailable: false,
       airQuality: toAirQuality(hass, config),
     };
   }
@@ -221,6 +229,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     setpoints,
     weatherAvailable: weather !== null,
     weatherCondition: weather,
+    fanAvailable: toFanModel(hass, config).available,
     airQuality: toAirQuality(hass, config),
   };
 }

@@ -199,6 +199,34 @@ describe('ecosee-card wiring — navigation (hub-and-picker)', () => {
     expect(overlayPresent(card, 'ecosee-fan-overlay')).toBe(false);
   });
 
+  it('opens the Fan sub-screen from the Home top-row shortcut, dismissing back to Home (issue #45)', async () => {
+    const { hass } = fakeHass({
+      entities: [climateEntity('cool', { fan_modes: ['auto', 'on'], fan_mode: 'auto' })],
+    });
+    const card = await mountCard(hass);
+
+    // The Home shortcut fires a bare `fan` action (no setpoint); it opens the Fan
+    // overlay straight from Home.
+    fireAction(card, 'fan');
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-fan-overlay')).toBe(true);
+
+    // Opened from Home, so a single dismiss lands back on the bare Home Screen.
+    fireDismiss(card);
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-overlay')).toBe(false);
+  });
+
+  it('does not open the Fan shortcut when the entity exposes no fan control (availability gate)', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('cool', {})] });
+    const card = await mountCard(hass);
+
+    fireAction(card, 'fan');
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-fan-overlay')).toBe(false);
+    expect(overlayPresent(card, 'ecosee-overlay')).toBe(false);
+  });
+
   it('does not open an Overlay whose backing data is absent (availability gate)', async () => {
     const { hass } = fakeHass({ entities: [climateEntity('off', {})] });
     const card = await mountCard(hass);

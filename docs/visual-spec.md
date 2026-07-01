@@ -31,11 +31,11 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
     snowflake (cool) fused with a two-leaf eco sprig (heat/eco) as one glyph, reading
     as "both heating and cooling" (`reference/home-hold.jpeg`).
   - **Idle / neutral** — default cyan on black.
-- **Top-row affordances:** the three Home Screen top-row control glyphs (weather,
-  System Mode, menu) render **white** (`--ecosee-top-row`), not the cyan accent — the
-  device colors this control row white. The System Mode indicator does **not** carry
-  mode-specific color; the heat/cool color language stays reserved for
-  setpoints/equipment.
+- **Top-row affordances:** the Home Screen top-row control glyphs (weather, the
+  optional fan affordance, System Mode, menu) render **white** (`--ecosee-top-row`),
+  not the cyan accent — the device colors this control row white. The System Mode
+  indicator does **not** carry mode-specific color; the heat/cool color language stays
+  reserved for setpoints/equipment.
 - **Weather glyphs:** the **condition** glyphs inside the Weather Overlay take a
   **natural per-condition color** so the condition reads at a glance from color, not
   shape alone (issue #31): warm-yellow sun, pale clear-night moon, grey cloud/fog,
@@ -54,6 +54,7 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 Home Screen
 ├── tap temperature ............ Temperature Adjust (scrubber + setpoint chips)
 ├── tap weather icon ........... Weather overlay (page 1 current / page 2 forecast)
+├── tap fan affordance ......... Fan overlay (shortcut; shown only when fan control exists)
 └── menu ....................... Main Menu (hub)
                                  ├── System  → System sub-screen (hub)
                                  │            ├── System Mode selector → System Mode picker
@@ -102,7 +103,15 @@ then the setpoint ovals — see also the equipment edge glow below.
 - **Weather icon** (top row, left) — the **current condition's glyph** (sun /
   clear-night moon / partly-cloudy / …), reflecting the live `weather` entity's
   condition rather than a fixed sun, in white like the other top-row glyphs. Opens
-  the Weather overlay; shown only if a `weather` entity is configured/detected.
+  the Weather overlay; shown only if a `weather` entity is configured/detected. It
+  shares the left cluster with the fan affordance.
+- **Fan affordance** (top row, left cluster, beside weather) — a **fan** glyph; a
+  shortcut that opens the Fan overlay directly. Shown only when the bound entity
+  exposes fan control (`fan_modes`), gated on the same availability as the Fan
+  sub-screen. A Card addition, not on the physical device (issue #45). It uses the
+  same fan glyph as the center Fan-Only mode indicator, but the fixed slots keep them
+  distinct: a corner glyph is always an affordance, the center glyph is the System
+  Mode indicator.
 - **Menu affordance** (top row, right) — a **cog** (gear) glyph; opens the Main Menu.
 - **Omitted (no generic data source):** reminder/alert glyph, glowing status orb (the
   distinct center orb; the equipment *edge glow* above is backed by `hvac_action`).
@@ -188,6 +197,11 @@ edit.
   `climate` entity exposing extra fan speeds (e.g. Low / Medium / High) lists those
   after Auto / On with Home Assistant's (title-cased) labels — graceful degradation,
   the ecobee device has only the two.
+- **Multi-speed layout** (issue #44) — the two-mode On / Auto case keeps the
+  horizontal pill above (the common case, unchanged). Past two modes, a stretched pill
+  crams; the segments instead stack into a vertical **N-way selector** — a rounded
+  cyan-outlined panel of full-width capsule segments, same fill/outline language, the
+  active one filled. Scales to any number of fan modes.
 - **Minimum runtime** selector — a cyan-outlined dropdown pill (`0 min / hr` with a
   ⌄ caret) backed by a configured `fan_min_on_time` **`number`** entity
   (`fan_min_on_time_entity` in config). The option grid is derived from the number

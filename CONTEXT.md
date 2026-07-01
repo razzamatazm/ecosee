@@ -31,7 +31,9 @@ _Avoid_: fallback, compatibility mode.
 
 **Home Screen**:
 The default Card view: large **current** temperature, humidity, an Equipment Status
-indicator, the setpoint ovals (when setpoints are active), a weather icon, and a menu
+indicator, the setpoint ovals (when setpoints are active), a weather icon, a fan
+affordance (a shortcut into the Fan Overlay, shown only when the entity exposes fan
+control — this is a Card addition, not on the physical device), and a menu
 affordance. The
 Premium uses a flat **squircle** motif (big number + rounded-square bubbles), NOT a
 circular dial/ring — do not add a ring.

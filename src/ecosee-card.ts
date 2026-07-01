@@ -316,6 +316,12 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       case 'system-mode':
         this._open('system-mode', 'home');
         break;
+      case 'fan':
+        // Top-row shortcut into the Fan sub-screen (issue #45); opened from Home, so
+        // dismissing returns Home. The availability gate in `_open` matches the same
+        // predicate that gated the affordance, so a shown shortcut always opens.
+        this._open('fan', 'home');
+        break;
       case 'menu':
         this._open('menu', 'home');
         break;

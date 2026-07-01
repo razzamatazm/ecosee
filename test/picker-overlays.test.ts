@@ -252,4 +252,57 @@ describe('Fan picker — mode selects-and-closes, runtime applies without closin
     vi.advanceTimersByTime(PICKER_CONFIRM_MS * 4);
     expect(rec.dismisses).toBe(0); // …but the screen stayed open
   });
+
+  // Multi-speed layout (issue #44): the device's two modes keep the horizontal pill,
+  // but a fan with more modes stacks them into an N-way selector rather than cramming
+  // a stretched two-segment pill.
+  it('keeps the horizontal pill for the two-mode On / Auto fan', async () => {
+    const { hass } = fakeHass({ entities: [fanEntity()] });
+    const el = document.createElement('ecosee-fan-overlay') as LitElement & { model: unknown };
+    el.model = toFanModel(hass, config);
+    await mount(el);
+
+    const toggle = el.shadowRoot!.querySelector('.toggle')!;
+    expect(toggle.classList.contains('stacked')).toBe(false);
+  });
+
+  it('stacks a multi-speed fan into an N-way selector, rendering every mode', async () => {
+    const { hass } = fakeHass({
+      entities: [
+        fanEntity({ fan_modes: ['auto', 'on', 'low', 'medium', 'high'], fan_mode: 'medium' }),
+      ],
+    });
+    const el = document.createElement('ecosee-fan-overlay') as LitElement & { model: unknown };
+    el.model = toFanModel(hass, config);
+    const rec = recordEvents(el);
+    await mount(el);
+
+    const toggle = el.shadowRoot!.querySelector('.toggle')!;
+    expect(toggle.classList.contains('stacked')).toBe(true);
+
+    const segments = [...el.shadowRoot!.querySelectorAll('.segment')] as HTMLButtonElement[];
+    expect(segments.map((s) => s.textContent?.trim())).toEqual([
+      'Auto',
+      'On',
+      'Low',
+      'Medium',
+      'High',
+    ]);
+    // Selection still works in the stacked layout: the current mode is filled, and a
+    // tap on another emits its write.
+    const medium = segments.find((s) => s.textContent?.trim() === 'Medium')!;
+    const high = segments.find((s) => s.textContent?.trim() === 'High')!;
+    expect(medium.classList.contains('selected')).toBe(true);
+
+    high.click();
+    await el.updateComplete;
+    expect(high.classList.contains('selected')).toBe(true);
+    expect(rec.calls).toEqual([
+      {
+        domain: 'climate',
+        service: 'set_fan_mode',
+        data: { entity_id: 'climate.t', fan_mode: 'high' },
+      },
+    ]);
+  });
 });

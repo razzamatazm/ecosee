@@ -121,7 +121,9 @@ export const icons = {
       fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" />
   `),
 
-  /** Fan only System Mode — a simple fan (generic `climate` only; not an ecobee mode). */
+  /** A simple fan, used two ways: the center Fan-Only System Mode indicator (generic
+   *  `climate` only; not an ecobee mode) and the Home Screen's top-row fan affordance
+   *  (the shortcut into the Fan sub-screen — issue #45). */
   fan: wrap(svg`
     <g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
       stroke-linejoin="round">

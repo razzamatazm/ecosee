@@ -23,6 +23,7 @@ function view(overrides: Partial<HomeView> = {}): HomeView {
     setpoints: { heat: 70, cool: 75 },
     weatherAvailable: false,
     weatherCondition: null,
+    fanAvailable: false,
     airQuality: null,
     ...overrides,
   };
@@ -38,6 +39,10 @@ async function mount(v: HomeView): Promise<EcoseeHomeScreen> {
 
 function ovals(el: EcoseeHomeScreen): HTMLButtonElement[] {
   return [...el.shadowRoot!.querySelectorAll('.oval')] as HTMLButtonElement[];
+}
+
+function fanAffordance(el: EcoseeHomeScreen): HTMLButtonElement | null {
+  return el.shadowRoot!.querySelector('.fan');
 }
 
 afterEach(() => {
@@ -99,5 +104,47 @@ describe('Home Screen setpoint ovals', () => {
       { action: 'temperature', setpoint: 'heat' },
       { action: 'temperature', setpoint: 'cool' },
     ]);
+  });
+});
+
+// The top-row fan shortcut (issue #45): a fourth affordance beside weather / System
+// Mode / menu, shown only when the entity exposes fan control, that opens the Fan
+// sub-screen directly.
+describe('Home Screen fan affordance', () => {
+  it('shows the fan affordance in the top row when fan control is available', async () => {
+    const el = await mount(view({ fanAvailable: true }));
+    const fan = fanAffordance(el);
+    expect(fan).not.toBeNull();
+    expect(fan!.getAttribute('aria-label')).toBe('Fan');
+    // It sits in the left shortcut cluster, alongside where weather lives.
+    expect(fan!.closest('.top-left')).not.toBeNull();
+  });
+
+  it('hides the fan affordance when the entity exposes no fan control', async () => {
+    const el = await mount(view({ fanAvailable: false }));
+    expect(fanAffordance(el)).toBeNull();
+  });
+
+  it('emits a fan action when tapped', async () => {
+    const el = await mount(view({ fanAvailable: true }));
+    const fired: HomeActionDetail[] = [];
+    el.addEventListener('ecosee-action', (e) =>
+      fired.push((e as CustomEvent<HomeActionDetail>).detail),
+    );
+
+    fanAffordance(el)!.click();
+
+    expect(fired).toEqual([{ action: 'fan', setpoint: undefined }]);
+  });
+
+  it('renders the fan affordance alongside the weather affordance without shifting the centered mode', async () => {
+    const el = await mount(
+      view({ fanAvailable: true, weatherAvailable: true, weatherCondition: 'sunny' }),
+    );
+    // Both left-cluster affordances present, mode indicator still centered (its own cell).
+    const left = el.shadowRoot!.querySelector('.top-left')!;
+    expect(left.querySelector('.weather')).not.toBeNull();
+    expect(left.querySelector('.fan')).not.toBeNull();
+    expect(el.shadowRoot!.querySelector('.mode')).not.toBeNull();
   });
 });

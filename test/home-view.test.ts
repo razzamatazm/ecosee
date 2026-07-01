@@ -155,6 +155,33 @@ describe('toHomeView — edge cases', () => {
   });
 });
 
+describe('toHomeView — fan availability (issue #45)', () => {
+  const fanView = (attributes: Record<string, unknown>, state = 'cool') =>
+    toHomeView(hass({ climate: { entity_id: 'climate.t', state, attributes } }), config());
+
+  it('is true when the entity lists usable fan modes', () => {
+    expect(fanView({ fan_modes: ['auto', 'on'] }).fanAvailable).toBe(true);
+  });
+
+  it('is false when the entity lists no fan modes', () => {
+    expect(fanView({}).fanAvailable).toBe(false);
+    expect(fanView({ fan_modes: [] }).fanAvailable).toBe(false);
+  });
+
+  it('is false when fan_modes holds no usable string', () => {
+    expect(fanView({ fan_modes: [null, 5] as unknown[] }).fanAvailable).toBe(false);
+  });
+
+  it('is false for a missing or unavailable entity', () => {
+    expect(fanView({ fan_modes: ['auto', 'on'] }, 'unavailable').fanAvailable).toBe(false);
+    const missing = toHomeView(
+      hass({ climate: { entity_id: 'climate.t', state: 'cool', attributes: {} } }),
+      config({ entity: 'climate.none' }),
+    );
+    expect(missing.fanAvailable).toBe(false);
+  });
+});
+
 describe('toHomeView — air quality', () => {
   const withAqi = (aqiState: HassEntityBase | undefined, configured = true) =>
     toHomeView(

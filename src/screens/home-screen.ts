@@ -17,9 +17,9 @@ const SQUIRCLE_PATH =
   'M99.40 50.00L99.37 60.94L99.28 65.47L99.13 68.92L98.92 71.82L98.65 74.35L98.32 76.62L97.93 78.67L97.48 80.56L96.97 82.30L96.39 83.92L95.75 85.42L95.05 86.82L94.27 88.13L93.43 89.35L92.52 90.48L91.54 91.54L90.48 92.52L89.35 93.43L88.13 94.27L86.82 95.05L85.42 95.75L83.92 96.39L82.30 96.97L80.56 97.48L78.67 97.93L76.62 98.32L74.35 98.65L71.82 98.92L68.92 99.13L65.47 99.28L60.94 99.37L50.00 99.40L39.06 99.37L34.53 99.28L31.08 99.13L28.18 98.92L25.65 98.65L23.38 98.32L21.33 97.93L19.44 97.48L17.70 96.97L16.08 96.39L14.58 95.75L13.18 95.05L11.87 94.27L10.65 93.43L9.52 92.52L8.46 91.54L7.48 90.48L6.57 89.35L5.73 88.13L4.95 86.82L4.25 85.42L3.61 83.92L3.03 82.30L2.52 80.56L2.07 78.67L1.68 76.62L1.35 74.35L1.08 71.82L0.87 68.92L0.72 65.47L0.63 60.94L0.60 50.00L0.63 39.06L0.72 34.53L0.87 31.08L1.08 28.18L1.35 25.65L1.68 23.38L2.07 21.33L2.52 19.44L3.03 17.70L3.61 16.08L4.25 14.58L4.95 13.18L5.73 11.87L6.57 10.65L7.48 9.52L8.46 8.46L9.52 7.48L10.65 6.57L11.87 5.73L13.18 4.95L14.58 4.25L16.08 3.61L17.70 3.03L19.44 2.52L21.33 2.07L23.38 1.68L25.65 1.35L28.18 1.08L31.08 0.87L34.53 0.72L39.06 0.63L50.00 0.60L60.94 0.63L65.47 0.72L68.92 0.87L71.82 1.08L74.35 1.35L76.62 1.68L78.67 2.07L80.56 2.52L82.30 3.03L83.92 3.61L85.42 4.25L86.82 4.95L88.13 5.73L89.35 6.57L90.48 7.48L91.54 8.46L92.52 9.52L93.43 10.65L94.27 11.87L95.05 13.18L95.75 14.58L96.39 16.08L96.97 17.70L97.48 19.44L97.93 21.33L98.32 23.38L98.65 25.65L98.92 28.18L99.13 31.08L99.28 34.53L99.37 39.06Z';
 
 /** Actions the Home Screen surfaces to the host card. `temperature` opens the
- *  Temperature Adjust overlay; `system-mode` / `weather` / `menu` open later
- *  Overlays. */
-export type HomeAction = 'menu' | 'temperature' | 'weather' | 'system-mode';
+ *  Temperature Adjust overlay; `system-mode` / `weather` / `fan` / `menu` open later
+ *  Overlays. `fan` is the top-row shortcut into the Fan sub-screen (issue #45). */
+export type HomeAction = 'menu' | 'temperature' | 'weather' | 'system-mode' | 'fan';
 
 /** Which setpoint a tap should foreground. Carried on a `temperature` action when
  *  it fires from a specific setpoint oval, so the overlay opens editing that one. */
@@ -133,8 +133,9 @@ export class EcoseeHomeScreen extends LitElement {
       justify-content: center;
     }
 
-    /* Top row: weather (left), System Mode (center), menu (right). Explicit
-       columns keep each anchored even when weather is absent. */
+    /* Top row: shortcuts (left), System Mode (center), menu (right). The 1fr side
+       columns are equal, so the center indicator stays centered no matter how many
+       shortcuts sit on the left. */
     .top {
       position: relative;
       z-index: 1;
@@ -143,12 +144,21 @@ export class EcoseeHomeScreen extends LitElement {
       grid-template-columns: 1fr auto 1fr;
       align-items: center;
     }
-    /* The weather affordance is white on the Home Screen, like every other top-row
-       glyph (the condition's natural color is reserved for the Weather Overlay's
-       glyphs; the device colors this control row white — issue #37). */
-    .weather {
+    /* The left shortcut cluster: weather and/or the fan shortcut, each gated on its
+       own data (issue #45). An empty cluster still holds the 1fr track, so the center
+       indicator does not drift. */
+    .top-left {
       grid-column: 1;
       justify-self: start;
+      display: inline-flex;
+      align-items: center;
+      gap: 3cqw;
+    }
+    /* The weather and fan affordances are white on the Home Screen, like every other
+       top-row glyph (the weather condition's natural color is reserved for the Weather
+       Overlay's glyphs; the device colors this control row white — issue #37). */
+    .weather,
+    .fan {
       width: 9.5cqw;
       height: 9.5cqw;
       color: var(--ecosee-top-row, #ffffff);
@@ -428,17 +438,32 @@ export class EcoseeHomeScreen extends LitElement {
   private _renderTop(view: HomeView): TemplateResult {
     return html`
       <div class="top">
-        ${
-          view.weatherAvailable
-            ? html`<button
-                class="weather"
-                aria-label="Weather"
-                @click=${() => this._emit('weather')}
-              >
-                ${weatherIcon(view.weatherCondition ?? '')}
-              </button>`
-            : nothing
-        }
+        <div class="top-left">
+          ${
+            view.weatherAvailable
+              ? html`<button
+                  class="weather"
+                  aria-label="Weather"
+                  @click=${() => this._emit('weather')}
+                >
+                  ${weatherIcon(view.weatherCondition ?? '')}
+                </button>`
+              : nothing
+          }
+          ${
+            // Fan affordance — the quick shortcut into the Fan sub-screen, shown only
+            // when the entity exposes fan control (issue #45). It shares `icons.fan`
+            // with the center Fan-Only mode indicator, but the two never conflate: the
+            // fixed slots carry the distinction — a corner glyph is always an
+            // affordance (tap → its Overlay), the center glyph is always the System
+            // Mode indicator (issue #45's note).
+            view.fanAvailable
+              ? html`<button class="fan" aria-label="Fan" @click=${() => this._emit('fan')}>
+                  ${icons.fan}
+                </button>`
+              : nothing
+          }
+        </div>
         ${this._renderMode(view)}
         <button class="menu" aria-label="Open menu" @click=${() => this._emit('menu')}>
           ${icons.menu}

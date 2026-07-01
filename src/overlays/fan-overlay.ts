@@ -112,6 +112,25 @@ export class EcoseeFanOverlay extends LitElement {
       cursor: default;
     }
 
+    /* Multi-speed layout (issue #44): past the device's two modes a horizontal pill
+       gets cramped, so stack the segments into a proper N-way selector — a rounded
+       cyan-outlined panel of full-width capsule segments, the active one filled. Each
+       segment keeps the same fill/outline language, so a two-mode fan (the common
+       case) is untouched. */
+    .toggle.stacked {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1.2cqw;
+      width: 64cqw;
+      max-width: 100%;
+      border-radius: 9cqw;
+    }
+    .toggle.stacked .segment {
+      min-width: 0;
+      width: 100%;
+      padding: 3cqw 4cqw;
+    }
+
     /* Minimum-runtime block: bold summary line, instructional hint, then the
        dropdown selector. */
     .runtime {
@@ -220,10 +239,14 @@ export class EcoseeFanOverlay extends LitElement {
   override render(): TemplateResult | typeof nothing {
     const model = this.model;
     if (!model || !model.available) return nothing;
+    // Two modes (the device's On / Auto) fit the horizontal pill; more than that
+    // (a multi-speed fan: low / medium / high / …) would cram a stretched pill, so
+    // stack them into a vertical N-way selector instead (issue #44).
+    const stacked = model.options.length > 2;
     return html`
       <div class="fan">
         <h2 class="title">Fan Mode</h2>
-        <div class="toggle" role="group" aria-label="Fan Mode">
+        <div class="toggle ${stacked ? 'stacked' : ''}" role="group" aria-label="Fan Mode">
           ${model.options.map((option) => {
             // Once a pick is settling, the optimistic choice wins the fill;
             // otherwise it follows the entity's reported fan mode.
