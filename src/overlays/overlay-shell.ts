@@ -32,9 +32,12 @@ export class EcoseeOverlay extends LitElement {
     }
 
     /* Mirrors <ecosee-home-screen>'s squircle sizing so the overlay lands
-       squarely on top of it. Opaque background fully masks the Home Screen. */
+       squarely on top of it. An inline-size query container (not container-type:
+       size), so cqw resolves off the definite width and Gecko doesn't collapse
+       the aspect-ratio height the way it did under size containment (issue #35).
+       Opaque background fully masks the Home Screen. */
     .shell {
-      container-type: size;
+      container-type: inline-size;
       position: relative;
       box-sizing: border-box;
       width: clamp(var(--ecosee-min-size, 220px), 100%, var(--ecosee-max-size, 460px));

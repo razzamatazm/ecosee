@@ -29,9 +29,10 @@ export class EcoseeMainMenuOverlay extends LitElement {
     }
 
     /* Title near the top with the list beneath (visual-spec.md / menu-system.jpeg),
-       not a vertically-centered cluster. Sized container so rows scale with cqw. */
+       not a vertically-centered cluster. Inline-size container so rows scale with
+       cqw off the definite width, not container-type: size (issue #35). */
     .menu {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;

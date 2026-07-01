@@ -53,17 +53,23 @@ export class EcoseeHomeScreen extends LitElement {
       display: block;
     }
 
-    /* Responsive squircle: a sized container so children can scale with cqw, with
-       a legible floor (min-size) and a capped ceiling (max-size). The squircle
-       surface itself is drawn by the inline SVG (.shape) below — no background or
-       border-radius here, so the true superellipse, its glow and any clip all
-       trace the one curve. */
+    /* Responsive squircle: an inline-size query container so children scale with
+       cqw, with a legible floor (min-size) and a capped ceiling (max-size). We
+       key sizing off the definite slot *width* only — NOT container-type: size —
+       because that variant also contains the block axis and made Gecko resolve
+       the aspect-ratio-derived height late/collapsed, squashing and overlapping
+       the whole layout in Firefox/Zen (issue #35). Height still comes from
+       aspect-ratio; overflow: hidden keeps the box square now that content is no
+       longer size-contained. The squircle surface itself is drawn by the inline
+       SVG (.shape) below — no background or border-radius here, so the true
+       superellipse, its glow and any clip all trace the one curve. */
     .screen {
-      container-type: size;
+      container-type: inline-size;
       position: relative;
       box-sizing: border-box;
       width: clamp(var(--ecosee-min-size, 220px), 100%, var(--ecosee-max-size, 460px));
       aspect-ratio: var(--ecosee-aspect, 1 / 1);
+      overflow: hidden;
       margin: 0 auto;
       padding: 7cqw 8cqw;
       display: flex;

@@ -33,9 +33,10 @@ export class EcoseeSensorsOverlay extends LitElement {
     }
 
     /* Breadcrumb header near the top, the card stack beneath (sensors.jpeg), not a
-       vertically-centered cluster. Sized container so cards scale with cqw. */
+       vertically-centered cluster. Inline-size container so cards scale with cqw
+       off the definite width, not container-type: size (issue #35). */
     .sensors {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;
@@ -72,7 +73,7 @@ export class EcoseeSensorsOverlay extends LitElement {
        empty margins still fall through to the backdrop. */
     .list {
       width: 84cqw;
-      max-height: 60cqh;
+      max-height: 60cqw;
       display: flex;
       flex-direction: column;
       gap: 3cqw;

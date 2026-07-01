@@ -57,11 +57,12 @@ export class EcoseeWeatherOverlay extends LitElement {
       justify-content: center;
     }
 
-    /* Sized container so everything scales with cqw. Title up top (clearing the
-       shell's ✕), the active page filling the middle, the pager + provider at the
-       foot — matching the device's vertical rhythm. */
+    /* Inline-size container so everything scales with cqw off the definite width,
+       not container-type: size (issue #35). Title up top (clearing the shell's ✕),
+       the active page filling the middle, the pager + provider at the foot —
+       matching the device's vertical rhythm. */
     .weather {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;

@@ -52,9 +52,10 @@ export class EcoseeFanOverlay extends LitElement {
     }
 
     /* Title near the top with the controls beneath (fan-mode.jpeg), not a
-       vertically-centered cluster. Sized container so everything scales with cqw. */
+       vertically-centered cluster. Inline-size container so everything scales with
+       cqw off the definite width, not container-type: size (issue #35). */
     .fan {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;

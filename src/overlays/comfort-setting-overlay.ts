@@ -59,9 +59,10 @@ export class EcoseeComfortSettingOverlay extends LitElement {
       height: 100%;
     }
 
-    /* Center the list within the shell; sized container so rows scale with cqw. */
+    /* Center the list within the shell; inline-size container so rows scale with
+       cqw off the definite width, not container-type: size (issue #35). */
     .picker {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;
@@ -76,7 +77,7 @@ export class EcoseeComfortSettingOverlay extends LitElement {
        shell makes slotted content transparent so empty areas dismiss). */
     .list {
       width: 68cqw;
-      max-height: 80cqh;
+      max-height: 80cqw;
       overflow-y: auto;
       border: 0.6cqw solid var(--ecosee-accent, #62cfe9);
       border-radius: 6cqw;

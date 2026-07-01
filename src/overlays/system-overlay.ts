@@ -41,9 +41,10 @@ export class EcoseeSystemOverlay extends LitElement {
     }
 
     /* Title near the top, the selectors beneath, then the equipment line
-       (visual-spec.md / menu-system.jpeg). Sized container so type scales with cqw. */
+       (visual-spec.md / menu-system.jpeg). Inline-size container so type scales
+       with cqw off the definite width, not container-type: size (issue #35). */
     .system {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;

@@ -81,9 +81,11 @@ export class EcoseeTemperatureOverlay extends LitElement {
 
     /* Three columns: setpoint chips (left) | vertical scrubber (center) | ±
        nudge buttons (right). Chips and buttons are centered on the row so they
-       sit level with the selected-value bubble at the scrubber's midpoint. */
+       sit level with the selected-value bubble at the scrubber's midpoint. An
+       inline-size container (not container-type: size), so cqw resolves off the
+       definite width and Gecko doesn't rescale the bubble late (issue #35). */
     .adjust {
-      container-type: size;
+      container-type: inline-size;
       box-sizing: border-box;
       width: 100%;
       height: 100%;
