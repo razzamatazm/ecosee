@@ -124,7 +124,7 @@ export function editorSchema(): EditorField[] {
       name: 'inactivity_timeout',
       label: 'Inactivity timeout',
       helper:
-        'Optional. Seconds an open overlay waits before reverting to the Home Screen. 0 disables; unset uses 12s.',
+        'Optional. Seconds an open overlay waits before reverting to the Home Screen. 0 disables; unset uses 25s.',
       selector: { number: { min: 0, mode: 'box', unit_of_measurement: 'seconds' } },
     },
     {

@@ -9,9 +9,10 @@ import type { EcoseeCardConfig } from '../src/config';
 const base: EcoseeCardConfig = { type: 'custom:ecosee-card', entity: 'climate.t' };
 
 describe('inactivityTimeoutMs — config → delay', () => {
-  it('defaults to the device interval (~12s) when unset', () => {
+  it('defaults to 25s when unset', () => {
+    expect(DEFAULT_INACTIVITY_TIMEOUT_S).toBe(25);
     expect(inactivityTimeoutMs(base)).toBe(DEFAULT_INACTIVITY_TIMEOUT_S * 1000);
-    expect(inactivityTimeoutMs(base)).toBe(12_000);
+    expect(inactivityTimeoutMs(base)).toBe(25_000);
   });
 
   it('treats 0 as disabled (null)', () => {

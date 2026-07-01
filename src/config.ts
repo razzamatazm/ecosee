@@ -52,7 +52,7 @@ export interface EcoseeCardConfig {
   sensors?: SensorConfig[];
   /** Seconds of inactivity before any open Overlay auto-reverts to the Home Screen,
    *  mirroring the device's auto-return (issue #13). `0` disables auto-revert; an
-   *  unset key uses the device-default (12s). See `inactivityTimeoutMs`. */
+   *  unset key uses the device-default (25s). See `inactivityTimeoutMs`. */
   inactivity_timeout?: number;
   /** Opt-in Standby Screen (issue #64). Off by default: absent/`false` means the Card
    *  behaves exactly as today (no standby). The switching behavior that reads this

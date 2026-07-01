@@ -1,8 +1,9 @@
 import type { EcoseeCardConfig } from '../config';
 
-/** The device drops an open screen back to Home after ~10–15s idle; we mirror it
- *  with a 12s default (issue #13). Overridable via `inactivity_timeout`. */
-export const DEFAULT_INACTIVITY_TIMEOUT_S = 12;
+/** The device drops an open screen back to Home after idle; we default to a 25s
+ *  grace period (issue #60, up from the original 12s of #13). Overridable via
+ *  `inactivity_timeout`. */
+export const DEFAULT_INACTIVITY_TIMEOUT_S = 25;
 
 /**
  * Resolve the auto-revert delay (in milliseconds) from config, or `null` when
