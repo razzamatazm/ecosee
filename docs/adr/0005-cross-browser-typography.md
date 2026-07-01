@@ -106,8 +106,11 @@ webfont). Two complementary rules:
   `test/container-sizing.test.ts` (the #35/#52 container-sizing guard). The
   Typeface section of `docs/visual-spec.md` cross-references here.
   `test/font-probe.test.ts` pins the quarantine filter's pure seam.
-- The font stack itself stays **unbundled** (Gotham → Montserrat → system, no
-  `@font-face`; ADR-0001 / visual-spec). These constraints make the *layout* of the
-  numerals and glyphs engine-independent; they do not force a specific face — but
-  per Constraint 3 an engine may now *drop* a provided face it cannot render
-  correctly, so the resolved face can differ per engine on broken-font dashboards.
+- Gotham itself stays unbundled (proprietary), but the card now **carries its own
+  Montserrat fallback** inside the bundle (ADR-0007), registered as the private
+  family `'ecosee Montserrat'` — so quarantining a broken face degrades to a
+  guaranteed-present, metrics-healthy Gotham-alike rather than to whatever the
+  client OS happens to have. These constraints make the *layout* of the numerals
+  and glyphs engine-independent; they do not force a specific face — but per
+  Constraint 3 an engine may *drop* a provided face it cannot render correctly,
+  so the resolved face can differ per engine on broken-font dashboards.

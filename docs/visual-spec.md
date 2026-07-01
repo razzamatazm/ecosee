@@ -10,11 +10,13 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 
 ## Visual language
 
-- **Typeface:** the device uses **Gotham** (Hoefler&Co). It is proprietary and
-  **not bundled** with the card; the font stack (`--ecosee-font`) requests Gotham
-  first (used when the user's HA frontend/theme/system provides it) and falls back
-  to **Montserrat** — the closest freely-licensed Gotham-alike — then the system
-  stack. Numbers use proportional lining figures. Per ADR-0005 Constraint 3
+- **Typeface:** the device uses **Gotham** (Hoefler&Co). Gotham is proprietary and
+  **not bundled**; the font stack (`--ecosee-font`) requests it first (used when
+  the user's HA frontend/theme/system provides it), then a provided **Montserrat**,
+  then **'ecosee Montserrat'** — the Montserrat faces the card itself carries inside
+  the bundle and registers at runtime ([ADR-0007](./adr/0007-bundled-montserrat-fallback.md)),
+  so every install renders a Gotham-alike with healthy metrics, offline and with
+  zero configuration. Numbers use proportional lining figures. Per ADR-0005 Constraint 3
   (issue #85), the card drops a provided family **in the engine that reports
   degenerate metrics for it** (a webfont Gotham with zeroed `hhea` metrics broke
   Firefox/Zen while Chrome rendered it fine), so the resolved face can

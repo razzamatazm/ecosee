@@ -95,14 +95,15 @@ export const tokens = css`
 
     /* The device's typeface is Gotham (Hoefler&Co). Gotham is proprietary and
        cannot be bundled with the card, so we request it by name first — it is used
-       wherever the user's theme/system provides it — then fall back through the
-       closest available geometric sans-serifs: Montserrat (the closest freely-
-       licensed Gotham-alike, if installed/served), then Avenir Next / Avenir (which
-       ship on Apple devices — the common dashboard client — and read far closer to
-       Gotham than the grotesque Helvetica Neue), then the prior system stack. To
-       guarantee Gotham itself, supply it via your Home Assistant frontend. */
+       wherever the user's theme/system provides it — then a theme/system Montserrat
+       (the closest freely-licensed Gotham-alike), then 'ecosee Montserrat': the
+       Montserrat faces the Card itself carries inside the bundle and registers at
+       runtime (src/styles/bundled-font.ts, ADR-0007), so every install renders the
+       Gotham-alike with healthy metrics and zero configuration. The system faces
+       after it only matter if the runtime registration fails. To guarantee Gotham
+       itself, supply it via your Home Assistant frontend. */
     --ecosee-font:
-      'Gotham', 'Gotham SSm', 'Montserrat', 'Avenir Next', 'Avenir', 'Helvetica Neue', 'Segoe UI',
-      system-ui, -apple-system, sans-serif;
+      'Gotham', 'Gotham SSm', 'Montserrat', 'ecosee Montserrat', 'Avenir Next', 'Avenir',
+      'Helvetica Neue', 'Segoe UI', system-ui, -apple-system, sans-serif;
   }
 `;
