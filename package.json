@@ -1,6 +1,6 @@
 {
   "name": "ecosee",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A Home Assistant custom Lovelace card that renders a pixel-perfect ecobee Smart Thermostat Premium skin over any climate entity.",
   "type": "module",
   "license": "MIT",
