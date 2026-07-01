@@ -296,6 +296,15 @@ describe('Gecko rendering parity — broken-metric webfont (issue #85)', () => {
     const coverage = await gradientCoverage(screen!);
     expect(coverage).toBeGreaterThanOrEqual(0.9);
   });
+
+  it('registers the bundled Gotham-alike so a bare page still gets the Skin face (ADR-0007)', async () => {
+    await mountCard();
+    // The engine must be able to actually load the runtime-registered faces —
+    // fonts.load() resolves the faces it matched; empty means none registered.
+    const loaded = await document.fonts.load("200 42px 'ecosee Montserrat'");
+    expect(loaded.length).toBeGreaterThan(0);
+    expect(document.fonts.check("500 16px 'ecosee Montserrat'")).toBe(true);
+  });
 });
 
 describe('Gecko rendering parity — sane system font (issue #85 gross guard)', () => {

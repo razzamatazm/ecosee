@@ -26,6 +26,7 @@ import {
 import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import { createCanvasMeasure, filterDegenerateFamilies } from './styles/font-probe';
+import { ensureBundledFont } from './styles/bundled-font';
 import { resolveDeviceSize } from './device-size';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
 import type { HomeActionDetail } from './screens/home-screen';
@@ -297,6 +298,9 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       this._resizeObserver.observe(this);
     }
     this._syncDeviceScale();
+    // Register the bundled Gotham-alike faces (ADR-0007) before the first
+    // probe pass, so the stack's guaranteed fallback exists document-wide.
+    ensureBundledFont();
     // Quarantine broken-metric font families (issue #85) — now, once webfonts
     // settle, and again whenever a late font load lands (the dashboard's Gotham
     // may only arrive after the card is first painted).
