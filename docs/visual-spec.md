@@ -100,6 +100,18 @@ then the setpoint ovals — see also the equipment edge glow below.
   Adjust foregrounding *that* setpoint (as on the device). There is no combined
   range pill, no Hold pill, and no Resume ✕ (ADR-0004); the device's `until 5:28pm`
   expiry is likewise omitted — HA doesn't expose the next transition time (ADR-0003).
+- **Air-quality & UV-index foot cluster** — two optional indicators at the **foot of
+  the cluster**, below the setpoint ovals, each backed by its own sensor entity
+  (independent of the bound climate entity). The **air-quality element** is a subtle
+  badge — a wind glyph + the AQI number, tinted to its severity band (the band color
+  carries the category; the word is dropped, issue #66, but still announced to
+  assistive tech). The **UV-index gauge** is a small arc meter — a green→violet
+  gradient arc filled to the reading's fraction of the WHO scale, the index in the
+  arc's mouth tinted to its band, with a muted `UVI` label and the category word.
+  Layout is **count-aware** (issue #75): **both present** sit **side by side**; **only
+  one present** is **centered** on its own (the setpoint-oval single-vs-both idiom);
+  **neither present** is omitted entirely. Each shows only when its entity is set and
+  reporting a numeric value (graceful degradation, ADR-0001).
 - **Weather icon** (top row, left) — the **current condition's glyph** (sun /
   clear-night moon / partly-cloudy / …), reflecting the live `weather` entity's
   condition rather than a fixed sun, in white like the other top-row glyphs. Opens
