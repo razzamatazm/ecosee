@@ -5,3 +5,7 @@ dist/
 .DS_Store
 .vite/
 coverage/
+
+# vitest browser mode writes a screenshot file for every page.screenshot()
+# call (no opt-out in vitest 2.x) - run artifacts, not fixtures
+test/browser/__screenshots__/

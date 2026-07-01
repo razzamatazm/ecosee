@@ -23,8 +23,11 @@ export const tokens = css`
     --ecosee-standby-fg: #ffffff;
 
     /* The dominant current-temperature number: cyan with the device's faint
-       top-bright sheen (a near-white cyan fading into the accent). */
-    --ecosee-temp-grad: linear-gradient(180deg, #cdeffb 0%, #62cfe9 72%);
+       top-bright sheen (a near-white cyan fading into the accent). The stops
+       account for the 0.16em of ink-safety padding on the Home Screen's .temp
+       paint box (issue #85): 14%/66% here lands the fade on the digits where
+       0%/72% did before the padding existed. Keep them in sync. */
+    --ecosee-temp-grad: linear-gradient(180deg, #cdeffb 14%, #62cfe9 66%);
 
     --ecosee-heat: #f3a13c;
     --ecosee-heat-grad: linear-gradient(150deg, #f7c84d 0%, #ee7a2c 100%);

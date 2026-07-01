@@ -260,6 +260,12 @@ export class EcoseeHomeScreen extends LitElement {
        container, which rendered the number mangled in Firefox/Zen — an oversized
        slanted "7" split from the "4" (issue #74). Block-level text layout clips
        the gradient identically in every engine. Do NOT restore flex here.
+       The symmetric padding, cancelled by equal negative margins so the layout
+       footprint is unchanged, keeps the background PAINT box taller than the
+       tight 0.84 line box: clipped-gradient text paints only inside the border
+       box, and with compact font metrics the digit ink can sit within a whisker
+       of (or, for broken-metric webfonts, beyond) the line-box edge — the #85
+       erased-digit failure mode. Keep the padding if the line-height changes.
        See docs/adr/0005-cross-browser-typography.md. */
     .temp {
       display: inline-block;
@@ -270,11 +276,16 @@ export class EcoseeHomeScreen extends LitElement {
       letter-spacing: -0.05em;
       font-variant-numeric: lining-nums proportional-nums;
       color: var(--ecosee-accent, #62cfe9);
+      padding: 0.16em 0.08em;
+      margin: -0.16em -0.08em;
       cursor: pointer;
     }
     @supports (background-clip: text) or (-webkit-background-clip: text) {
       .temp {
-        background: var(--ecosee-temp-grad, linear-gradient(180deg, #cdeffb 0%, #62cfe9 72%));
+        /* Stops sit at 14% / 66% (not 0% / 72%) to land the fade on the same
+           ink the pre-#85 0%→72% did over the bare 0.84em line box, now that
+           the paint box carries 0.16em of padding above and below. */
+        background: var(--ecosee-temp-grad, linear-gradient(180deg, #cdeffb 14%, #62cfe9 66%));
         background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;

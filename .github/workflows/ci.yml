@@ -21,4 +21,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+      # Real-engine rendering guard (issue #85): the jsdom suite can only
+      # string-match CSS, so Gecko-vs-Blink divergences need a real Firefox.
+      - run: npx playwright install --with-deps firefox
+      - run: npm run test:browser
       - run: npm run build
