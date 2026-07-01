@@ -15,10 +15,12 @@ import type { ServiceCall } from './service-call';
 
 export type Setpoint = 'heat' | 'cool';
 
-/** Default step when the entity exposes no `target_temp_step`: whole degrees in
- *  °F, half degrees in °C — matching how the device renders numbers. */
-const DEFAULT_STEP_F = 1;
-const DEFAULT_STEP_C = 0.5;
+/** The editing step, derived from the display unit: whole degrees in °F, half
+ *  degrees in °C. This deliberately mirrors `formatTemp`'s rounding rather than
+ *  the entity's `target_temp_step`, so every value the scrubber renders is
+ *  distinct — a sub-degree °F step (e.g. 0.5) would show each whole degree twice. */
+const STEP_F = 1;
+const STEP_C = 0.5;
 
 /** One editable setpoint: its current value (already clamped + snapped to the
  *  step grid) and the bounds it must respect. `min`/`max` are `null` when the
@@ -46,8 +48,8 @@ export interface TempAdjustModel {
   active: Setpoint;
 }
 
-function defaultStep(unit: string): number {
-  return unit.includes('C') ? DEFAULT_STEP_C : DEFAULT_STEP_F;
+function stepForUnit(unit: string): number {
+  return unit.includes('C') ? STEP_C : STEP_F;
 }
 
 /** Snap a degree value to a tidy precision, killing the floating-point dust that
@@ -91,7 +93,7 @@ export function toTempAdjustModel(hass: HomeAssistant, config: EcoseeCardConfig)
   }
 
   const attrs = entity.attributes;
-  const step = num(attrs.target_temp_step) ?? defaultStep(unit);
+  const step = stepForUnit(unit);
   const min = num(attrs.min_temp);
   const max = num(attrs.max_temp);
 
@@ -194,8 +196,8 @@ export function scrubberWindow(edit: SetpointEdit, radius: number): number[] {
   return values;
 }
 
-/** Build the `climate.set_temperature` call that applies the edited model as a
- *  Hold: `temperature` for a single setpoint, `target_temp_low`/`high` for dual.
+/** Build the `climate.set_temperature` call that writes the edited setpoint(s):
+ *  `temperature` for a single setpoint, `target_temp_low`/`high` for dual.
  *  `null` when there is nothing to apply. */
 export function setTemperatureCall(model: TempAdjustModel, entityId: string): ServiceCall | null {
   if (!model.available) return null;
