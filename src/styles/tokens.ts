@@ -93,17 +93,18 @@ export const tokens = css`
        or browser (issue #35). Follows base-size if a dashboard overrides it. */
     --ecosee-u: calc(var(--ecosee-base-size, 460px) / 100);
 
-    /* The device's typeface is Gotham (Hoefler&Co). Gotham is proprietary and
-       cannot be bundled with the card, so we request it by name first — it is used
-       wherever the user's theme/system provides it — then a theme/system Montserrat
-       (the closest freely-licensed Gotham-alike), then 'ecosee Montserrat': the
+    /* The device's typeface is Gotham (Hoefler&Co), which is proprietary and can't
+       ship with the card. We use Montserrat instead — the closest freely-licensed
+       Gotham-alike (ADR-0008). A theme/system 'Montserrat' is requested first so a
+       dashboard that already provides one wins; then 'ecosee Montserrat', the
        Montserrat faces the Card itself carries inside the bundle and registers at
        runtime (src/styles/bundled-font.ts, ADR-0007), so every install renders the
-       Gotham-alike with healthy metrics and zero configuration. The system faces
-       after it only matter if the runtime registration fails. To guarantee Gotham
-       itself, supply it via your Home Assistant frontend. */
+       Skin face with healthy metrics and zero configuration. The system faces after
+       it only matter if the runtime registration fails. A metric-broken dashboard
+       'Montserrat' is dropped by the quarantine probe (font-probe.ts, issue #85),
+       leaving the bundled face to take over. */
     --ecosee-font:
-      'Gotham', 'Gotham SSm', 'Montserrat', 'ecosee Montserrat', 'Avenir Next', 'Avenir',
-      'Helvetica Neue', 'Segoe UI', system-ui, -apple-system, sans-serif;
+      'Montserrat', 'ecosee Montserrat', 'Avenir Next', 'Avenir', 'Helvetica Neue',
+      'Segoe UI', system-ui, -apple-system, sans-serif;
   }
 `;

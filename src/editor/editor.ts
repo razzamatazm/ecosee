@@ -112,7 +112,7 @@ export function editorSchema(): EditorField[] {
       name: 'sensors',
       label: 'Sensors',
       helper:
-        'Optional. Extra temperature entities for the Sensors sub-screen, hidden until you add one. Per-sensor name and occupancy overrides remain YAML-only.',
+        'Optional. Extra temperature entities for the Sensors sub-screen, hidden until you add one. A display-name field appears below for each one; occupancy overrides remain YAML-only.',
       selector: {
         entity: {
           multiple: true,
@@ -136,8 +136,76 @@ export function editorSchema(): EditorField[] {
   ];
 }
 
+/** Prefix for the synthetic per-sensor display-name fields. Not a config key — it
+ *  only lives in the form value; `normalizeEditorConfig` folds these back into
+ *  `sensors[].name` and never writes the prefixed key into the stored config. */
+export const SENSOR_NAME_PREFIX = 'sensor_name::';
+
+/** The form-data key carrying a sensor's display name (prefix + its entity id). */
+export function sensorNameKey(entityId: string): string {
+  return `${SENSOR_NAME_PREFIX}${entityId}`;
+}
+
+/** The per-sensor "display name" text fields — one per configured sensor, in the
+ *  picker's order, rendered just below the Sensors picker. They let a user label
+ *  each curated sensor from the GUI (issue: names were cut off in the Sensors
+ *  sub-screen and only settable in YAML); the value folds back into object-form
+ *  `sensors[].name`, defaulting to the sensor's own friendly name when left blank.
+ *  Empty when no sensor is configured — the fields appear only once there is
+ *  something to name. */
+export function sensorNameFields(config: Record<string, unknown>): EditorField[] {
+  return sensorEntityIds(config.sensors).map((entity) => ({
+    name: sensorNameKey(entity),
+    label: `Sensor name — ${entity}`,
+    helper: "Optional. Shown in the Sensors sub-screen; defaults to the sensor's own name.",
+    selector: { text: {} },
+  }));
+}
+
+/** The full form schema for a given config: the base fields with the per-sensor
+ *  display-name fields spliced in right after the Sensors picker. The editor element
+ *  recomputes this each render so the name fields track the currently-selected
+ *  sensors. `editorSchema()` itself stays the pure base (one field per config key). */
+export function composeEditorSchema(config: Record<string, unknown>): EditorField[] {
+  const nameFields = sensorNameFields(config);
+  if (nameFields.length === 0) return editorSchema();
+  const composed: EditorField[] = [];
+  for (const field of editorSchema()) {
+    composed.push(field);
+    if (field.name === 'sensors') composed.push(...nameFields);
+  }
+  return composed;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
+}
+
+/** A stored sensor entry, normalized from either shorthand string or object form. */
+interface StoredSensor {
+  entity: string;
+  name?: string;
+  occupancy_entity?: string;
+}
+
+/** Normalize a stored `sensors` value into `StoredSensor[]`, accepting shorthand
+ *  strings and `{ entity, name?, occupancy_entity? }` objects alike. */
+function readSensorObjects(value: unknown): StoredSensor[] {
+  if (!Array.isArray(value)) return [];
+  const out: StoredSensor[] = [];
+  for (const item of value) {
+    if (typeof item === 'string') {
+      if (item) out.push({ entity: item });
+      continue;
+    }
+    if (isRecord(item) && typeof item.entity === 'string') {
+      const sensor: StoredSensor = { entity: item.entity };
+      if (typeof item.name === 'string') sensor.name = item.name;
+      if (typeof item.occupancy_entity === 'string') sensor.occupancy_entity = item.occupancy_entity;
+      out.push(sensor);
+    }
+  }
+  return out;
 }
 
 /** The entity ids behind a `sensors` value, accepting either shorthand strings or
@@ -153,42 +221,61 @@ function sensorEntityIds(value: unknown): string[] {
 
 /** Adapt a stored config into the value `<ha-form>` renders: the multi-entity
  *  `sensors` picker wants a flat `string[]`, so collapse object-form entries to
- *  their entity ids for display. Everything else passes through unchanged. */
+ *  their entity ids for display, and surface each entry's stored display name under
+ *  its per-sensor name field (so the GUI shows the name it will edit). Everything
+ *  else passes through unchanged. */
 export function toEditorData(config: Record<string, unknown>): Record<string, unknown> {
   const data: Record<string, unknown> = { ...config };
-  if (config.sensors !== undefined) data.sensors = sensorEntityIds(config.sensors);
+  if (config.sensors !== undefined) {
+    data.sensors = sensorEntityIds(config.sensors);
+    for (const sensor of readSensorObjects(config.sensors)) {
+      if (sensor.name !== undefined) data[sensorNameKey(sensor.entity)] = sensor.name;
+    }
+  }
   return data;
 }
 
-function sameSequence(a: readonly string[], b: readonly string[]): boolean {
-  return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-/** Fold the form's `sensors` value (a `string[]` from the picker) back into the
- *  config. An empty set drops the key (Sensors sub-screen hidden). When the list
- *  matches `prev` exactly (same ids, same order), keep `prev` verbatim so
- *  object-form name/occupancy overrides survive an unrelated edit; any actual
- *  change through the picker — add, remove, or reorder — adopts the shorthand list
- *  (object-form overrides are YAML-only, as the field's helper notes). */
-function applySensors(next: Record<string, unknown>, raw: unknown, prev: unknown): void {
-  const list = sensorEntityIds(raw);
-  if (list.length === 0) {
+/** Fold the form's `sensors` value (a `string[]` from the picker) plus the
+ *  per-sensor display-name fields back into the config. An empty set drops the key
+ *  (Sensors sub-screen hidden). For each selected sensor, its name comes from the
+ *  GUI field (blank clears it → defaults to the friendly name); when the field is
+ *  absent from the form value we fall back to the stored name so a name is never
+ *  silently lost. `occupancy_entity` stays YAML-only, carried over from `prev`. A
+ *  sensor with neither a name nor occupancy collapses to a shorthand string. */
+function applySensors(
+  next: Record<string, unknown>,
+  raw: unknown,
+  prev: unknown,
+  formValue: Record<string, unknown>,
+): void {
+  const ids = sensorEntityIds(raw);
+  if (ids.length === 0) {
     delete next.sensors;
     return;
   }
-  if (prev !== undefined && sameSequence(list, sensorEntityIds(prev))) {
-    next.sensors = prev;
-    return;
-  }
-  next.sensors = list;
+  const prevById = new Map<string, StoredSensor>();
+  for (const sensor of readSensorObjects(prev)) prevById.set(sensor.entity, sensor);
+
+  next.sensors = ids.map((entity) => {
+    const key = sensorNameKey(entity);
+    const typed = key in formValue ? formValue[key] : prevById.get(entity)?.name;
+    const name = typeof typed === 'string' && typed.trim() !== '' ? typed : undefined;
+    const occupancy = prevById.get(entity)?.occupancy_entity;
+    if (name === undefined && occupancy === undefined) return entity; // shorthand string
+    const object: StoredSensor = { entity };
+    if (name !== undefined) object.name = name;
+    if (occupancy !== undefined) object.occupancy_entity = occupancy;
+    return object;
+  });
 }
 
 /** Turn an `<ha-form>` value into a config `parseConfig` accepts. Starts from the
- *  previously-stored config so keys the editor does not surface (and unchanged
- *  object-form `sensors`) survive, then for each schema field either sets the new
+ *  previously-stored config so keys the editor does not surface survive (e.g.
+ *  per-sensor `occupancy_entity`), then for each schema field either sets the new
  *  value or *drops* the key when it is empty — so an optional feature stays absent
- *  rather than configured-but-empty (ADR-0001). The required `entity` is always
- *  kept (even empty); `parseConfig` is what rejects an empty one. */
+ *  rather than configured-but-empty (ADR-0001). `sensors` is rebuilt from the picker
+ *  plus the per-sensor display-name fields (see applySensors). The required `entity`
+ *  is always kept (even empty); `parseConfig` is what rejects an empty one. */
 export function normalizeEditorConfig(
   value: Record<string, unknown>,
   prev: Record<string, unknown> = {},
@@ -200,7 +287,7 @@ export function normalizeEditorConfig(
     const raw = value[field.name];
 
     if ('entity' in field.selector && field.selector.entity.multiple) {
-      applySensors(next, raw, prev[field.name]);
+      applySensors(next, raw, prev[field.name], value);
       continue;
     }
     if (field.required) {

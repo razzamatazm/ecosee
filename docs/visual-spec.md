@@ -10,17 +10,20 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
 
 ## Visual language
 
-- **Typeface:** the device uses **Gotham** (Hoefler&Co). Gotham is proprietary and
-  **not bundled**; the font stack (`--ecosee-font`) requests it first (used when
-  the user's HA frontend/theme/system provides it), then a provided **Montserrat**,
-  then **'ecosee Montserrat'** — the Montserrat faces the card itself carries inside
-  the bundle and registers at runtime ([ADR-0007](./adr/0007-bundled-montserrat-fallback.md)),
-  so every install renders a Gotham-alike with healthy metrics, offline and with
-  zero configuration. Numbers use proportional lining figures. Per ADR-0005 Constraint 3
-  (issue #85), the card drops a provided family **in the engine that reports
-  degenerate metrics for it** (a webfont Gotham with zeroed `hhea` metrics broke
-  Firefox/Zen while Chrome rendered it fine), so the resolved face can
-  legitimately differ per engine on such dashboards.
+- **Typeface:** the device uses **Gotham** (Hoefler&Co), which is proprietary and
+  **not bundled**. The card renders **Montserrat** instead — the closest
+  freely-licensed Gotham-alike — and no longer requests Gotham by name
+  ([ADR-0008](./adr/0008-drop-gotham-from-stack.md)). The font stack
+  (`--ecosee-font`) requests a provided **Montserrat** first (used when the user's
+  HA frontend/theme/system supplies it), then **'ecosee Montserrat'** — the
+  Montserrat faces the card itself carries inside the bundle and registers at
+  runtime ([ADR-0007](./adr/0007-bundled-montserrat-fallback.md)), so every install
+  renders the Skin face with healthy metrics, offline and with zero configuration.
+  Numbers use proportional lining figures. Per ADR-0005 Constraint 3 (issue #85),
+  the card drops a provided family **in the engine that reports degenerate metrics
+  for it** (a webfont with zeroed `hhea` metrics broke Firefox/Zen while Chrome
+  rendered it fine), so the resolved face can legitimately differ per engine on
+  such dashboards.
   - **Cross-browser (Firefox/Zen ↔ Chrome) typography constraints — read before
     touching numeral/glyph CSS** ([ADR-0005](./adr/0005-cross-browser-typography.md),
     issues #74/#85): gradient (`background-clip: text`) text — the large current

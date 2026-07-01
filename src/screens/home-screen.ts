@@ -126,6 +126,20 @@ export class EcoseeHomeScreen extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      transition:
+        transform 90ms ease,
+        opacity 90ms ease;
+    }
+
+    /* Press feedback (touch tactility): every Home Screen control is a <button>
+       (the setpoint ovals, the top-row glyphs, and the big current-temperature
+       number), so one :active rule gives them all a subtle push-in on tap. Nothing
+       changes at rest, so the typography / pixel guards are untouched — only the
+       held-down frame differs. The Card runs mostly on wall tablets and phones,
+       where this tap acknowledgement is what the bare cursor: pointer can't give. */
+    button:active {
+      transform: scale(0.97);
+      opacity: 0.82;
     }
 
     /* Render inline glyphs as block replaced elements. An inline SVG carries a
@@ -183,6 +197,12 @@ export class EcoseeHomeScreen extends LitElement {
        the corner glyphs (weather, menu) stay on the baseline. */
     .raised {
       transform: translateY(-3cqw);
+    }
+    /* Compose the press scale with the raised glyphs' lift so a tap pushes in
+       without dropping the glyph back to the baseline (button:active alone would
+       replace the translate). */
+    .raised:active {
+      transform: translateY(-3cqw) scale(0.97);
     }
     /* The weather and fan affordances are white on the Home Screen, like every other
        top-row glyph (the weather condition's natural color is reserved for the Weather

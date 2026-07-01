@@ -2,7 +2,10 @@
 
 **Status: Accepted.** Origin: issue #85 follow-up. Supersedes the "no `@font-face`,
 fully unbundled stack" posture stated in ADR-0005's consequences and the
-visual-spec Typeface section (both amended to point here).
+visual-spec Typeface section (both amended to point here). Later refined by
+[ADR-0008](./0008-drop-gotham-from-stack.md): Gotham was dropped from the stack, so
+the `Gotham → Gotham SSm → …` order below is now `Montserrat → ecosee Montserrat → …`
+(the bundled face and everything else here is unchanged).
 
 ## Context
 
