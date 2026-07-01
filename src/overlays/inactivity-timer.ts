@@ -18,6 +18,22 @@ export function inactivityTimeoutMs(config: EcoseeCardConfig): number | null {
   return seconds > 0 ? seconds * 1000 : null;
 }
 
+/** The fixed idle delay before the bare Home Screen drops to the Standby Screen
+ *  (issue #65). Deliberately its OWN, non-configurable delay — distinct from the
+ *  Overlay auto-revert {@link DEFAULT_INACTIVITY_TIMEOUT_S}: one governs
+ *  Home → Standby, the other Overlay → Home. */
+export const STANDBY_RETURN_MS = 60_000;
+
+/**
+ * Resolve the Home → Standby idle delay (in milliseconds) from config, or `null`
+ * when the Standby Screen is opt-out (`standby_screen` absent/false). The pure seam
+ * the card feeds to its second {@link InactivityTimer}; `null` disables the switch
+ * entirely so a card without the feature behaves exactly as before.
+ */
+export function standbyReturnMs(config: EcoseeCardConfig): number | null {
+  return config.standby_screen ? STANDBY_RETURN_MS : null;
+}
+
 /**
  * A one-shot inactivity countdown around `setTimeout`. The host arms it when an
  * Overlay opens ({@link start}), nudges it forward on each interaction
