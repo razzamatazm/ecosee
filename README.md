@@ -12,7 +12,7 @@ ecobee fidelity when rich data is present and degrading gracefully when it is no
 ## Status
 
 Milestone 1 — project skeleton + the **Home Screen** (current temperature,
-humidity, equipment status, setpoint pill, weather icon, menu affordance),
+humidity, equipment status, setpoint ovals, weather icon, menu affordance),
 the overlays (temperature adjust, System Mode, Comfort Setting, Fan, Weather,
 Sensors), and a **GUI config editor** so the Card is configurable from the
 dashboard UI as well as YAML.
@@ -75,7 +75,7 @@ badge appears only when an `occupancy_entity` is supplied (graceful degradation)
 
 Each Home-Screen element is shown only when its data exists: humidity, the
 equipment indicator (`hvac_action`, softly inferred from setpoints when absent),
-the setpoint pill (when the entity reports setpoints), and the weather icon (only
+the setpoint ovals (when the entity reports setpoints), and the weather icon (only
 with a `weather_entity`). A non-ecobee entity still yields a coherent card.
 
 ## Development

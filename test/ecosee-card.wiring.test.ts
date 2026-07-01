@@ -25,32 +25,44 @@ async function mountCard(hass: HomeAssistant, entity = 'climate.t'): Promise<Eco
   return card;
 }
 
-/** Dispatch a Home Screen action the way <ecosee-home-screen> does. */
-function fireAction(card: EcoseeCard, action: string): void {
+/** Dispatch a Home Screen action the way <ecosee-home-screen> does. A `setpoint`
+ *  rides along the way a setpoint-oval tap does (issue #42); omit it for the
+ *  current-temperature number tap. */
+function fireAction(card: EcoseeCard, action: string, setpoint?: 'heat' | 'cool'): void {
   card.shadowRoot!.querySelector('ecosee-home-screen')!.dispatchEvent(
-    new CustomEvent('ecosee-action', { detail: { action }, bubbles: true, composed: true }),
+    new CustomEvent('ecosee-action', {
+      detail: { action, setpoint },
+      bubbles: true,
+      composed: true,
+    }),
   );
 }
 
 /** Dispatch a Main Menu selection the way <ecosee-main-menu-overlay> does. */
 function fireMenuSelect(card: EcoseeCard, target: string): void {
-  card.shadowRoot!.querySelector('ecosee-main-menu-overlay')!.dispatchEvent(
-    new CustomEvent('ecosee-menu-select', { detail: { target }, bubbles: true, composed: true }),
-  );
+  card
+    .shadowRoot!.querySelector('ecosee-main-menu-overlay')!
+    .dispatchEvent(
+      new CustomEvent('ecosee-menu-select', { detail: { target }, bubbles: true, composed: true }),
+    );
 }
 
 /** Dispatch a System sub-screen selection the way <ecosee-system-overlay> does. */
 function fireSystemSelect(card: EcoseeCard, target: string): void {
   card.shadowRoot!.querySelector('ecosee-system-overlay')!.dispatchEvent(
-    new CustomEvent('ecosee-system-select', { detail: { target }, bubbles: true, composed: true }),
+    new CustomEvent('ecosee-system-select', {
+      detail: { target },
+      bubbles: true,
+      composed: true,
+    }),
   );
 }
 
 /** Dispatch the shell's dismiss the way <ecosee-overlay>'s ✕ / backdrop does. */
 function fireDismiss(card: EcoseeCard): void {
-  card.shadowRoot!.querySelector('ecosee-overlay')!.dispatchEvent(
-    new CustomEvent('ecosee-overlay-dismiss', { bubbles: true, composed: true }),
-  );
+  card
+    .shadowRoot!.querySelector('ecosee-overlay')!
+    .dispatchEvent(new CustomEvent('ecosee-overlay-dismiss', { bubbles: true, composed: true }));
 }
 
 function overlayPresent(card: EcoseeCard, tag: string): boolean {
@@ -90,6 +102,69 @@ describe('ecosee-card wiring — apply path', () => {
       domain: 'climate',
       service: 'set_temperature',
       data: { entity_id: 'climate.t', temperature: 71 },
+    });
+  });
+
+  it('foregrounds the tapped setpoint oval when opening Temperature Adjust (issue #42)', async () => {
+    const { hass, calls } = fakeHass({
+      entities: [
+        climateEntity('heat_cool', {
+          target_temp_low: 68,
+          target_temp_high: 76,
+          min_temp: 60,
+          max_temp: 85,
+          target_temp_step: 1,
+        }),
+      ],
+    });
+    const card = await mountCard(hass);
+
+    // Tapping the heat oval carries `setpoint: 'heat'`, so a nudge must move the
+    // *heat* setpoint (target_temp_low), not the cool default the overlay would
+    // otherwise foreground in Heat / Cool (Auto).
+    fireAction(card, 'temperature', 'heat');
+    await card.updateComplete;
+    const overlay = card.shadowRoot!.querySelector('ecosee-temperature-overlay') as LitElement;
+    await overlay.updateComplete;
+    (
+      overlay.shadowRoot!.querySelector('button[aria-label="Increase"]') as HTMLButtonElement
+    ).click();
+
+    expect(calls[0]).toMatchObject({
+      domain: 'climate',
+      service: 'set_temperature',
+      data: { entity_id: 'climate.t', target_temp_low: 69, target_temp_high: 76 },
+    });
+  });
+
+  it('defaults to the cool setpoint when the current-temperature number is tapped', async () => {
+    const { hass, calls } = fakeHass({
+      entities: [
+        climateEntity('heat_cool', {
+          target_temp_low: 68,
+          target_temp_high: 76,
+          min_temp: 60,
+          max_temp: 85,
+          target_temp_step: 1,
+        }),
+      ],
+    });
+    const card = await mountCard(hass);
+
+    // No setpoint rides the number tap, so the overlay keeps its own default (cool)
+    // — a nudge moves target_temp_high.
+    fireAction(card, 'temperature');
+    await card.updateComplete;
+    const overlay = card.shadowRoot!.querySelector('ecosee-temperature-overlay') as LitElement;
+    await overlay.updateComplete;
+    (
+      overlay.shadowRoot!.querySelector('button[aria-label="Increase"]') as HTMLButtonElement
+    ).click();
+
+    expect(calls[0]).toMatchObject({
+      domain: 'climate',
+      service: 'set_temperature',
+      data: { entity_id: 'climate.t', target_temp_low: 68, target_temp_high: 77 },
     });
   });
 });
