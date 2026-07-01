@@ -216,7 +216,12 @@ export class EcoseeHomeScreen extends LitElement {
       color: var(--ecosee-top-row, #ffffff);
     }
 
-    /* Centered cluster: humidity above the dominant number, setpoint ovals below. */
+    /* Centered cluster: humidity above the dominant number, setpoint ovals below.
+       The bottom inset shifts the centering axis up so the whole cluster sits in the
+       upper-middle of the screen, matching the Home Screen reference photos (the
+       humidity line, big number, and oval(s) all sit noticeably above true center in
+       the Heat/Cool hold and System Off shots — issue #55) rather than floating at
+       dead center. */
     .body {
       position: relative;
       z-index: 1;
@@ -226,6 +231,7 @@ export class EcoseeHomeScreen extends LitElement {
       align-items: center;
       justify-content: center;
       gap: 3cqw;
+      padding-bottom: 18cqw;
     }
 
     .hum {
