@@ -32,18 +32,29 @@ describe('editorSchema — coverage', () => {
   it('uses domain-scoped entity pickers for the entity-backed keys', () => {
     const byName = Object.fromEntries(editorSchema().map((field) => [field.name, field.selector]));
     expect(byName.weather_entity).toEqual({ entity: { domain: 'weather' } });
-    expect(byName.humidity_entity).toEqual({ entity: { domain: 'sensor' } });
-    expect(byName.air_quality_entity).toEqual({ entity: { domain: 'sensor' } });
     expect(byName.uv_index_entity).toEqual({ entity: { domain: 'sensor' } });
+  });
+
+  it('narrows the sensor-backed pickers to their device class (#56)', () => {
+    const byName = Object.fromEntries(editorSchema().map((field) => [field.name, field.selector]));
+    expect(byName.humidity_entity).toEqual({
+      entity: { domain: 'sensor', device_class: 'humidity' },
+    });
+    expect(byName.air_quality_entity).toEqual({ entity: { domain: 'sensor', device_class: 'aqi' } });
   });
 
   it('has no fan minimum-runtime field (removed in #57)', () => {
     expect(editorSchema().some((field) => field.name === 'fan_min_on_time_entity')).toBe(false);
   });
 
-  it('uses a multi-entity picker for the sensors list', () => {
+  it('uses a multi-entity picker narrowed to temperature sensors (plus climate) for the sensors list (#56)', () => {
     const sensors = editorSchema().find((field) => field.name === 'sensors')?.selector;
-    expect(sensors).toEqual({ entity: { domain: ['sensor', 'climate'], multiple: true } });
+    expect(sensors).toEqual({
+      entity: {
+        multiple: true,
+        filter: [{ domain: 'sensor', device_class: 'temperature' }, { domain: 'climate' }],
+      },
+    });
   });
 
   it('uses a number selector for inactivity_timeout', () => {

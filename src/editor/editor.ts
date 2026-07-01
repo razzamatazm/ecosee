@@ -20,11 +20,27 @@ import { CARD_TYPE } from '../config';
 // Keeping all of this pure makes it unit-testable without rendering a Lit element
 // (the editor element itself is presentational and untested, like the overlays).
 
+/** One clause of an entity selector's `filter` (OR-combined when several are given).
+ *  Lets the sensors picker scope to temperature sensors while still allowing a
+ *  `climate` entity as a temperature source. */
+export interface EntityFilter {
+  domain?: string | string[];
+  device_class?: string | string[];
+}
+
 /** An `ha-form` selector descriptor — the subset of HA's selectors this editor
- *  uses. A bare entity id → a domain-scoped `entity` picker; the sensors list → a
- *  `multiple` entity picker; a free string → `text`; the idle timeout → `number`. */
+ *  uses. A bare entity id → a domain- (and optionally device-class-) scoped `entity`
+ *  picker; the sensors list → a `multiple` entity picker filtered to temperature
+ *  sensors; a free string → `text`; the idle timeout → `number`. */
 export type EditorSelector =
-  | { entity: { domain?: string | string[]; multiple?: boolean } }
+  | {
+      entity: {
+        domain?: string | string[];
+        device_class?: string | string[];
+        multiple?: boolean;
+        filter?: EntityFilter[];
+      };
+    }
   | { text: Record<string, never> }
   | { number: { min?: number; mode?: 'box'; unit_of_measurement?: string } };
 
@@ -75,13 +91,13 @@ export function editorSchema(): EditorField[] {
       name: 'humidity_entity',
       label: 'Humidity entity',
       helper: 'Humidity source when the thermostat reports none.',
-      selector: { entity: { domain: 'sensor' } },
+      selector: { entity: { domain: 'sensor', device_class: 'humidity' } },
     },
     {
       name: 'air_quality_entity',
       label: 'Air quality entity',
       helper: 'Surfaces the air-quality element (a US-EPA air-quality index).',
-      selector: { entity: { domain: 'sensor' } },
+      selector: { entity: { domain: 'sensor', device_class: 'aqi' } },
     },
     {
       name: 'uv_index_entity',
@@ -94,7 +110,12 @@ export function editorSchema(): EditorField[] {
       label: 'Sensors',
       helper:
         'Extra temperature entities for the Sensors sub-screen. Per-sensor name and occupancy overrides remain YAML-only.',
-      selector: { entity: { domain: ['sensor', 'climate'], multiple: true } },
+      selector: {
+        entity: {
+          multiple: true,
+          filter: [{ domain: 'sensor', device_class: 'temperature' }, { domain: 'climate' }],
+        },
+      },
     },
     {
       name: 'inactivity_timeout',
