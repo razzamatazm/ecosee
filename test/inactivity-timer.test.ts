@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   InactivityTimer,
   inactivityTimeoutMs,
+  standbyReturnMs,
+  STANDBY_RETURN_MS,
   DEFAULT_INACTIVITY_TIMEOUT_S,
 } from '../src/overlays/inactivity-timer';
 import type { EcoseeCardConfig } from '../src/config';
@@ -22,6 +24,23 @@ describe('inactivityTimeoutMs — config → delay', () => {
   it('converts a positive seconds value to milliseconds', () => {
     expect(inactivityTimeoutMs({ ...base, inactivity_timeout: 30 })).toBe(30_000);
     expect(inactivityTimeoutMs({ ...base, inactivity_timeout: 5 })).toBe(5_000);
+  });
+});
+
+describe('standbyReturnMs — config → Home→Standby delay (issue #65)', () => {
+  it('is null (never switch) when the Standby Screen is opt-out', () => {
+    expect(standbyReturnMs(base)).toBeNull();
+    expect(standbyReturnMs({ ...base, standby_screen: false })).toBeNull();
+  });
+
+  it('is a fixed 60s when the Standby Screen is enabled', () => {
+    expect(STANDBY_RETURN_MS).toBe(60_000);
+    expect(standbyReturnMs({ ...base, standby_screen: true })).toBe(60_000);
+  });
+
+  it('is its own delay, distinct from the Overlay inactivity timeout', () => {
+    // The two must never be conflated: 60s Home→Standby vs 25s Overlay→Home.
+    expect(STANDBY_RETURN_MS).not.toBe(DEFAULT_INACTIVITY_TIMEOUT_S * 1000);
   });
 });
 

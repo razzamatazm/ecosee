@@ -12,7 +12,7 @@ import { toSystemModeModel } from './climate/system-mode';
 import { toComfortSettingModel } from './climate/comfort-setting';
 import { toFanModel } from './climate/fan';
 import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
-import { InactivityTimer, inactivityTimeoutMs } from './overlays/inactivity-timer';
+import { InactivityTimer, inactivityTimeoutMs, standbyReturnMs } from './overlays/inactivity-timer';
 import type { SystemSelectTarget } from './overlays/system-overlay';
 import { toSensorsModel } from './sensors/sensors';
 import {
@@ -28,7 +28,9 @@ import { tokens } from './styles/tokens';
 import { resolveDeviceSize } from './device-size';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
 import type { HomeActionDetail } from './screens/home-screen';
+import { toStandbyView } from './screens/standby-view';
 import './screens/home-screen';
+import './screens/standby-screen';
 import './overlays/overlay-shell';
 import './overlays/temperature-overlay';
 import './overlays/system-mode-overlay';
@@ -108,6 +110,17 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  while an Overlay is open, reset on interaction within it, cancelled on manual
    *  dismiss / unmount. */
   private readonly _inactivity = new InactivityTimer(() => this._revertToHome());
+
+  /** Whether the Card is showing the Standby Screen (issue #65) instead of the Home
+   *  Screen. Top-level view choice, separate from the Overlay stack: only ever true
+   *  from the bare Home Screen, cleared on any interaction with the Standby Screen. */
+  @state() private _standby = false;
+
+  /** Home → Standby idle countdown (issue #65): a SECOND {@link InactivityTimer},
+   *  distinct from `_inactivity`. Armed only while sitting on the bare Home Screen
+   *  with the feature enabled, reset on interaction there, stopped while an Overlay
+   *  is open or already on Standby; on expiry it switches to the Standby Screen. */
+  private readonly _standbyTimer = new InactivityTimer(() => this._enterStandby());
 
   /** Watches the dashboard slot so the fixed-canvas device can be scaled to fit
    *  (issue #35 / #36). The Home Screen and every Overlay are laid out once at a
@@ -287,8 +300,10 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
-    // Drop a pending countdown so it can't revert (set state on) a detached card.
+    // Drop pending countdowns so neither can revert / switch (set state on) a
+    // detached card.
     this._inactivity.stop();
+    this._standbyTimer.stop();
     this._resizeObserver?.disconnect();
     this._resizeObserver = undefined;
   }
@@ -304,6 +319,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     // pushes: a state update is not user interaction, so it must not extend (nor,
     // by re-arming, reset) the idle timer.
     if (changed.has('_nav') || changed.has('_config')) this._syncInactivityTimer();
+    // Same principle for the Home → Standby countdown (issue #65): it is driven by
+    // navigation / the standby toggle / config, never by background `hass` pushes.
+    if (changed.has('_nav') || changed.has('_config') || changed.has('_standby')) {
+      this._syncStandbyTimer();
+    }
   }
 
   /** Measure the dashboard slot and set the transform scale that fits the
@@ -354,13 +374,52 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     }
   }
 
+  /** Arm the Home → Standby countdown (issue #65) only while sitting on the bare
+   *  Home Screen with the feature enabled — re-arming on each navigation step /
+   *  toggle, which doubles as an interaction reset. Stopped when an Overlay opens
+   *  (the countdown does not run there) or once already on Standby. If the feature
+   *  is turned off while Standby is showing, drop back to the Home Screen. */
+  private _syncStandbyTimer(): void {
+    const ms = this._config ? standbyReturnMs(this._config) : null;
+    if (ms !== null && this._nav.length === 0 && !this._standby) {
+      this._standbyTimer.start(ms);
+      return;
+    }
+    this._standbyTimer.stop();
+    if (ms === null && this._standby) this._standby = false;
+  }
+
   override render(): TemplateResult | typeof nothing {
     if (!this._config || !this.hass) return nothing;
+    // Top-level view choice (issue #65): Standby replaces the whole Home Screen (and
+    // is only ever reached from the bare Home Screen, so no Overlay is live here). Any
+    // interaction on it returns to Home and re-arms the idle countdown.
+    if (this._standby) {
+      return html`
+        <div class="sizer">
+          <div
+            class="root"
+            @pointerdown=${this._onStandbyActivity}
+            @click=${this._onStandbyActivity}
+            @mouseover=${this._onStandbyActivity}
+          >
+            <ecosee-standby-screen
+              .view=${toStandbyView(this.hass, this._config)}
+            ></ecosee-standby-screen>
+          </div>
+        </div>
+      `;
+    }
     const view = toHomeView(this.hass, this._config);
     return html`
       <div class="sizer">
         <div class="root">
-          <ecosee-home-screen .view=${view} @ecosee-action=${this._onAction}></ecosee-home-screen>
+          <ecosee-home-screen
+            .view=${view}
+            @ecosee-action=${this._onAction}
+            @pointerdown=${this._onHomeActivity}
+            @mouseover=${this._onHomeActivity}
+          ></ecosee-home-screen>
           ${this._renderOverlay()}
         </div>
       </div>
@@ -505,6 +564,29 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   private _onOverlayActivity = (): void => {
     this._inactivity.reset();
   };
+
+  /** Any interaction on the bare Home Screen (tap / click / mouseover) restarts the
+   *  Home → Standby countdown (issue #65). A no-op while an Overlay is open, since
+   *  the countdown is stopped then and {@link InactivityTimer.reset} does nothing
+   *  while disabled. */
+  private _onHomeActivity = (): void => {
+    this._standbyTimer.reset();
+  };
+
+  /** Any interaction on the Standby Screen (tap / click / mouseover) returns to the
+   *  Home Screen (issue #65); clearing `_standby` re-arms a fresh 60s countdown via
+   *  {@link _syncStandbyTimer}. */
+  private _onStandbyActivity = (): void => {
+    this._standby = false;
+  };
+
+  /** The Home → Standby countdown expired: switch to the Standby Screen (issue #65).
+   *  Guarded so a countdown that somehow outlived a nav change can't switch while an
+   *  Overlay is open. */
+  private _enterStandby(): void {
+    if (this._nav.length > 0) return;
+    this._standby = true;
+  }
 
   /** Apply a service call emitted by an Overlay (temperature setpoint, System
    *  Mode, …). Every Overlay carries its change as a pure `ServiceCall`, so the
