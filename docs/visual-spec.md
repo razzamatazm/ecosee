@@ -143,7 +143,8 @@ then the setpoint ovals — see also the equipment edge glow below.
   carries the category; the word is dropped, issue #66, but still announced to
   assistive tech). The **UV-index gauge** is a small arc meter — a green→violet
   gradient arc filled to the reading's fraction of the WHO scale, the index in the
-  arc's mouth tinted to its band, with a muted `UVI` label and the category word.
+  arc's mouth tinted to its band, with a muted `UVI` label (the band color carries the
+  category; the word is dropped, issue #91, but still announced to assistive tech).
   Layout is **count-aware** (issue #75): **both present** sit **side by side**; **only
   one present** is **centered** on its own (the setpoint-oval single-vs-both idiom);
   **neither present** is omitted entirely. Each shows only when its entity is set and

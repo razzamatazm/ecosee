@@ -418,9 +418,11 @@ export class EcoseeHomeScreen extends LitElement {
     /* Optional UV-index gauge: an arc meter at the foot of the cluster, mirroring the
        air-quality element's placement. The full green→violet gradient arc fills to the
        reading's fraction of the WHO scale (via stroke-dashoffset); the rounded index
-       sits in the arc's mouth and, with the category word, takes the reading's band
-       color (the "UVI" label stays muted). Hidden entirely when no uv_index_entity is
-       configured. Sized in cqw like the rest of .body. */
+       sits in the arc's mouth and takes the reading's band color — the band alone
+       carries the severity, so the visible category word is dropped (issue #91, the
+       #66 air-quality treatment), leaving just the arc, index, and muted "UVI" label.
+       Hidden entirely when no uv_index_entity is configured. Sized in cqw like the
+       rest of .body. */
     .uvi {
       display: inline-flex;
       flex-direction: column;
@@ -470,12 +472,6 @@ export class EcoseeHomeScreen extends LitElement {
       font-weight: 600;
       letter-spacing: 0.16em;
       color: var(--ecosee-muted, #6f96a3);
-    }
-    .uvi .cat {
-      font-size: 4.4cqw;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      text-align: center;
     }
     .uvi.low {
       color: var(--ecosee-uv-low, #35c46b);
@@ -695,14 +691,17 @@ export class EcoseeHomeScreen extends LitElement {
    *  absent/unavailable data leaves `uvIndex` null, so the gauge isn't shown
    *  (ADR-0001). The arc is a radius-38 semicircle (path length π·38 ≈ 119.4); its
    *  `stroke-dashoffset` fills it from the green end to the reading's fraction of the
-   *  scale. The `sr-only` prefix gives the bare index screen-reader context. */
+   *  scale. Shows just the arc, index, and muted "UVI" label (issue #91): the band
+   *  color already carries the severity, so the visible category word is dropped — the
+   *  `sr-only` label still announces the band ("UV index: High") so the reading stays
+   *  accessible, mirroring the air-quality element (issue #66). */
   private _renderUvIndex(uvIndex: UvIndexView | null): TemplateResult | typeof nothing {
     if (!uvIndex) return nothing;
     const arcLength = 119.4;
     const dashOffset = arcLength * (1 - uvIndex.fraction);
     return html`
       <div class="uvi ${uvIndex.level}" part="uv-index">
-        <span class="sr-only">UV index</span>
+        <span class="sr-only">UV index: ${uvIndex.category}</span>
         <div class="gauge">
           <svg viewBox="0 0 100 64" aria-hidden="true">
             <defs>
@@ -725,7 +724,6 @@ export class EcoseeHomeScreen extends LitElement {
           <span class="num">${uvIndex.uvi}</span>
         </div>
         <span class="label">UVI</span>
-        <span class="cat">${uvIndex.category}</span>
       </div>
     `;
   }
