@@ -16,7 +16,6 @@ describe('editorSchema — coverage', () => {
       'humidity_entity',
       'air_quality_entity',
       'uv_index_entity',
-      'default_comfort_icon',
       'sensors',
       'inactivity_timeout',
     ]);
@@ -47,19 +46,13 @@ describe('editorSchema — coverage', () => {
     expect(sensors).toEqual({ entity: { domain: ['sensor', 'climate'], multiple: true } });
   });
 
-  it('uses a number selector for inactivity_timeout and a select for the comfort icon', () => {
+  it('uses a number selector for inactivity_timeout', () => {
     const byName = Object.fromEntries(editorSchema().map((field) => [field.name, field.selector]));
     expect(byName.inactivity_timeout).toMatchObject({ number: { min: 0 } });
-    expect(byName.default_comfort_icon).toMatchObject({ select: {} });
-    const icon = byName.default_comfort_icon as {
-      select: { options: ReadonlyArray<{ value: string }> };
-    };
-    expect(icon.select.options.map((option) => option.value)).toEqual([
-      'home',
-      'away',
-      'sleep',
-      'comfort',
-    ]);
+  });
+
+  it('has no comfort-icon field (removed in #58)', () => {
+    expect(editorSchema().some((field) => field.name === 'default_comfort_icon')).toBe(false);
   });
 
   it('gives every field a non-empty label', () => {
@@ -151,6 +144,11 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     );
   });
 
+  it('preserves a stored default_comfort_icon through an edit (removed from editor, #58)', () => {
+    const prev = { ...base, default_comfort_icon: 'sleep' };
+    expect(normalizeEditorConfig({ ...base }, prev).default_comfort_icon).toBe('sleep');
+  });
+
   it('produces a config parseConfig accepts and round-trips (acceptance, issue #14)', () => {
     const formValue = {
       type: 'custom:ecosee-card',
@@ -160,7 +158,6 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
       humidity_entity: '', // user cleared it
       air_quality_entity: 'sensor.aqi',
       uv_index_entity: 'sensor.uv',
-      default_comfort_icon: 'home',
       sensors: ['sensor.kitchen'],
       inactivity_timeout: 0,
     };
@@ -171,7 +168,6 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     expect(config.humidity_entity).toBeUndefined();
     expect(config.air_quality_entity).toBe('sensor.aqi');
     expect(config.uv_index_entity).toBe('sensor.uv');
-    expect(config.default_comfort_icon).toBe('home');
     expect(config.sensors).toEqual([{ entity: 'sensor.kitchen' }]);
     expect(config.inactivity_timeout).toBe(0);
   });

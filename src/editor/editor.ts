@@ -22,13 +22,11 @@ import { CARD_TYPE } from '../config';
 
 /** An `ha-form` selector descriptor — the subset of HA's selectors this editor
  *  uses. A bare entity id → a domain-scoped `entity` picker; the sensors list → a
- *  `multiple` entity picker; a free string → `text`; the comfort glyph → `select`;
- *  the idle timeout → `number`. */
+ *  `multiple` entity picker; a free string → `text`; the idle timeout → `number`. */
 export type EditorSelector =
   | { entity: { domain?: string | string[]; multiple?: boolean } }
   | { text: Record<string, never> }
-  | { number: { min?: number; mode?: 'box'; unit_of_measurement?: string } }
-  | { select: { mode?: 'dropdown'; options: ReadonlyArray<{ value: string; label: string }> } };
+  | { number: { min?: number; mode?: 'box'; unit_of_measurement?: string } };
 
 /** One `ha-form` field. `name`/`selector`/`required` are what `ha-form` consumes;
  *  `label`/`helper` ride along for the element's `computeLabel`/`computeHelper`
@@ -45,19 +43,13 @@ export interface EditorField {
   selector: EditorSelector;
 }
 
-const COMFORT_ICON_OPTIONS = [
-  { value: 'home', label: 'Home' },
-  { value: 'away', label: 'Away' },
-  { value: 'sleep', label: 'Sleep' },
-  { value: 'comfort', label: 'Comfort' },
-] as const;
-
 /** The form, in display order, tracking the config schema (issue #14). Most keys in
  *  `EcoseeCardConfig` (bar `type`, which HA owns) have exactly one field here,
  *  mirroring `parseConfig`; a new config key must be added alongside its overlay. A
  *  few keys `parseConfig` still accepts for backward compatibility are intentionally
- *  not surfaced (the fan minimum-runtime entity, removed in #57) — an existing config
- *  that sets one keeps loading and its value survives a GUI edit untouched. */
+ *  not surfaced (the fan minimum-runtime entity, removed in #57; the comfort-icon
+ *  override, removed in #58) — an existing config that sets one keeps loading and its
+ *  value survives a GUI edit untouched. */
 export function editorSchema(): EditorField[] {
   return [
     {
@@ -96,12 +88,6 @@ export function editorSchema(): EditorField[] {
       label: 'UV index entity',
       helper: 'Surfaces the UV-index gauge (a sensor carrying a UV index).',
       selector: { entity: { domain: 'sensor' } },
-    },
-    {
-      name: 'default_comfort_icon',
-      label: 'Custom Comfort Setting icon',
-      helper: 'Glyph for Comfort Settings without a built-in mapping.',
-      selector: { select: { mode: 'dropdown', options: COMFORT_ICON_OPTIONS } },
     },
     {
       name: 'sensors',
@@ -196,7 +182,7 @@ export function normalizeEditorConfig(
       else delete next[field.name];
       continue;
     }
-    // String-ish: a single entity picker, free text, or a select.
+    // String-ish: a single entity picker or free text.
     if (typeof raw === 'string' && raw !== '') next[field.name] = raw;
     else delete next[field.name];
   }
