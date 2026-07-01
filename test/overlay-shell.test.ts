@@ -42,7 +42,9 @@ describe('overlay shell — dismissal', () => {
 
 describe('overlay shell — outside-tap contract (issue #40)', () => {
   it('keeps the .content wrapper pointer-transparent so empty taps reach the backdrop', () => {
-    const css = EcoseeOverlay.styles.cssText;
+    // `styles` is now an array (the shared shape module + the shell's own block),
+    // so join every CSSResult's text before matching (issue #76).
+    const css = [EcoseeOverlay.styles].flat().map((s) => s.cssText).join('\n');
     // The .content rule must set pointer-events: none; otherwise the wrapper (which
     // sits above the backdrop) swallows empty-area taps and outside-tap never fires.
     const contentRule = css.match(/\.content\s*\{[^}]*\}/)?.[0] ?? '';
