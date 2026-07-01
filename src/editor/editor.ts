@@ -52,9 +52,12 @@ const COMFORT_ICON_OPTIONS = [
   { value: 'comfort', label: 'Comfort' },
 ] as const;
 
-/** The form, in display order, tracking the config schema (issue #14). Every key in
- *  `EcoseeCardConfig` (bar `type`, which HA owns) has exactly one field here; a new
- *  config key must be added alongside its overlay, mirroring `parseConfig`. */
+/** The form, in display order, tracking the config schema (issue #14). Most keys in
+ *  `EcoseeCardConfig` (bar `type`, which HA owns) have exactly one field here,
+ *  mirroring `parseConfig`; a new config key must be added alongside its overlay. A
+ *  few keys `parseConfig` still accepts for backward compatibility are intentionally
+ *  not surfaced (the fan minimum-runtime entity, removed in #57) — an existing config
+ *  that sets one keeps loading and its value survives a GUI edit untouched. */
 export function editorSchema(): EditorField[] {
   return [
     {
@@ -93,12 +96,6 @@ export function editorSchema(): EditorField[] {
       label: 'UV index entity',
       helper: 'Surfaces the UV-index gauge (a sensor carrying a UV index).',
       selector: { entity: { domain: 'sensor' } },
-    },
-    {
-      name: 'fan_min_on_time_entity',
-      label: 'Fan minimum-runtime entity',
-      helper: 'A number entity backing the Fan minimum-runtime selector.',
-      selector: { entity: { domain: 'number' } },
     },
     {
       name: 'default_comfort_icon',

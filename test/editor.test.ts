@@ -16,7 +16,6 @@ describe('editorSchema — coverage', () => {
       'humidity_entity',
       'air_quality_entity',
       'uv_index_entity',
-      'fan_min_on_time_entity',
       'default_comfort_icon',
       'sensors',
       'inactivity_timeout',
@@ -37,7 +36,10 @@ describe('editorSchema — coverage', () => {
     expect(byName.humidity_entity).toEqual({ entity: { domain: 'sensor' } });
     expect(byName.air_quality_entity).toEqual({ entity: { domain: 'sensor' } });
     expect(byName.uv_index_entity).toEqual({ entity: { domain: 'sensor' } });
-    expect(byName.fan_min_on_time_entity).toEqual({ entity: { domain: 'number' } });
+  });
+
+  it('has no fan minimum-runtime field (removed in #57)', () => {
+    expect(editorSchema().some((field) => field.name === 'fan_min_on_time_entity')).toBe(false);
   });
 
   it('uses a multi-entity picker for the sensors list', () => {
@@ -142,6 +144,13 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     expect(normalizeEditorConfig({ ...base }, prev).future_key).toBe('keep-me');
   });
 
+  it('preserves a stored fan_min_on_time_entity through an edit (removed from editor, #57)', () => {
+    const prev = { ...base, fan_min_on_time_entity: 'number.fan_min_on_time' };
+    expect(normalizeEditorConfig({ ...base }, prev).fan_min_on_time_entity).toBe(
+      'number.fan_min_on_time',
+    );
+  });
+
   it('produces a config parseConfig accepts and round-trips (acceptance, issue #14)', () => {
     const formValue = {
       type: 'custom:ecosee-card',
@@ -151,7 +160,6 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
       humidity_entity: '', // user cleared it
       air_quality_entity: 'sensor.aqi',
       uv_index_entity: 'sensor.uv',
-      fan_min_on_time_entity: '',
       default_comfort_icon: 'home',
       sensors: ['sensor.kitchen'],
       inactivity_timeout: 0,
@@ -163,7 +171,6 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     expect(config.humidity_entity).toBeUndefined();
     expect(config.air_quality_entity).toBe('sensor.aqi');
     expect(config.uv_index_entity).toBe('sensor.uv');
-    expect(config.fan_min_on_time_entity).toBeUndefined();
     expect(config.default_comfort_icon).toBe('home');
     expect(config.sensors).toEqual([{ entity: 'sensor.kitchen' }]);
     expect(config.inactivity_timeout).toBe(0);
