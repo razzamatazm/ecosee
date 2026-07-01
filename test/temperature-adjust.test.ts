@@ -7,6 +7,7 @@ import {
   scrubberWindow,
   setTemperatureCall,
 } from '../src/climate/temperature-adjust';
+import { formatTemp } from '../src/climate/home-view';
 import type { EcoseeCardConfig } from '../src/config';
 import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 
@@ -104,9 +105,19 @@ describe('toTempAdjustModel — graceful degradation of step/min/max', () => {
     expect(model.heat?.step).toBe(0.5);
   });
 
-  it('reads an explicit step over the default', () => {
+  it('keeps a whole-degree step in °F even when the entity reports a half step', () => {
+    // A °F ecobee reports target_temp_step 0.5; honoring it would step the
+    // scrubber in half degrees that formatTemp renders as duplicate integers.
     const model = toTempAdjustModel(
       hass(climate('heat', { temperature: 68, target_temp_step: 0.5 })),
+      config,
+    );
+    expect(model.heat?.step).toBe(1);
+  });
+
+  it('keeps a half-degree step in °C even when the entity reports a whole step', () => {
+    const model = toTempAdjustModel(
+      hass(climate('heat', { temperature: 20, target_temp_step: 1 }), '°C'),
       config,
     );
     expect(model.heat?.step).toBe(0.5);
@@ -205,6 +216,36 @@ describe('scrubberWindow', () => {
   it('trims neighbors that fall outside the bounds', () => {
     const model = toTempAdjustModel(hass(climate('cool', { temperature: 92, ...BOUNDS })), config);
     expect(scrubberWindow(model.cool!, 2)).toEqual([90, 91, 92]);
+  });
+
+  it('°F: consecutive values differ by 1 so every rendered integer is unique', () => {
+    // A °F entity reporting a 0.5 step used to yield 75, 75, 74, 74… — two half
+    // steps rendering the same whole degree. The step is now unit-aware (1°F).
+    const model = toTempAdjustModel(
+      hass(climate('cool', { temperature: 75, min_temp: 45, max_temp: 92, target_temp_step: 0.5 })),
+      config,
+    );
+    const values = scrubberWindow(model.cool!, 2);
+    for (let i = 1; i < values.length; i++) {
+      expect(values[i] - values[i - 1]).toBe(1);
+    }
+    const rendered = values.map((v) => formatTemp(v, model.unit));
+    expect(rendered).toEqual(['73', '74', '75', '76', '77']);
+    expect(new Set(rendered).size).toBe(rendered.length); // no duplicates
+  });
+
+  it('°C: consecutive values differ by 0.5 with the halves shown', () => {
+    const model = toTempAdjustModel(
+      hass(climate('cool', { temperature: 21, min_temp: 10, max_temp: 32 }), '°C'),
+      config,
+    );
+    const values = scrubberWindow(model.cool!, 2);
+    for (let i = 1; i < values.length; i++) {
+      expect(values[i] - values[i - 1]).toBe(0.5);
+    }
+    const rendered = values.map((v) => formatTemp(v, model.unit));
+    expect(rendered).toEqual(['20', '20.5', '21', '21.5', '22']);
+    expect(new Set(rendered).size).toBe(rendered.length);
   });
 });
 

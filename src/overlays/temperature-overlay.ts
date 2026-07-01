@@ -36,7 +36,7 @@ const PX_PER_STEP = 22;
  * card-owned `.view`), this is an interactive editor, so it owns the transient
  * edit state locally: it seeds `_edit` once from `model`, advances it through the
  * pure reducers in `temperature-adjust.ts`, and emits the shared `ecosee-service-call`
- * with the `climate.set_temperature` call so the host card applies it as a Hold.
+ * with the `climate.set_temperature` call so the host card writes the setpoint.
  * Each ± nudge commits immediately; a drag tracks the finger live but commits
  * once on release. There is no separate Apply step (and no hold-duration prompt,
  * ADR-0003).
@@ -226,7 +226,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
     if (changed.has('model') && this.model) this._edit = this.model;
   }
 
-  /** Emit the `climate.set_temperature` call for the current edit (a Hold). */
+  /** Emit the `climate.set_temperature` call that writes the current edit. */
   private _emit(model: TempAdjustModel): void {
     const call = setTemperatureCall(model, this.entityId);
     if (!call) return;
@@ -263,7 +263,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
     const el = event.currentTarget as HTMLElement;
     if (el.hasPointerCapture(event.pointerId)) el.releasePointerCapture(event.pointerId);
     // Commit only when the drag actually moved the value — a tap (or a drag that
-    // nets back to where it started) must not create an unrequested Hold.
+    // nets back to where it started) must not write an unrequested setpoint.
     const edit = this._edit && this._edit[this._edit.active];
     if (this._edit && edit && edit.value !== drag.startValue) this._emit(this._edit);
   };
