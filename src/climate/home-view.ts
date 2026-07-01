@@ -36,6 +36,23 @@ export interface AirQualityView {
   level: AirQualityLevel;
 }
 
+/** UV-index severity band, keyed by the Home Screen to the gauge's color — green
+ *  (Low) → violet (Extreme), following the WHO scale. */
+export type UvLevel = 'none' | 'low' | 'moderate' | 'high' | 'very-high' | 'extreme';
+
+/** The optional UV-index gauge's already-degraded data: present only when a usable
+ *  `uv_index_entity` is configured, `null` otherwise (ADR-0001). */
+export interface UvIndexView {
+  /** The UV index, rounded to a whole number. */
+  uvi: number;
+  /** Friendly category for the UV band ("Low", "Moderate", …). */
+  category: string;
+  /** Severity band the gauge maps to its color. */
+  level: UvLevel;
+  /** Arc fill fraction 0–1 — the raw index over the scale max (11). */
+  fraction: number;
+}
+
 export interface HomeView {
   /** False when the entity is missing or `unavailable` — Card shows a quiet shell. */
   available: boolean;
@@ -65,6 +82,9 @@ export interface HomeView {
   /** The optional air-quality element, or `null` when no usable `air_quality_entity`
    *  is configured (the element is then hidden — ADR-0001 graceful degradation). */
   airQuality: AirQualityView | null;
+  /** The optional UV-index gauge, or `null` when no usable `uv_index_entity` is
+   *  configured (the gauge is then hidden — ADR-0001 graceful degradation). */
+  uvIndex: UvIndexView | null;
 }
 
 /** Entity states that carry no usable data — a Card/Overlay degrades to its
@@ -184,6 +204,34 @@ function toAirQuality(hass: HomeAssistant, config: EcoseeCardConfig): AirQuality
   return { aqi: rounded, ...aqiBand(rounded) };
 }
 
+/** Categorize a UV index into its band. Thresholds follow the design's scale
+ *  (0 None, 1–3 Low, 4–5 Moderate, 6–7 High, 8–10 Very high, 11+ Extreme). */
+function uvBand(uvi: number): { category: string; level: UvLevel } {
+  if (uvi <= 0) return { category: 'None', level: 'none' };
+  if (uvi <= 3) return { category: 'Low', level: 'low' };
+  if (uvi <= 5) return { category: 'Moderate', level: 'moderate' };
+  if (uvi <= 7) return { category: 'High', level: 'high' };
+  if (uvi <= 10) return { category: 'Very high', level: 'very-high' };
+  return { category: 'Extreme', level: 'extreme' };
+}
+
+/** Derive the optional UV-index gauge from the configured `uv_index_entity`: its
+ *  numeric state, or a `uv_index` attribute. Returns `null` — gauge hidden — when
+ *  the key is unset, the entity is missing/unavailable, or it carries no numeric
+ *  reading (ADR-0001 graceful degradation). The arc fills from the raw index over
+ *  the scale max (11); the band/number use the rounded value. */
+function toUvIndex(hass: HomeAssistant, config: EcoseeCardConfig): UvIndexView | null {
+  const entityId = config.uv_index_entity;
+  if (!entityId) return null;
+  const entity = hass.states[entityId];
+  if (!entity || UNAVAILABLE.has(entity.state)) return null;
+  const raw = num(entity.state) ?? num(entity.attributes.uv_index);
+  if (raw === null) return null;
+  const value = Math.max(0, raw);
+  const rounded = Math.round(value);
+  return { uvi: rounded, ...uvBand(rounded), fraction: Math.min(value / 11, 1) };
+}
+
 export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeView {
   const entity = hass.states[config.entity];
   const unit = hass.config?.unit_system?.temperature ?? '°';
@@ -205,6 +253,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
       weatherCondition: weather,
       fanAvailable: false,
       airQuality: toAirQuality(hass, config),
+      uvIndex: toUvIndex(hass, config),
     };
   }
 
@@ -231,6 +280,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     weatherCondition: weather,
     fanAvailable: toFanModel(hass, config).available,
     airQuality: toAirQuality(hass, config),
+    uvIndex: toUvIndex(hass, config),
   };
 }
 

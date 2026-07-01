@@ -41,6 +41,10 @@ export interface EcoseeCardConfig {
    *  `air_quality_index` attribute. Surfaces the optional air-quality element on the
    *  Home Screen; the element is hidden when this is unset/unavailable (issue #10). */
   air_quality_entity?: string;
+  /** An entity carrying a UV index — its numeric state, or a `uv_index` attribute.
+   *  Surfaces the optional UV-index gauge on the Home Screen; the gauge is hidden
+   *  when this is unset/unavailable (ADR-0001 graceful degradation). */
+  uv_index_entity?: string;
   /** Curated temperature sensors for the Sensors sub-screen (issue #9). Each item
    *  may be a bare entity-id string (shorthand) or a `SensorConfig` object. The
    *  thermostat's own temperature is auto-included first, so this lists *extra*
@@ -76,7 +80,8 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
       | 'humidity_entity'
       | 'default_comfort_icon'
       | 'fan_min_on_time_entity'
-      | 'air_quality_entity',
+      | 'air_quality_entity'
+      | 'uv_index_entity',
   ): string | undefined => {
     const value = raw[key];
     if (value === undefined) return undefined;
@@ -95,6 +100,7 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     default_comfort_icon: optionalString('default_comfort_icon'),
     fan_min_on_time_entity: optionalString('fan_min_on_time_entity'),
     air_quality_entity: optionalString('air_quality_entity'),
+    uv_index_entity: optionalString('uv_index_entity'),
     sensors: parseSensors(raw.sensors),
     inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
   };

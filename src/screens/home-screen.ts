@@ -1,6 +1,12 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import type { AirQualityView, EquipmentStatus, HomeView, SystemMode } from '../climate/home-view';
+import type {
+  AirQualityView,
+  EquipmentStatus,
+  HomeView,
+  SystemMode,
+  UvIndexView,
+} from '../climate/home-view';
 import { formatTemp } from '../climate/home-view';
 import { icons, weatherIcon } from '../icons';
 
@@ -361,6 +367,84 @@ export class EcoseeHomeScreen extends LitElement {
     .aqi.hazardous {
       color: var(--ecosee-aqi-hazardous, #9c5a6a);
     }
+
+    /* Optional UV-index gauge: an arc meter at the foot of the cluster, mirroring the
+       air-quality element's placement. The full green→violet gradient arc fills to the
+       reading's fraction of the WHO scale (via stroke-dashoffset); the rounded index
+       sits in the arc's mouth and, with the category word, takes the reading's band
+       color (the "UVI" label stays muted). Hidden entirely when no uv_index_entity is
+       configured. Sized in cqw like the rest of .body. */
+    .uvi {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.4cqw;
+      line-height: 1.1;
+      color: var(--ecosee-uv-none, #5a6068);
+    }
+    .uvi .gauge {
+      position: relative;
+      width: 26cqw;
+      /* 26 * 0.64 — the arc's 100×64 viewBox aspect, so the SVG scales uniformly. */
+      height: 16.6cqw;
+    }
+    .uvi .gauge svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .uvi .track {
+      fill: none;
+      stroke: #2b3037;
+      stroke-width: 9;
+      stroke-linecap: round;
+    }
+    .uvi .arc {
+      fill: none;
+      stroke: url(#ecosee-uv-gradient);
+      stroke-width: 9;
+      stroke-linecap: round;
+    }
+    /* The index sits in the mouth of the arc, tinted by the band (inherits .uvi color). */
+    .uvi .num {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 64%;
+      transform: translateY(-50%);
+      text-align: center;
+      font-size: 6.5cqw;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+    .uvi .label {
+      font-size: 3.6cqw;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      color: var(--ecosee-muted, #6f96a3);
+    }
+    .uvi .cat {
+      font-size: 4.4cqw;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-align: center;
+    }
+    .uvi.low {
+      color: var(--ecosee-uv-low, #35c46b);
+    }
+    .uvi.moderate {
+      color: var(--ecosee-uv-moderate, #ffd400);
+    }
+    .uvi.high {
+      color: var(--ecosee-uv-high, #ff8a1e);
+    }
+    .uvi.very-high {
+      color: var(--ecosee-uv-very-high, #ff3b3b);
+    }
+    .uvi.extreme {
+      color: var(--ecosee-uv-extreme, #b45cff);
+    }
   `;
 
   private _emit(action: HomeAction, setpoint?: SetpointTarget): void {
@@ -413,6 +497,11 @@ export class EcoseeHomeScreen extends LitElement {
             // the bound climate entity — so it sits at the foot of the cluster below
             // either the live readout or the unavailable shell (issue #10).
             this._renderAirQuality(view.airQuality)
+          }
+          ${
+            // The UV-index gauge is likewise backed by its own entity — it sits at the
+            // foot of the cluster, below the air-quality element when both are present.
+            this._renderUvIndex(view.uvIndex)
           }
         </div>
       </div>
@@ -535,6 +624,45 @@ export class EcoseeHomeScreen extends LitElement {
           <span class="num">${airQuality.aqi}</span>
         </span>
         <span class="cat">${airQuality.category}</span>
+      </div>
+    `;
+  }
+
+  /** The optional UV-index gauge. Rendered only when the seam supplies a model —
+   *  absent/unavailable data leaves `uvIndex` null, so the gauge isn't shown
+   *  (ADR-0001). The arc is a radius-38 semicircle (path length π·38 ≈ 119.4); its
+   *  `stroke-dashoffset` fills it from the green end to the reading's fraction of the
+   *  scale. The `sr-only` prefix gives the bare index screen-reader context. */
+  private _renderUvIndex(uvIndex: UvIndexView | null): TemplateResult | typeof nothing {
+    if (!uvIndex) return nothing;
+    const arcLength = 119.4;
+    const dashOffset = arcLength * (1 - uvIndex.fraction);
+    return html`
+      <div class="uvi ${uvIndex.level}" part="uv-index">
+        <span class="sr-only">UV index</span>
+        <div class="gauge">
+          <svg viewBox="0 0 100 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="ecosee-uv-gradient" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#35c46b"></stop>
+                <stop offset="30%" stop-color="#ffd400"></stop>
+                <stop offset="55%" stop-color="#ff8a1e"></stop>
+                <stop offset="78%" stop-color="#ff3b3b"></stop>
+                <stop offset="100%" stop-color="#b45cff"></stop>
+              </linearGradient>
+            </defs>
+            <path class="track" d="M12,50 A38,38 0 0 1 88,50"></path>
+            <path
+              class="arc"
+              d="M12,50 A38,38 0 0 1 88,50"
+              stroke-dasharray=${arcLength}
+              stroke-dashoffset=${dashOffset}
+            ></path>
+          </svg>
+          <span class="num">${uvIndex.uvi}</span>
+        </div>
+        <span class="label">UVI</span>
+        <span class="cat">${uvIndex.category}</span>
       </div>
     `;
   }

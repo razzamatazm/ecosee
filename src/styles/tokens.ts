@@ -49,6 +49,16 @@ export const tokens = css`
     --ecosee-aqi-very-unhealthy: #b06fce;
     --ecosee-aqi-hazardous: #9c5a6a;
 
+    /* Optional UV-index gauge severity bands: the WHO UV scale, green (Low) →
+       violet (Extreme). The gauge tints its number/category by the reading's band
+       (the arc itself is the full-scale gradient); overridable per dashboard. */
+    --ecosee-uv-none: #5a6068;
+    --ecosee-uv-low: #35c46b;
+    --ecosee-uv-moderate: #ffd400;
+    --ecosee-uv-high: #ff8a1e;
+    --ecosee-uv-very-high: #ff3b3b;
+    --ecosee-uv-extreme: #b45cff;
+
     /* Fixed-canvas squircle (issue #35 / #36): the device is laid out ONCE at
        --ecosee-base-size and then the whole Card is scaled as a single unit to
        fit its slot — the internal layout never reflows per-width, so it renders

@@ -262,6 +262,98 @@ describe('toHomeView — air quality', () => {
   });
 });
 
+describe('toHomeView — uv index', () => {
+  const withUv = (uvState: HassEntityBase | undefined, configured = true) =>
+    toHomeView(
+      hass({
+        climate: {
+          entity_id: 'climate.t',
+          state: 'cool',
+          attributes: { current_temperature: 72, temperature: 74 },
+        },
+        extraStates: uvState ? { [uvState.entity_id]: uvState } : undefined,
+      }),
+      config(configured ? { uv_index_entity: 'sensor.uv' } : {}),
+    );
+
+  it('is null when no uv_index_entity is configured', () => {
+    expect(withUv(undefined, false).uvIndex).toBeNull();
+  });
+
+  it('is null when the configured entity is missing', () => {
+    expect(withUv(undefined).uvIndex).toBeNull();
+  });
+
+  it('is null when the configured entity is unavailable', () => {
+    const view = withUv({ entity_id: 'sensor.uv', state: 'unavailable', attributes: {} });
+    expect(view.uvIndex).toBeNull();
+  });
+
+  it('is null when the entity carries no numeric reading', () => {
+    const view = withUv({ entity_id: 'sensor.uv', state: 'high', attributes: {} });
+    expect(view.uvIndex).toBeNull();
+  });
+
+  it('reads the UV index from the entity state and categorizes it', () => {
+    const view = withUv({ entity_id: 'sensor.uv', state: '5', attributes: {} });
+    expect(view.uvIndex).toMatchObject({ uvi: 5, category: 'Moderate', level: 'moderate' });
+    expect(view.uvIndex?.fraction).toBeCloseTo(5 / 11);
+  });
+
+  it('falls back to the uv_index attribute when the state is non-numeric', () => {
+    const view = withUv({
+      entity_id: 'sensor.uv',
+      state: 'extreme',
+      attributes: { uv_index: 9 },
+    });
+    expect(view.uvIndex).toMatchObject({ uvi: 9, category: 'Very high', level: 'very-high' });
+  });
+
+  it('rounds a fractional UV index to a whole number for the band', () => {
+    const view = withUv({ entity_id: 'sensor.uv', state: '7.6', attributes: {} });
+    expect(view.uvIndex?.uvi).toBe(8);
+    expect(view.uvIndex?.level).toBe('very-high');
+  });
+
+  it('clamps a negative reading to zero (None)', () => {
+    const view = withUv({ entity_id: 'sensor.uv', state: '-3', attributes: {} });
+    expect(view.uvIndex).toMatchObject({ uvi: 0, category: 'None', level: 'none' });
+    expect(view.uvIndex?.fraction).toBe(0);
+  });
+
+  it('caps the arc fraction at the scale max for extreme readings', () => {
+    const view = withUv({ entity_id: 'sensor.uv', state: '14', attributes: {} });
+    expect(view.uvIndex?.fraction).toBe(1);
+  });
+
+  it('maps each UV band to its category and level', () => {
+    const cases: Array<[number, string, string]> = [
+      [0, 'None', 'none'],
+      [3, 'Low', 'low'],
+      [5, 'Moderate', 'moderate'],
+      [7, 'High', 'high'],
+      [10, 'Very high', 'very-high'],
+      [11, 'Extreme', 'extreme'],
+    ];
+    for (const [uvi, category, level] of cases) {
+      const view = withUv({ entity_id: 'sensor.uv', state: String(uvi), attributes: {} });
+      expect(view.uvIndex).toMatchObject({ uvi, category, level });
+    }
+  });
+
+  it('still surfaces the UV index when the climate entity is unavailable', () => {
+    const view = toHomeView(
+      hass({
+        climate: { entity_id: 'climate.t', state: 'unavailable', attributes: {} },
+        extraStates: { 'sensor.uv': { entity_id: 'sensor.uv', state: '2', attributes: {} } },
+      }),
+      config({ uv_index_entity: 'sensor.uv' }),
+    );
+    expect(view.available).toBe(false);
+    expect(view.uvIndex).toMatchObject({ uvi: 2, category: 'Low', level: 'low' });
+  });
+});
+
 describe('formatTemp', () => {
   it('rounds to whole degrees in Fahrenheit', () => {
     expect(formatTemp(74.6, '°F')).toBe('75');

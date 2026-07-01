@@ -25,6 +25,7 @@ function view(overrides: Partial<HomeView> = {}): HomeView {
     weatherCondition: null,
     fanAvailable: false,
     airQuality: null,
+    uvIndex: null,
     ...overrides,
   };
 }
@@ -146,5 +147,35 @@ describe('Home Screen fan affordance', () => {
     expect(left.querySelector('.weather')).not.toBeNull();
     expect(left.querySelector('.fan')).not.toBeNull();
     expect(el.shadowRoot!.querySelector('.mode')).not.toBeNull();
+  });
+});
+
+// The optional UV-index gauge (design import): an arc meter at the foot of the
+// cluster, backed by its own uv_index_entity and tinted by the reading's WHO band.
+describe('Home Screen UV-index gauge', () => {
+  it('hides the gauge when no UV index is available', async () => {
+    const el = await mount(view({ uvIndex: null }));
+    expect(el.shadowRoot!.querySelector('.uvi')).toBeNull();
+  });
+
+  it('shows the gauge with the band number, category, and level tint when present', async () => {
+    const el = await mount(
+      view({ uvIndex: { uvi: 7, category: 'High', level: 'high', fraction: 7 / 11 } }),
+    );
+    const gauge = el.shadowRoot!.querySelector('.uvi');
+    expect(gauge).not.toBeNull();
+    expect(gauge!.classList.contains('high')).toBe(true);
+    expect(gauge!.getAttribute('part')).toBe('uv-index');
+    expect(gauge!.querySelector('.num')?.textContent?.trim()).toBe('7');
+    expect(gauge!.querySelector('.cat')?.textContent?.trim()).toBe('High');
+  });
+
+  it('fills the arc to the reading fraction of the scale', async () => {
+    const el = await mount(
+      view({ uvIndex: { uvi: 11, category: 'Extreme', level: 'extreme', fraction: 1 } }),
+    );
+    const arc = el.shadowRoot!.querySelector('.uvi .arc');
+    // fraction 1 → full arc → dashoffset 0.
+    expect(Number(arc!.getAttribute('stroke-dashoffset'))).toBeCloseTo(0);
   });
 });

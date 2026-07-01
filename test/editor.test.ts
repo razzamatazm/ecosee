@@ -15,6 +15,7 @@ describe('editorSchema — coverage', () => {
       'weather_entity',
       'humidity_entity',
       'air_quality_entity',
+      'uv_index_entity',
       'fan_min_on_time_entity',
       'default_comfort_icon',
       'sensors',
@@ -35,6 +36,7 @@ describe('editorSchema — coverage', () => {
     expect(byName.weather_entity).toEqual({ entity: { domain: 'weather' } });
     expect(byName.humidity_entity).toEqual({ entity: { domain: 'sensor' } });
     expect(byName.air_quality_entity).toEqual({ entity: { domain: 'sensor' } });
+    expect(byName.uv_index_entity).toEqual({ entity: { domain: 'sensor' } });
     expect(byName.fan_min_on_time_entity).toEqual({ entity: { domain: 'number' } });
   });
 
@@ -148,6 +150,7 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
       weather_entity: 'weather.home',
       humidity_entity: '', // user cleared it
       air_quality_entity: 'sensor.aqi',
+      uv_index_entity: 'sensor.uv',
       fan_min_on_time_entity: '',
       default_comfort_icon: 'home',
       sensors: ['sensor.kitchen'],
@@ -159,6 +162,7 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     expect(config.weather_entity).toBe('weather.home');
     expect(config.humidity_entity).toBeUndefined();
     expect(config.air_quality_entity).toBe('sensor.aqi');
+    expect(config.uv_index_entity).toBe('sensor.uv');
     expect(config.fan_min_on_time_entity).toBeUndefined();
     expect(config.default_comfort_icon).toBe('home');
     expect(config.sensors).toEqual([{ entity: 'sensor.kitchen' }]);

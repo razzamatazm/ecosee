@@ -89,6 +89,12 @@ export function editorSchema(): EditorField[] {
       selector: { entity: { domain: 'sensor' } },
     },
     {
+      name: 'uv_index_entity',
+      label: 'UV index entity',
+      helper: 'Surfaces the UV-index gauge (a sensor carrying a UV index).',
+      selector: { entity: { domain: 'sensor' } },
+    },
+    {
       name: 'fan_min_on_time_entity',
       label: 'Fan minimum-runtime entity',
       helper: 'A number entity backing the Fan minimum-runtime selector.',

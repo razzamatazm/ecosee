@@ -81,6 +81,24 @@ describe('parseConfig — air_quality_entity', () => {
   });
 });
 
+describe('parseConfig — uv_index_entity', () => {
+  it('leaves uv_index_entity undefined when the key is absent', () => {
+    expect(parseConfig(base).uv_index_entity).toBeUndefined();
+  });
+
+  it('accepts an entity id string', () => {
+    expect(parseConfig({ ...base, uv_index_entity: 'sensor.uv' }).uv_index_entity).toBe(
+      'sensor.uv',
+    );
+  });
+
+  it('throws when uv_index_entity is not a string', () => {
+    expect(() => parseConfig({ ...base, uv_index_entity: 42 })).toThrow(
+      /`uv_index_entity` must be a string/,
+    );
+  });
+});
+
 describe('parseConfig — inactivity_timeout', () => {
   it('leaves inactivity_timeout undefined when the key is absent', () => {
     expect(parseConfig(base).inactivity_timeout).toBeUndefined();
