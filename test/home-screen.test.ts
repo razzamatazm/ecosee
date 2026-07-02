@@ -217,16 +217,27 @@ describe('Home Screen UV-index gauge', () => {
     expect(el.shadowRoot!.querySelector('.uvi')).toBeNull();
   });
 
-  it('shows the gauge with the band number, category, and level tint when present', async () => {
+  it('shows the number and band tint with no visible category word when present', async () => {
     const el = await mount(
       view({ uvIndex: { uvi: 7, category: 'High', level: 'high', fraction: 7 / 11 } }),
     );
     const gauge = el.shadowRoot!.querySelector('.uvi');
     expect(gauge).not.toBeNull();
+    // The band color still carries the severity.
     expect(gauge!.classList.contains('high')).toBe(true);
     expect(gauge!.getAttribute('part')).toBe('uv-index');
     expect(gauge!.querySelector('.num')?.textContent?.trim()).toBe('7');
-    expect(gauge!.querySelector('.cat')?.textContent?.trim()).toBe('High');
+    // The visible category word is gone (issue #91, mirroring #66).
+    expect(gauge!.querySelector('.cat')).toBeNull();
+  });
+
+  it('keeps the category in an accessible label for screen readers', async () => {
+    const el = await mount(
+      view({ uvIndex: { uvi: 11, category: 'Extreme', level: 'extreme', fraction: 1 } }),
+    );
+    const sr = el.shadowRoot!.querySelector('.uvi .sr-only');
+    // Not rendered as visible text, but still announced to assistive tech.
+    expect(sr?.textContent).toContain('UV index: Extreme');
   });
 
   it('fills the arc to the reading fraction of the scale', async () => {
