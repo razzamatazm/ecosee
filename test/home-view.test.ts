@@ -223,7 +223,12 @@ describe('toHomeView — air quality', () => {
 
   it('reads the AQI from the entity state and categorizes it', () => {
     const view = withAqi({ entity_id: 'sensor.aqi', state: '42', attributes: {} });
-    expect(view.airQuality).toEqual({ aqi: 42, category: 'Good', level: 'good' });
+    expect(view.airQuality).toEqual({
+      aqi: 42,
+      category: 'Good',
+      level: 'good',
+      fraction: 42 / 300,
+    });
   });
 
   it('falls back to the air_quality_index attribute when the state is non-numeric', () => {
@@ -232,7 +237,12 @@ describe('toHomeView — air quality', () => {
       state: 'moderate',
       attributes: { air_quality_index: 88 },
     });
-    expect(view.airQuality).toEqual({ aqi: 88, category: 'Moderate', level: 'moderate' });
+    expect(view.airQuality).toEqual({
+      aqi: 88,
+      category: 'Moderate',
+      level: 'moderate',
+      fraction: 88 / 300,
+    });
   });
 
   it('rounds a fractional AQI to a whole number', () => {
@@ -251,7 +261,8 @@ describe('toHomeView — air quality', () => {
     ];
     for (const [aqi, category, level] of cases) {
       const view = withAqi({ entity_id: 'sensor.aqi', state: String(aqi), attributes: {} });
-      expect(view.airQuality).toEqual({ aqi, category, level });
+      // The arc fraction runs over the 0–300 gauge scale and pins full past it.
+      expect(view.airQuality).toEqual({ aqi, category, level, fraction: Math.min(aqi / 300, 1) });
     }
   });
 
@@ -264,7 +275,12 @@ describe('toHomeView — air quality', () => {
       config({ air_quality_entity: 'sensor.aqi' }),
     );
     expect(view.available).toBe(false);
-    expect(view.airQuality).toEqual({ aqi: 30, category: 'Good', level: 'good' });
+    expect(view.airQuality).toEqual({
+      aqi: 30,
+      category: 'Good',
+      level: 'good',
+      fraction: 30 / 300,
+    });
   });
 });
 

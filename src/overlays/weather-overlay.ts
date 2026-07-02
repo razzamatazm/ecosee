@@ -16,8 +16,9 @@ import type { WeatherDay, WeatherModel, WeatherPeriod } from '../weather/weather
  *   page 2 — a 4-day forecast: per day a glyph, the high, a labeled "Lo [low]", and
  *            an umbrella ☂ + chance-of-precip %.
  *
- * Both pages carry the "N of 2" pager and the "Data provided by …" footer. The
- * condition glyphs take a natural per-condition color (`conditionColor`, issue #31 —
+ * Both pages carry the "N of 2" pager (the provider credit is deliberately not
+ * rendered — it read as clutter at thermostat size). The condition glyphs take a
+ * natural per-condition color (`conditionColor`, issue #31 —
  * yellow sun, grey cloud, blue rain); everything else is cyan on black. The
  * chance-of-precip is shown as an umbrella glyph + % rather than the "PoP" jargon
  * (issue #32). Unlike the editing overlays, Weather is read-only: it derives no service
@@ -132,6 +133,11 @@ export class EcoseeWeatherOverlay extends LitElement {
     .stat .glyph {
       width: 5.4cqw;
       height: 5.4cqw;
+      /* The umbrella / droplet ink sits low in the shared icon viewBox, so the
+         center-aligned row reads as the glyph drooping below the text; a hair
+         of upward nudge centers the ink optically on the numerals. Tuned by
+         eye; ≈1.4px at the 460px base size. */
+      transform: translateY(-0.35cqw);
     }
     .periods {
       display: inline-flex;
@@ -213,9 +219,13 @@ export class EcoseeWeatherOverlay extends LitElement {
     .day-pop .glyph {
       width: 4.4cqw;
       height: 4.4cqw;
+      /* Same optical nudge as .stat .glyph: lift the low-riding umbrella ink
+         onto the % numerals' center. Tuned by eye; ≈1px at the base size. */
+      transform: translateY(-0.25cqw);
     }
 
-    /* footer — pager + provider credit */
+    /* footer — the pager (the provider credit was dropped deliberately: it cost
+       a text row on both pages and reads as clutter at thermostat size). */
     .footer {
       display: flex;
       flex-direction: column;
@@ -250,10 +260,6 @@ export class EcoseeWeatherOverlay extends LitElement {
     .pager .chev.prev {
       transform: scaleX(-1);
     }
-    .provider {
-      font-size: 4cqw;
-      color: var(--ecosee-muted, #6f96a3);
-    }
   `;
 
   /** Page by a delta, wrapping (both pager arrows stay live, as on the device). */
@@ -279,7 +285,7 @@ export class EcoseeWeatherOverlay extends LitElement {
         <div class="page">
           ${page === 0 ? this._renderCurrent(model) : this._renderForecast(model)}
         </div>
-        ${this._renderFooter(model, page, hasForecast)}
+        ${this._renderFooter(page, hasForecast)}
       </div>
     `;
   }
@@ -366,37 +372,25 @@ export class EcoseeWeatherOverlay extends LitElement {
     `;
   }
 
-  private _renderFooter(
-    model: WeatherModel,
-    page: number,
-    hasForecast: boolean,
-  ): TemplateResult | typeof nothing {
-    const provider = model.attribution;
-    if (!hasForecast && !provider) return nothing;
+  /** The footer is just the pager now — the "Data provided by …" credit was
+   *  dropped deliberately (it cost a text row on both pages and reads as clutter
+   *  at thermostat size; the model's `attribution` stays derived for anything
+   *  that wants it later). No forecast ⇒ nothing to page ⇒ no footer at all. */
+  private _renderFooter(page: number, hasForecast: boolean): TemplateResult | typeof nothing {
+    if (!hasForecast) return nothing;
     return html`
       <div class="footer">
-        ${
-          hasForecast
-            ? html`<div class="pager">
-                <button aria-label="Previous page" @click=${() => this._pageBy(-1)}>
-                  <span class="chev prev">${icons.chevron}</span>
-                </button>
-                <span>${page + 1} of 2</span>
-                <button aria-label="Next page" @click=${() => this._pageBy(1)}>
-                  <span class="chev">${icons.chevron}</span>
-                </button>
-              </div>`
-            : nothing
-        }
-        ${provider ? html`<div class="provider">${this._providerFooter(provider)}</div>` : nothing}
+        <div class="pager">
+          <button aria-label="Previous page" @click=${() => this._pageBy(-1)}>
+            <span class="chev prev">${icons.chevron}</span>
+          </button>
+          <span>${page + 1} of 2</span>
+          <button aria-label="Next page" @click=${() => this._pageBy(1)}>
+            <span class="chev">${icons.chevron}</span>
+          </button>
+        </div>
       </div>
     `;
-  }
-
-  /** "Data provided by …" — but render a credit that already says so verbatim, so
-   *  a full attribution sentence isn't double-prefixed. */
-  private _providerFooter(attribution: string): string {
-    return /provided by/i.test(attribution) ? attribution : `Data provided by ${attribution}`;
   }
 
   /** "Jun 29 as of 5:00 pm" from the entity's raw timestamp (locale-formatted). */

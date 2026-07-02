@@ -52,8 +52,13 @@ export class EcoseeSystemOverlay extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      gap: calc(8 * var(--ecosee-u, 4.6px));
-      padding: calc(14 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px))
+      /* The top padding / gap are deliberately tighter than the title-only
+         hub (main-menu-overlay): with both selectors stacked (their labels are
+         too wide to share a row) the cluster runs tall, and the looser rhythm
+         pushed the Comfort Setting pill into the bottom squircle curve, which
+         clipped it. */
+      gap: calc(6 * var(--ecosee-u, 4.6px));
+      padding: calc(12 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px))
         calc(10 * var(--ecosee-u, 4.6px));
       text-align: center;
     }
@@ -86,7 +91,7 @@ export class EcoseeSystemOverlay extends LitElement {
       flex-wrap: wrap;
       align-items: flex-start;
       justify-content: center;
-      gap: 5cqw 6cqw;
+      gap: 4cqw 6cqw;
     }
     .selector {
       display: flex;

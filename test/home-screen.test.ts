@@ -164,9 +164,7 @@ describe('Home Screen top-row layout', () => {
     const left = top.querySelector('.top-left')!;
     return [
       ...[...left.children].map((c) => c.className),
-      ...[...top.children]
-        .filter((c) => !c.classList.contains('top-left'))
-        .map((c) => c.className),
+      ...[...top.children].filter((c) => !c.classList.contains('top-left')).map((c) => c.className),
     ];
   }
 
@@ -250,24 +248,38 @@ describe('Home Screen UV-index gauge', () => {
   });
 });
 
-// The optional air-quality element (issue #10) simplified to just the glyph and
-// number (issue #66): the color carries the severity band, so the visible category
-// word is dropped — but the band stays announced via an accessible label.
+// The optional air-quality element (issue #10): an arc gauge in the UV-index
+// gauge's style — a gradient arc filled to the reading's fraction of the scale,
+// the number in the arc's mouth, a muted "AQI" label beneath. The color carries
+// the severity band, so the visible category word stays dropped (issue #66) —
+// but the band stays announced via an accessible label.
 describe('Home Screen air-quality element', () => {
   it('hides the element when no air quality is available', async () => {
     const el = await mount(view({ airQuality: null }));
     expect(el.shadowRoot!.querySelector('.aqi')).toBeNull();
   });
 
-  it('shows the glyph and number with the band tint, and no visible category text', async () => {
-    const el = await mount(view({ airQuality: { aqi: 42, category: 'Good', level: 'good' } }));
+  it('shows an arc gauge with the number and band tint, and no visible category text', async () => {
+    const el = await mount(
+      view({ airQuality: { aqi: 42, category: 'Good', level: 'good', fraction: 42 / 300 } }),
+    );
     const aqi = el.shadowRoot!.querySelector('.aqi');
     expect(aqi).not.toBeNull();
     expect(aqi!.classList.contains('good')).toBe(true);
     expect(aqi!.getAttribute('part')).toBe('air-quality');
     expect(aqi!.querySelector('.num')?.textContent?.trim()).toBe('42');
+    expect(aqi!.querySelector('.label')?.textContent?.trim()).toBe('AQI');
     // The visible category word is gone (issue #66).
     expect(aqi!.querySelector('.cat')).toBeNull();
+  });
+
+  it("fills the arc to the reading's fraction of the gauge scale", async () => {
+    const el = await mount(
+      view({ airQuality: { aqi: 150, category: 'USG', level: 'sensitive', fraction: 0.5 } }),
+    );
+    const arc = el.shadowRoot!.querySelector('.aqi .arc');
+    // Same arc geometry as the UV gauge: length π·38 ≈ 119.4, offset = 1 − fraction.
+    expect(arc?.getAttribute('stroke-dashoffset')).toBe(String(119.4 * 0.5));
   });
 
   it('keeps the category in an accessible label for screen readers', async () => {
@@ -277,6 +289,7 @@ describe('Home Screen air-quality element', () => {
           aqi: 143,
           category: 'Unhealthy for Sensitive Groups',
           level: 'sensitive',
+          fraction: 143 / 300,
         },
       }),
     );
@@ -292,7 +305,7 @@ describe('Home Screen air-quality element', () => {
 // present → that indicator is centered on its own, the same single-vs-both pattern
 // the setpoint ovals already use.
 describe('Home Screen foot cluster (air quality + UV index)', () => {
-  const aq = { aqi: 42, category: 'Good', level: 'good' } as const;
+  const aq = { aqi: 42, category: 'Good', level: 'good', fraction: 42 / 300 } as const;
   const uv = { uvi: 7, category: 'High', level: 'high', fraction: 7 / 11 } as const;
 
   it('renders no foot row when neither indicator is present', async () => {

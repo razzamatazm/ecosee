@@ -34,6 +34,9 @@ export interface AirQualityView {
   category: string;
   /** Severity band the view maps to the element's color. */
   level: AirQualityLevel;
+  /** Arc fill fraction 0–1 — the raw AQI over the gauge scale max (300, where
+   *  the Hazardous band begins; higher readings pin the arc full). */
+  fraction: number;
 }
 
 /** UV-index severity band, keyed by the Home Screen to the gauge's color — green
@@ -193,7 +196,9 @@ function aqiBand(aqi: number): { category: string; level: AirQualityLevel } {
  *  `air_quality_entity`: its numeric state, or an `air_quality_index` attribute for
  *  the legacy `air_quality` domain. Returns `null` — element hidden — when the key
  *  is unset, the entity is missing/unavailable, or it carries no numeric reading
- *  (ADR-0001 graceful degradation). */
+ *  (ADR-0001 graceful degradation). The arc fills from the raw AQI over the gauge
+ *  scale max (300 — where Hazardous begins); the band/number use the rounded value,
+ *  mirroring the UV-index gauge. */
 function toAirQuality(hass: HomeAssistant, config: EcoseeCardConfig): AirQualityView | null {
   const entityId = config.air_quality_entity;
   if (!entityId) return null;
@@ -202,7 +207,7 @@ function toAirQuality(hass: HomeAssistant, config: EcoseeCardConfig): AirQuality
   const aqi = num(entity.state) ?? num(entity.attributes.air_quality_index);
   if (aqi === null) return null;
   const rounded = Math.round(aqi);
-  return { aqi: rounded, ...aqiBand(rounded) };
+  return { aqi: rounded, ...aqiBand(rounded), fraction: Math.min(Math.max(aqi, 0) / 300, 1) };
 }
 
 /** Categorize a UV index into its band. Thresholds follow the design's scale

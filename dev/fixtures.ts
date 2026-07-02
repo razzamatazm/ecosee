@@ -261,17 +261,18 @@ const ecobeeSensors: Fixture = {
   }),
 };
 
-// The optional air-quality element (issue #10): an ecobee with an
-// `air_quality_entity` reading 142 — the worst-case "Unhealthy for Sensitive
-// Groups" band, the longest category label — so the badge's wrapping can be
-// exercised across the width slider (it must not overflow the squircle).
+// The optional foot gauges (issues #10 / #75): an ecobee with an
+// `air_quality_entity` reading 142 — the "Unhealthy for Sensitive Groups"
+// band — AND a `uv_index_entity`, so the twin arc meters can be exercised
+// side by side across the width slider (they must not overflow the squircle).
 const ecobeeAirQuality: Fixture = {
-  label: 'ecobee · Air quality',
+  label: 'ecobee · Air quality + UV',
   config: {
     type: 'custom:ecosee-card',
     entity: 'climate.living_room',
     weather_entity: 'weather.home',
     air_quality_entity: 'sensor.air_quality_index',
+    uv_index_entity: 'sensor.uv_index',
   },
   hass: makeHass({
     weather: true,
@@ -293,6 +294,11 @@ const ecobeeAirQuality: Fixture = {
         entity_id: 'sensor.air_quality_index',
         state: '142',
         attributes: { friendly_name: 'Air Quality', device_class: 'aqi' },
+      },
+      {
+        entity_id: 'sensor.uv_index',
+        state: '6',
+        attributes: { friendly_name: 'UV Index' },
       },
     ],
   }),
