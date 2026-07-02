@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.png" width="120" alt="ecosee" />
+  <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/logo.png" width="120" alt="ecosee" />
 </p>
 
 <h1 align="center">ecosee</h1>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/home-auto.png" width="360" alt="ecosee home screen: large 75 degrees with heat and cool setpoint pills and a cooling edge glow" />
+  <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/home-auto.png" width="360" alt="ecosee home screen: large 75 degrees with heat and cool setpoint pills and a cooling edge glow" />
 </p>
 
 <p align="center">
@@ -45,34 +45,34 @@ the temperature.
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/overlay-temperature.png" width="230" alt="Temperature adjust screen" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-temperature.png" width="230" alt="Temperature adjust screen" /><br />
       <b>Adjust temperature</b><br />
       <sub>Scrub the wheel or tap plus / minus</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/overlay-system-mode.png" width="230" alt="System mode picker" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-system-mode.png" width="230" alt="System mode picker" /><br />
       <b>System mode</b><br />
       <sub>Heat, Cool, Heat / Cool, Off</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/overlay-comfort.png" width="230" alt="Comfort setting picker" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-comfort.png" width="230" alt="Comfort setting picker" /><br />
       <b>Comfort setting</b><br />
       <sub>Home, Away, Sleep and your own presets</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="docs/screenshots/overlay-fan.png" width="230" alt="Fan mode picker" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-fan.png" width="230" alt="Fan mode picker" /><br />
       <b>Fan</b><br />
       <sub>Speed and circulation, when supported</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/overlay-sensors.png" width="230" alt="Room sensors list" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-sensors.png" width="230" alt="Room sensors list" /><br />
       <b>Room sensors</b><br />
       <sub>Any temperature entities you list</sub>
     </td>
     <td align="center" width="33%">
-      <img src="docs/screenshots/overlay-weather.png" width="230" alt="Weather screen with current conditions and forecast" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-weather.png" width="230" alt="Weather screen with current conditions and forecast" /><br />
       <b>Weather</b><br />
       <sub>Current conditions and forecast</sub>
     </td>
@@ -82,7 +82,7 @@ the temperature.
 A main menu (the gear, top right) gathers the same screens in one place.
 
 <p align="center">
-  <img src="docs/screenshots/overlay-menu.png" width="230" alt="Main menu listing System, Sensors, Weather" />
+  <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/overlay-menu.png" width="230" alt="Main menu listing System, Sensors, Weather" />
 </p>
 
 ## Works with what you have
@@ -94,19 +94,19 @@ are no empty boxes and no broken controls either way.
 <table>
   <tr>
     <td align="center" width="25%">
-      <img src="docs/screenshots/home-heating.png" width="200" alt="Home screen while heating" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/home-heating.png" width="200" alt="Home screen while heating" /><br />
       <sub>Heating</sub>
     </td>
     <td align="center" width="25%">
-      <img src="docs/screenshots/home-cooling.png" width="200" alt="Home screen while cooling" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/home-cooling.png" width="200" alt="Home screen while cooling" /><br />
       <sub>Cooling</sub>
     </td>
     <td align="center" width="25%">
-      <img src="docs/screenshots/home-off.png" width="200" alt="Home screen with the system off" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/home-off.png" width="200" alt="Home screen with the system off" /><br />
       <sub>Off</sub>
     </td>
     <td align="center" width="25%">
-      <img src="docs/screenshots/home-minimal.png" width="200" alt="Home screen for a basic thermostat" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/home-minimal.png" width="200" alt="Home screen for a basic thermostat" /><br />
       <sub>Basic thermostat</sub>
     </td>
   </tr>
@@ -119,11 +119,11 @@ on a wall tablet.
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="docs/screenshots/home-air-quality.png" width="230" alt="Home screen with air quality and UV gauges" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/home-air-quality.png" width="230" alt="Home screen with air quality and UV gauges" /><br />
       <sub>Air quality and UV gauges</sub>
     </td>
     <td align="center" width="50%">
-      <img src="docs/screenshots/standby.png" width="230" alt="Dimmed standby screen showing the time" /><br />
+      <img src="https://raw.githubusercontent.com/razzamatazm/ecosee/HEAD/docs/screenshots/standby.png" width="230" alt="Dimmed standby screen showing the time" /><br />
       <sub>Standby screen</sub>
     </td>
   </tr>
