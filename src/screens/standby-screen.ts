@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
+import type { EquipmentStatus } from '../climate/home-view';
 import { formatTemp } from '../climate/home-view';
 import { weatherIcon } from '../icons';
 import { renderShape, shapeStyles } from '../styles/shape';
@@ -28,6 +29,12 @@ export interface StandbyView {
   /** The weather entity's current condition (`sunny` / `clear-night` / …), or
    *  `null` — supplies the glyph beside the outdoor temp; absent ⇒ number only. */
   weatherCondition: string | null;
+  /** Equipment Status (`'cooling'` / `'heating'` / `'idle'`), or `null` when not
+   *  expressible. Mirrored straight from the Home Screen's `hvac_action` derivation
+   *  (climate/home-view.ts) so Standby and Home agree; it drives the edge glow —
+   *  blue while cooling, amber while heating, nothing when idle/absent — dimmed to
+   *  the standby palette (ADR-0009, superseding ADR-0006's Home-Screen-only glow). */
+  equipment: EquipmentStatus | null;
 }
 
 /** Format a `Date` as the device's idle wall clock: a 12-hour time with a leading
@@ -99,6 +106,44 @@ export class EcoseeStandbyScreen extends LitElement {
       color: var(--ecosee-standby-fg, #ffffff);
       font-family: var(--ecosee-font, system-ui, sans-serif);
       user-select: none;
+    }
+
+    /* Equipment-status edge glow, keyed to hvac_action — the SAME crisp
+       squircle-edge line the Home Screen draws (ADR-0009 supersedes ADR-0006's
+       Home-Screen-only glow): blue cooling / amber heating, nothing idle. The glow
+       markup and the reveal/color chain mirror the Home Screen (home-screen.ts) so
+       the two never drift; the only Standby difference is a lower opacity on the
+       reveal rule, dimming the glow into the standby display's low-brightness idle
+       palette (the device dims the whole screen in standby). Expressed as opacity —
+       not a new shape variant — so the shared glow markup and currentColor chain are
+       untouched. Idle has no reveal rule by design, so it stays glow-less. */
+    .shape .glow {
+      display: none;
+    }
+    .shape .glow path {
+      fill: none;
+      stroke: currentColor;
+    }
+    .screen.cooling .glow {
+      display: block;
+      color: var(--ecosee-cool, #49b6ea);
+      opacity: var(--ecosee-standby-glow-opacity, 0.6);
+    }
+    .screen.heating .glow {
+      display: block;
+      color: var(--ecosee-heat, #f3a13c);
+      opacity: var(--ecosee-standby-glow-opacity, 0.6);
+    }
+
+    /* The glow is color-only, so announce the equipment state to assistive tech
+       (WCAG: don't convey information by color alone), matching the Home Screen. */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
 
     /* The idle content sits above the shared .shape surface (z-index 0). */
@@ -173,8 +218,13 @@ export class EcoseeStandbyScreen extends LitElement {
   override render(): TemplateResult {
     const view = this.view;
     return html`
-      <div class="screen" part="screen">
-        ${renderShape()}
+      <div class="screen ${view?.equipment ?? ''}" part="screen">
+        ${renderShape({ glow: true })}
+        ${
+          view?.equipment
+            ? html`<span class="sr-only">${this._equipLabel(view.equipment)}</span>`
+            : nothing
+        }
         ${this._renderOutdoor(view)}
         <div class="current" part="current">
           ${
@@ -205,6 +255,14 @@ export class EcoseeStandbyScreen extends LitElement {
         <span class="outdoor-temp">${formatTemp(view.outdoorTemp, view.unit)}</span>
       </div>
     `;
+  }
+
+  /** Screen-reader label for the equipment glow, mirroring the Home Screen so both
+   *  surfaces announce the same words for the same `hvac_action`. */
+  private _equipLabel(equipment: EquipmentStatus): string {
+    if (equipment === 'cooling') return 'Cooling';
+    if (equipment === 'heating') return 'Heating';
+    return 'Idle';
   }
 }
 

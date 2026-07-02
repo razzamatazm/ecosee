@@ -27,5 +27,9 @@ export function toStandbyView(hass: HomeAssistant, config: EcoseeCardConfig): St
     // `toHomeView` already normalizes the condition to `string | null` (null when no
     // usable weather entity), which is exactly what the Standby Screen glyph wants.
     weatherCondition: home.weatherCondition,
+    // Reuse the Home Screen's already-derived equipment status (hvac_action, inferred
+    // when absent) so Standby's edge glow lights on exactly the same states — no
+    // second derivation to drift (ADR-0009).
+    equipment: home.equipment,
   };
 }

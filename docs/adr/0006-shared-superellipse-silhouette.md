@@ -1,5 +1,10 @@
 # Shared superellipse silhouette across every surface
 
+> **Update:** the "equipment edge glow is Home-Screen-only" clause below is
+> **superseded by [ADR-0009](./0009-standby-equipment-glow.md)** — the equipment glow
+> now renders on the Standby Screen too (dimmed), keyed to the same equipment status.
+> The silhouette + canvas-fill contract of this ADR is otherwise unchanged.
+
 The device's outer edge is a true **superellipse** (|x|⁴ + |y|⁴ = 1) — the ecobee
 squircle, softer at the corners than a constant-radius `border-radius`. That shape
 originally lived only on the Home Screen: it drew an inline `.shape` SVG whose one
@@ -32,12 +37,16 @@ curve (which stay transparent, exactly as the Home Screen already rendered).
   `shapeStyles`, so the outline and the near-black fill (both driven by
   `SQUIRCLE_PATH` / `--ecosee-bg`) are identical everywhere. A token override of
   `--ecosee-bg` recolors all of them at once.
-- **The equipment edge glow is Home-Screen-only.** Only the Home Screen has
-  equipment state, so only it opts into the glow (`renderShape({ glow: true })`)
-  and owns its reveal CSS (`.screen.cooling` / `.screen.heating`). Standby and the
-  Overlay shell share the silhouette but render no glow group. Keeping the glow
-  asserted in exactly one place is deliberate: it stops the fill (shared) and the
-  glow (not shared) from drifting back apart.
+- **The equipment edge glow was Home-Screen-only.**
+  **(Superseded by [ADR-0009](./0009-standby-equipment-glow.md): the Standby Screen
+  now shows the glow too, dimmed, keyed to the same equipment status; only the Overlay
+  shell has none.)** As originally decided: only the Home Screen had equipment state,
+  so only it opted into the glow (`renderShape({ glow: true })`) and owned its reveal
+  CSS (`.screen.cooling` / `.screen.heating`), while Standby and the Overlay shell
+  shared the silhouette but rendered no glow group. Keeping the glow asserted in one
+  place is still deliberate — it stops the fill (shared) and the glow from drifting
+  back apart — but that place is now the Home *and* Standby reveal CSS, not the Home
+  Screen alone.
 - **No cqw / `container-type` in `shapeStyles`.** The Overlay shell is a
   fixed-canvas surface with no query container (issue #35); the shared shape CSS
   carries no container-query units, so it is safe there and in the query-container
@@ -50,6 +59,7 @@ curve (which stay transparent, exactly as the Home Screen already rendered).
   rounded-rectangle surfaces — is retired; nothing references it, and the device
   renders the fixed superellipse. Update `styles/shape.ts` to reshape the outline.
 - `test/shared-shape.test.ts` guards the contract: every surface renders the shared
-  `.shape` fill path, only the Home Screen renders a glow group, and no surface uses
-  `--ecosee-radius` / a corner `border-radius`. If a new surface is added, add it
-  there so it can't ship a mismatched silhouette.
+  `.shape` fill path, the glow group renders on the Home and Standby screens but not
+  the Overlay shell (ADR-0009), and no surface uses `--ecosee-radius` / a corner
+  `border-radius`. If a new surface is added, add it there so it can't ship a
+  mismatched silhouette.

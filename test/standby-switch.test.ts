@@ -8,6 +8,7 @@ import type { HomeAssistant } from '../src/types/hass';
 import type { EcoseeCardConfig } from '../src/config';
 import { STANDBY_RETURN_MS } from '../src/overlays/inactivity-timer';
 import { toStandbyView } from '../src/screens/standby-view';
+import { toHomeView } from '../src/climate/home-view';
 import { fakeHass, climateEntity } from './helpers/fake-hass';
 
 // Issue #65: the Home ↔ Standby switching. These mount the real <ecosee-card> and
@@ -79,6 +80,31 @@ describe('toStandbyView — hass → view (issue #65)', () => {
     });
     expect(view.outdoorTemp).toBeNull();
     expect(view.weatherCondition).toBeNull();
+  });
+
+  it('mirrors the Home Screen equipment status so the Standby edge glow matches (issue #90)', () => {
+    // Same hvac_action → same equipment string that drives the edge glow, so Standby
+    // and Home light on identical states without a second derivation (ADR-0009).
+    const { hass } = fakeHass({
+      entities: [climateEntity('cool', { current_temperature: 72, hvac_action: 'cooling' })],
+    });
+    const config = {
+      type: 'custom:ecosee-card',
+      entity: 'climate.t',
+      standby_screen: true,
+    } as const;
+    expect(toStandbyView(hass, config).equipment).toBe('cooling');
+    expect(toStandbyView(hass, config).equipment).toBe(toHomeView(hass, config).equipment);
+  });
+
+  it('leaves equipment null when hvac_action is absent and nothing is inferable', () => {
+    const { hass } = fakeHass({ entities: [climateEntity('cool', { current_temperature: 72 })] });
+    const view = toStandbyView(hass, {
+      type: 'custom:ecosee-card',
+      entity: 'climate.t',
+      standby_screen: true,
+    });
+    expect(view.equipment).toBeNull();
   });
 });
 

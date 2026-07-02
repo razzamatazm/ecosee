@@ -49,6 +49,7 @@ function standbyView(overrides: Partial<StandbyView> = {}): StandbyView {
     unit: '°F',
     outdoorTemp: 58,
     weatherCondition: 'sunny',
+    equipment: null,
     ...overrides,
   };
 }
@@ -112,16 +113,17 @@ describe('shared superellipse silhouette (issue #76)', () => {
     expect(shapeStyles.cssText).toMatch(/\.fill\s*\{[^}]*fill:\s*var\(\s*--ecosee-bg/);
   });
 
-  it('draws the equipment edge glow only on the Home Screen', async () => {
-    // The glow is Home-Screen-only (it has equipment state); Standby / Overlays share
-    // the silhouette + canvas fill but must not render a glow group.
+  it('draws the equipment edge glow on the Home and Standby screens, not the Overlay shell (ADR-0009)', async () => {
+    // ADR-0009 supersedes ADR-0006's Home-Screen-only glow: the Standby Screen now
+    // shares the equipment glow too (it also has equipment state). The Overlay shell
+    // has none — it shares the silhouette + canvas fill but never carries equipment.
     const [home, standby, overlay] = await Promise.all([
       mountHome(),
       mountStandby(),
       mountOverlay(),
     ]);
     expect(home.shadowRoot!.querySelector('svg.shape .glow')).not.toBeNull();
-    expect(standby.shadowRoot!.querySelector('svg.shape .glow')).toBeNull();
+    expect(standby.shadowRoot!.querySelector('svg.shape .glow')).not.toBeNull();
     expect(overlay.shadowRoot!.querySelector('svg.shape .glow')).toBeNull();
   });
 

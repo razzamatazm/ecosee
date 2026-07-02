@@ -43,8 +43,8 @@ degradation** (ADR-0001). Anything whose data is absent is hidden, never faked.
   every Overlay — shares one outer edge: a true **superellipse** (|x|⁴ + |y|⁴ = 1),
   softer at the corners than a constant-radius rounded-square, so the Card's
   silhouette never changes as you move between screens (ADR-0006). One shared path
-  drives the canvas fill, the clip, and the Home Screen's equipment edge glow, so
-  all trace the identical curve.
+  drives the canvas fill, the clip, and the equipment edge glow (the Home Screen's
+  and, dimmed, the Standby Screen's — ADR-0009), so all trace the identical curve.
 - **Canvas:** near-black background, cyan/blue accent text and outlines.
 - **Selected state:** filled cyan fill. The System Mode picker's selected row uses
   dark text on cyan; the Temperature Adjust scrubber bubble uses a thin light
@@ -126,6 +126,9 @@ then the setpoint ovals — see also the equipment edge glow below.
   cooling, amber while heating, none when idle. From `hvac_action` (inferred if
   absent); see `reference/home-cooling.jpeg` / `home-heating.jpeg`. A crisp thin
   outline tracing the squircle edge with a gentle falloff inward, not a diffuse halo.
+  The **same glow also renders on the Standby Screen**, dimmed to its idle brightness
+  (see the Standby Screen section — ADR-0009 supersedes the earlier Home-Screen-only
+  decision).
 - **Setpoint ovals / setpoint display** (when setpoints are active): the device's
   colored setpoint ovals — an **amber Heat oval** (♨ heat-coil glyph + temp, e.g.
   `♨ 70`) and a **blue Cool oval** (❄ snowflake glyph + temp, e.g. `❄ 75`), each a
@@ -166,6 +169,23 @@ then the setpoint ovals — see also the equipment edge glow below.
 - **Menu affordance** (top row, right) — a **cog** (gear) glyph; opens the Main Menu.
 - **Omitted (no generic data source):** reminder/alert glyph, glowing status orb (the
   distinct center orb; the equipment *edge glow* above is backed by `hvac_action`).
+
+### Standby Screen
+The device's **dimmed idle display** (issue #63) — a minimal white-on-black layout: the
+weather condition glyph + outdoor temperature on top, the large current temperature
+centered, and a live wall clock at the bottom. It shares the same superellipse
+silhouette and canvas fill as every other surface (ADR-0006). Purely presentational
+with graceful degradation (ADR-0001): an absent datum is hidden, never faked. The clock
+is the one exception — it is the device's own wall time, not read off `hass`, so it
+always shows and ticks live.
+- **Equipment Status edge glow** — the **same** glow as the Home Screen: blue while
+  cooling, amber while heating, none when idle, keyed to the same `hvac_action`
+  (inferred if absent), and mirrored from the Home Screen's derivation so both agree.
+  It is **dimmed** to fit the standby display's low idle brightness
+  (`--ecosee-standby-glow-opacity`, default `0.6`) — the same crisp squircle-edge line
+  with a gentle inward falloff, just at reduced strength (not a diffuse halo). This
+  supersedes the earlier Home-Screen-only decision (**ADR-0009 supersedes ADR-0006**).
+  The glow's equipment state is also announced to assistive tech (color-only cue).
 
 ### Main Menu — `reference/menu-system.jpeg`
 The hub reached from the Home Screen menu affordance, presented as an Overlay.

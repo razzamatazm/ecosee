@@ -22,6 +22,13 @@ export const tokens = css`
        Skin color. */
     --ecosee-standby-fg: #ffffff;
 
+    /* The Standby Screen shows the SAME equipment edge glow as the Home Screen
+       (blue cooling / amber heating, keyed to hvac_action), but dimmed to fit the
+       standby display's low idle brightness — applied as opacity on the standby
+       reveal rule, so the shared glow markup / color chain is untouched (ADR-0009,
+       superseding ADR-0006's Home-Screen-only glow). Overridable per dashboard. */
+    --ecosee-standby-glow-opacity: 0.6;
+
     /* The dominant current-temperature number: cyan with the device's faint
        top-bright sheen (a near-white cyan fading into the accent). The stops
        account for the 0.16em of ink-safety padding on the Home Screen's .temp

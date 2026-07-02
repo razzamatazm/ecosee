@@ -20,6 +20,7 @@ function view(overrides: Partial<StandbyView> = {}): StandbyView {
     unit: '°F',
     outdoorTemp: 58,
     weatherCondition: 'sunny',
+    equipment: null,
     ...overrides,
   };
 }
@@ -35,6 +36,9 @@ async function mount(v?: StandbyView): Promise<EcoseeStandbyScreen> {
 const current = (el: EcoseeStandbyScreen) => el.shadowRoot!.querySelector('.current');
 const outdoor = (el: EcoseeStandbyScreen) => el.shadowRoot!.querySelector('.outdoor');
 const clock = (el: EcoseeStandbyScreen) => el.shadowRoot!.querySelector('.clock');
+const screenRoot = (el: EcoseeStandbyScreen) => el.shadowRoot!.querySelector('.screen')!;
+const glowGroup = (el: EcoseeStandbyScreen) => el.shadowRoot!.querySelector('svg.shape .glow');
+const srLabel = (el: EcoseeStandbyScreen) => el.shadowRoot!.querySelector('.sr-only');
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -102,6 +106,49 @@ describe('Standby Screen wall clock', () => {
     await el.updateComplete;
 
     expect(clock(el)?.textContent?.trim()).toBe('5:41 PM');
+  });
+});
+
+describe('Standby Screen equipment edge glow (issue #90)', () => {
+  // ADR-0009 supersedes ADR-0006's Home-Screen-only glow: the Standby Screen now
+  // renders the same edge glow, keyed to the same equipment status. The glow group
+  // is always drawn (renderShape({ glow: true })) and revealed/colored by the
+  // equipment class on the `.screen` root — exactly the Home Screen's reveal chain,
+  // mirrored here. These jsdom checks assert the structural reveal contract (the
+  // class that lights the glow); the real computed reveal + dimming + color are
+  // proven against a live engine in test/browser/standby-glow.test.ts.
+
+  it('always renders the shared glow group so the reveal has something to light', async () => {
+    const el = await mount(view({ equipment: 'idle' }));
+    expect(glowGroup(el)).not.toBeNull();
+    expect(glowGroup(el)!.querySelectorAll('path')).toHaveLength(3);
+  });
+
+  it('reveals the glow while cooling — the `.screen` root carries the cooling class', async () => {
+    const el = await mount(view({ equipment: 'cooling' }));
+    expect(screenRoot(el).classList.contains('cooling')).toBe(true);
+    expect(screenRoot(el).classList.contains('heating')).toBe(false);
+    expect(srLabel(el)?.textContent?.trim()).toBe('Cooling');
+  });
+
+  it('reveals the glow while heating — the `.screen` root carries the heating class', async () => {
+    const el = await mount(view({ equipment: 'heating' }));
+    expect(screenRoot(el).classList.contains('heating')).toBe(true);
+    expect(screenRoot(el).classList.contains('cooling')).toBe(false);
+    expect(srLabel(el)?.textContent?.trim()).toBe('Heating');
+  });
+
+  it('shows NO glow reveal while idle (no cooling/heating class — intentional, not a bug)', async () => {
+    const el = await mount(view({ equipment: 'idle' }));
+    expect(screenRoot(el).classList.contains('cooling')).toBe(false);
+    expect(screenRoot(el).classList.contains('heating')).toBe(false);
+  });
+
+  it('shows NO glow reveal when equipment status is absent', async () => {
+    const el = await mount(view({ equipment: null }));
+    expect(screenRoot(el).classList.contains('cooling')).toBe(false);
+    expect(screenRoot(el).classList.contains('heating')).toBe(false);
+    expect(srLabel(el)).toBeNull();
   });
 });
 
