@@ -276,8 +276,23 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     return 4;
   }
 
-  static getStubConfig(): Partial<EcoseeCardConfig> {
-    return { entity: '' };
+  /** Seed config for the dashboard card picker's live preview. HA passes the
+   *  available entities; we bind the first `climate.*` one so the preview renders
+   *  a real thermostat instead of an empty (invalid) card. Falls back to a
+   *  placeholder id when the dashboard has no climate entity at all. */
+  static getStubConfig(
+    hass: HomeAssistant | undefined,
+    entities: readonly string[] | undefined,
+    entitiesFallback: readonly string[] | undefined,
+  ): Partial<EcoseeCardConfig> {
+    const firstClimate = (list: readonly string[] | undefined): string | undefined =>
+      list?.find((entityId) => entityId.startsWith('climate.'));
+    const entity =
+      firstClimate(entities) ??
+      firstClimate(entitiesFallback) ??
+      firstClimate(hass ? Object.keys(hass.states) : undefined) ??
+      'climate.living_room';
+    return { entity };
   }
 
   /** The GUI config editor HA mounts when a user edits the Card from the dashboard
@@ -657,7 +672,7 @@ window.customCards = window.customCards ?? [];
 window.customCards.push({
   type: CARD_TYPE,
   name: 'ecosee',
-  description: 'An ecobee Smart Thermostat Premium skin over any climate entity.',
+  description: 'A full-screen thermostat card for any climate entity.',
   preview: true,
 });
 

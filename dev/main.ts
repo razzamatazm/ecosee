@@ -3,13 +3,12 @@ import { CARD_TYPE } from '../src/config';
 import type { LovelaceCard } from '../src/types/hass';
 import { fixtures } from './fixtures';
 
-// Minimal preview harness: a fixture switcher and a width slider so the
-// responsive squircle can be exercised at different container sizes.
+// Minimal preview harness: a fixture switcher that swaps the hand-built `hass`
+// snapshot the card renders against. The stage owns a fixed responsive width, so
+// the card scales itself to fit exactly as it does in a dashboard slot.
 
 const stage = document.getElementById('stage') as HTMLDivElement;
 const picker = document.getElementById('fixture') as HTMLSelectElement;
-const widthSlider = document.getElementById('width') as HTMLInputElement;
-const widthLabel = document.getElementById('width-label') as HTMLSpanElement;
 
 const card = document.createElement(CARD_TYPE) as LovelaceCard;
 stage.appendChild(card);
@@ -27,13 +26,6 @@ function applyFixture(index: number): void {
   card.hass = fixture.hass;
 }
 
-function applyWidth(px: number): void {
-  stage.style.width = `${px}px`;
-  widthLabel.textContent = `${px}px`;
-}
-
 picker.addEventListener('change', () => applyFixture(Number(picker.value)));
-widthSlider.addEventListener('input', () => applyWidth(Number(widthSlider.value)));
 
 applyFixture(0);
-applyWidth(Number(widthSlider.value));

@@ -13,7 +13,10 @@
         min-height: 100vh;
         background: #15191d;
         color: #cfd8dd;
-        font-family: system-ui, -apple-system, sans-serif;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -29,6 +32,12 @@
         color: #62cfe9;
         margin: 0;
       }
+      .hint {
+        margin: -12px 0 0;
+        font-size: 13px;
+        color: #7c8b93;
+        text-align: center;
+      }
       .controls {
         display: flex;
         flex-wrap: wrap;
@@ -36,11 +45,8 @@
         gap: 16px;
         font-size: 13px;
       }
-      select,
-      input[type='range'] {
-        accent-color: #62cfe9;
-      }
       select {
+        accent-color: #62cfe9;
         background: #0a0d10;
         color: #cfd8dd;
         border: 1px solid #2a3138;
@@ -48,18 +54,18 @@
         padding: 6px 8px;
       }
       #stage {
-        width: 380px;
-        max-width: 100%;
-        transition: width 0.15s ease;
+        width: min(460px, 92vw);
       }
     </style>
   </head>
   <body>
-    <h1>ecosee · Home Screen</h1>
+    <h1>ecosee · live demo</h1>
+    <p class="hint">Tap the card to open its controls. Switch example thermostats below.</p>
     <div class="controls">
-      <label>Fixture <select id="fixture"></select></label>
-      <label>Width <input id="width" type="range" min="200" max="520" value="380" /></label>
-      <span id="width-label">380px</span>
+      <label
+        >Thermostat
+        <select id="fixture"></select
+      ></label>
     </div>
     <div id="stage"></div>
     <script type="module" src="./main.ts"></script>

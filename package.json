@@ -1,7 +1,7 @@
 {
   "name": "ecosee",
   "version": "0.5.2",
-  "description": "A Home Assistant custom Lovelace card that renders a pixel-perfect ecobee Smart Thermostat Premium skin over any climate entity.",
+  "description": "A full-screen thermostat card for Home Assistant, over any climate entity.",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -10,6 +10,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "demo": "vite build --config vite.demo.config.ts",
     "build": "tsc --noEmit && vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

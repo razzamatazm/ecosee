@@ -100,7 +100,7 @@ const HOURLY_FORECAST = [
 // Reproduces docs/reference/home-hold.jpeg: Heat/Cool (Auto) setpoints 70–75,
 // current 75, 60% humidity, actively cooling, weather present, ecobee-backed.
 const ecobeeAuto: Fixture = {
-  label: 'ecobee · Auto (the photo)',
+  label: 'Heat · Cool (Auto)',
   config: {
     type: 'custom:ecosee-card',
     entity: 'climate.living_room',
@@ -120,6 +120,7 @@ const ecobeeAuto: Fixture = {
         hvac_action: 'cooling',
         hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
         preset_modes: ['Home', 'Away', 'Sleep'],
+        preset_mode: 'Home',
         min_temp: 45,
         max_temp: 92,
         target_temp_step: 1,
@@ -129,7 +130,7 @@ const ecobeeAuto: Fixture = {
 };
 
 const ecobeeHeating: Fixture = {
-  label: 'ecobee · Heating',
+  label: 'Heating',
   config: { type: 'custom:ecosee-card', entity: 'climate.bedroom', weather_entity: 'weather.home' },
   hass: makeHass({
     weather: true,
@@ -155,7 +156,7 @@ const ecobeeHeating: Fixture = {
 // A bare generic thermostat: no humidity, no hvac_action, no weather.
 // The rail collapses and equipment is softly inferred from the setpoints.
 const genericDegraded: Fixture = {
-  label: 'Generic · degraded',
+  label: 'Minimal thermostat',
   config: { type: 'custom:ecosee-card', entity: 'climate.garage' },
   hass: makeHass({
     climate: {
@@ -172,7 +173,7 @@ const genericDegraded: Fixture = {
 
 // Cool-only: ❄ System Mode glyph, single cyan setpoint pill, blue equipment ring.
 const ecobeeCooling: Fixture = {
-  label: 'ecobee · Cool',
+  label: 'Cooling',
   config: { type: 'custom:ecosee-card', entity: 'climate.office', weather_entity: 'weather.home' },
   hass: makeHass({
     weather: true,
@@ -186,6 +187,8 @@ const ecobeeCooling: Fixture = {
         temperature: 73,
         hvac_action: 'cooling',
         hvac_modes: ['off', 'heat', 'cool', 'heat_cool'],
+        fan_modes: ['auto', 'on', 'low', 'medium', 'high'],
+        fan_mode: 'auto',
         min_temp: 45,
         max_temp: 92,
         target_temp_step: 1,
@@ -196,7 +199,7 @@ const ecobeeCooling: Fixture = {
 
 // Off: (OFF) System Mode glyph, no setpoint pill, no equipment ring.
 const ecobeeOff: Fixture = {
-  label: 'ecobee · Off',
+  label: 'Off',
   config: { type: 'custom:ecosee-card', entity: 'climate.den', weather_entity: 'weather.home' },
   hass: makeHass({
     weather: true,
@@ -218,7 +221,7 @@ const ecobeeOff: Fixture = {
 // curated list of remote sensors — some with an occupancy entity (→ "Occupied"),
 // some without (badge hidden, ADR-0001). Open Main Menu › Sensors to view.
 const ecobeeSensors: Fixture = {
-  label: 'ecobee · Sensors',
+  label: 'Room sensors',
   config: {
     type: 'custom:ecosee-card',
     entity: 'climate.living_room',
@@ -227,7 +230,7 @@ const ecobeeSensors: Fixture = {
       { entity: 'sensor.hallway_temp', name: 'Hallway', occupancy_entity: 'binary_sensor.hallway' },
       {
         entity: 'sensor.office_temp',
-        name: 'Erica Office',
+        name: 'Office',
         occupancy_entity: 'binary_sensor.office',
       },
       { entity: 'sensor.kitchen_temp', name: 'Kitchen', occupancy_entity: 'binary_sensor.kitchen' },
@@ -266,7 +269,7 @@ const ecobeeSensors: Fixture = {
 // band — AND a `uv_index_entity`, so the twin arc meters can be exercised
 // side by side across the width slider (they must not overflow the squircle).
 const ecobeeAirQuality: Fixture = {
-  label: 'ecobee · Air quality + UV',
+  label: 'Air quality + UV',
   config: {
     type: 'custom:ecosee-card',
     entity: 'climate.living_room',
@@ -305,7 +308,7 @@ const ecobeeAirQuality: Fixture = {
 };
 
 const unavailable: Fixture = {
-  label: 'Unavailable entity',
+  label: 'Unavailable',
   config: { type: 'custom:ecosee-card', entity: 'climate.living_room' },
   hass: makeHass({
     climate: {
@@ -320,7 +323,7 @@ const unavailable: Fixture = {
 // element is backed by its own entity, so it still renders on the quiet shell
 // (issue #10). Reads 38 → "Good".
 const unavailableWithAirQuality: Fixture = {
-  label: 'Unavailable · air quality still shown',
+  label: 'Unavailable + air quality',
   config: {
     type: 'custom:ecosee-card',
     entity: 'climate.living_room',

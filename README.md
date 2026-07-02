@@ -1,107 +1,197 @@
-# ecosee
+<p align="center">
+  <img src="docs/logo.png" width="120" alt="ecosee" />
+</p>
 
-A Home Assistant custom Lovelace card that renders a pixel-perfect **ecobee Smart
-Thermostat Premium (2022)** skin over **any** `climate` entity — showing full
-ecobee fidelity when rich data is present and degrading gracefully when it is not.
+<h1 align="center">ecosee</h1>
 
-> It is a generic thermostat card _wearing an ecobee skin_. Point it at a HomeKit
-> ecobee, a Nest, or a generic thermostat: features whose backing data is absent
-> are hidden, never faked. See [`CONTEXT.md`](./CONTEXT.md) and
-> [`docs/adr/`](./docs/adr/) for the why.
+<p align="center">
+  A more modern way to see and control any Home Assistant thermostat. Big, legible
+  temperature, live heating and cooling status, and every control one tap away, on
+  the <code>climate</code> entity you already have.
+</p>
 
-## Status
+<p align="center">
+  <img src="docs/screenshots/home-auto.png" width="360" alt="ecosee home screen: large 75 degrees with heat and cool setpoint pills and a cooling edge glow" />
+</p>
 
-Milestone 1 — project skeleton + the **Home Screen** (current temperature,
-humidity, equipment status, setpoint ovals, weather icon, menu affordance),
-the overlays (temperature adjust, System Mode, Comfort Setting, Fan, Weather,
-Sensors), and a **GUI config editor** so the Card is configurable from the
-dashboard UI as well as YAML.
+<p align="center">
+  <a href="https://razzamatazm.github.io/ecosee/"><b>Try the live demo</b></a>
+  &nbsp;·&nbsp;
+  <a href="#install-hacs">Install</a>
+  &nbsp;·&nbsp;
+  <a href="#configuration">Configure</a>
+</p>
+
+ecosee is a modern replacement for Home Assistant's default thermostat card.
+Point it at any `climate` entity and you get a clean, full-screen view: a large
+current temperature, the room humidity, a soft glow around the edge while the
+system is heating or cooling, and rounded setpoint pills you tap to adjust. It
+reads whatever your thermostat exposes, so it looks right on a high-end smart
+thermostat and a basic one alike.
+
+The demo above runs the real card in your browser against sample data, with no
+Home Assistant behind it. Tap the card to open its controls.
+
+## Controls
+
+Tap the card to reach a control. Each one opens over the home screen and returns
+to it on its own after a moment of no input, so the card always settles back to
+the temperature.
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/overlay-temperature.png" width="230" alt="Temperature adjust screen" /><br />
+      <b>Adjust temperature</b><br />
+      <sub>Scrub the wheel or tap plus / minus</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/overlay-system-mode.png" width="230" alt="System mode picker" /><br />
+      <b>System mode</b><br />
+      <sub>Heat, Cool, Heat / Cool, Off</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/overlay-comfort.png" width="230" alt="Comfort setting picker" /><br />
+      <b>Comfort setting</b><br />
+      <sub>Home, Away, Sleep and your own presets</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/overlay-fan.png" width="230" alt="Fan mode picker" /><br />
+      <b>Fan</b><br />
+      <sub>Speed and circulation, when supported</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/overlay-sensors.png" width="230" alt="Room sensors list" /><br />
+      <b>Room sensors</b><br />
+      <sub>Any temperature entities you list</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="docs/screenshots/overlay-weather.png" width="230" alt="Weather screen with current conditions and forecast" /><br />
+      <b>Weather</b><br />
+      <sub>Current conditions and forecast</sub>
+    </td>
+  </tr>
+</table>
+
+A main menu (the gear, top right) gathers the same screens in one place.
+
+<p align="center">
+  <img src="docs/screenshots/overlay-menu.png" width="230" alt="Main menu listing System, Sensors, Weather" />
+</p>
+
+## Works with what you have
+
+The card shows only what your entity actually reports. A capable thermostat
+lights up every element; a basic one shows a clean, minimal face instead. There
+are no empty boxes and no broken controls either way.
+
+<table>
+  <tr>
+    <td align="center" width="25%">
+      <img src="docs/screenshots/home-heating.png" width="200" alt="Home screen while heating" /><br />
+      <sub>Heating</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/screenshots/home-cooling.png" width="200" alt="Home screen while cooling" /><br />
+      <sub>Cooling</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/screenshots/home-off.png" width="200" alt="Home screen with the system off" /><br />
+      <sub>Off</sub>
+    </td>
+    <td align="center" width="25%">
+      <img src="docs/screenshots/home-minimal.png" width="200" alt="Home screen for a basic thermostat" /><br />
+      <sub>Basic thermostat</sub>
+    </td>
+  </tr>
+</table>
+
+Two extras you can switch on when you want them: air-quality and UV gauges along
+the bottom, and a dimmed standby screen with the time for when the card sits idle
+on a wall tablet.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/home-air-quality.png" width="230" alt="Home screen with air quality and UV gauges" /><br />
+      <sub>Air quality and UV gauges</sub>
+    </td>
+    <td align="center" width="50%">
+      <img src="docs/screenshots/standby.png" width="230" alt="Dimmed standby screen showing the time" /><br />
+      <sub>Standby screen</sub>
+    </td>
+  </tr>
+</table>
 
 ## Install (HACS)
 
-1. HACS → Frontend → ⋮ → **Custom repositories** → add this repo as a
-   **Lovelace** (Dashboard) repository.
-2. Install **ecosee**, then add the resource if HACS doesn't do it automatically:
-   `/hacsfiles/ecosee/ecosee.js` as a **JavaScript Module**.
-3. Add the card to a dashboard (YAML below).
+1. In HACS, open the menu (top right) and choose **Custom repositories**. Add
+   `https://github.com/razzamatazm/ecosee` as a **Lovelace** (Dashboard)
+   repository.
+2. Install **ecosee** from the list.
+3. If HACS does not add the resource for you, add it under
+   **Settings → Dashboards → Resources**: URL `/hacsfiles/ecosee/ecosee.js`,
+   type **JavaScript Module**.
+4. Add the card to a dashboard (see below).
 
 ## Configuration
 
-Configure the Card from the dashboard's **visual editor** or in YAML — both write
-the same schema below; only `entity` is required. (The visual editor manages the
-list of `sensors` entities; per-sensor `name`/`occupancy_entity` overrides are
-edited in YAML.)
+Add the card through your dashboard's visual editor, or in YAML. Both write the
+same options; only `entity` is required.
 
 ```yaml
 type: custom:ecosee-card
-entity: climate.living_room # required — the bound climate entity
-name: Living Room # optional — defaults to the friendly name
-weather_entity: weather.home # optional — enables the weather icon
-humidity_entity: sensor.hallway_humidity # optional — humidity fallback
-inactivity_timeout: 12 # optional — seconds before an overlay reverts; 0 = off
-sensors: # optional — the Main Menu › Sensors sub-screen
-  - sensor.kitchen_temperature # shorthand: a temperature entity id
+entity: climate.living_room # required, a climate.* entity
+name: Living Room # optional, defaults to the entity's friendly name
+weather_entity: weather.home # optional, shows the weather icon and screen
+humidity_entity: sensor.hallway_humidity # optional, if the thermostat has no humidity
+air_quality_entity: sensor.air_quality_index # optional, adds the AQI gauge
+uv_index_entity: sensor.uv_index # optional, adds the UV gauge
+standby_screen: true # optional, dims to a clock when left idle
+sensors: # optional, the Sensors screen (see below)
+  - sensor.kitchen_temperature
   - entity: sensor.hallway_temperature
-    name: Hallway # optional label override
-    occupancy_entity: binary_sensor.hallway_occupancy # optional → badge
+    name: Hallway
+    occupancy_entity: binary_sensor.hallway_occupancy
 ```
 
-| Option               | Required | Description                                                                                |
-| -------------------- | -------- | ------------------------------------------------------------------------------------------ |
-| `entity`             | yes      | A `climate.*` entity. The Card binds to exactly one.                                       |
-| `name`               | no       | Label override.                                                                            |
-| `weather_entity`     | no       | A `weather` entity; shows the weather icon (overlay comes later).                          |
-| `humidity_entity`    | no       | Humidity source when the climate entity exposes no humidity.                               |
-| `sensors`            | no       | Curated temperature entities for the **Sensors** sub-screen (below).                       |
-| `inactivity_timeout` | no       | Seconds an open overlay waits (idle) before reverting to Home; `0` disables. Default `12`. |
+| Option                   | Required | Description                                                                           |
+| ------------------------ | -------- | ------------------------------------------------------------------------------------- |
+| `entity`                 | yes      | The `climate.*` entity the card is bound to. One card drives one thermostat.          |
+| `name`                   | no       | Label override. Defaults to the entity's friendly name.                               |
+| `weather_entity`         | no       | A `weather` entity. Enables the weather icon and the Weather screen.                  |
+| `humidity_entity`        | no       | Humidity source, for when the climate entity does not report humidity itself.         |
+| `air_quality_entity`     | no       | An entity carrying a US EPA air-quality index. Adds the AQI gauge.                    |
+| `uv_index_entity`        | no       | An entity carrying a UV index. Adds the UV gauge.                                     |
+| `fan_min_on_time_entity` | no       | A `number` entity for fan minimum runtime. Adds a selector to the Fan screen.         |
+| `sensors`                | no       | Temperature entities for the Sensors screen (see below).                              |
+| `inactivity_timeout`     | no       | Seconds an open control waits, idle, before returning home. `0` disables. Default 25. |
+| `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                           |
 
-#### `sensors` — the Sensors sub-screen
+### The Sensors screen
 
-A list curating which temperature readings appear under **Main Menu › Sensors**.
-The thermostat's own temperature is auto-included first, so this lists the _extra_
-sensors. Each item is either a bare entity-id string or an object:
+`sensors` curates which temperature readings appear under the Sensors screen. The
+thermostat's own temperature is listed first automatically, so this is for the
+extra rooms you want alongside it. Each item is either a bare entity id or an
+object:
 
 | Field              | Required | Description                                                         |
 | ------------------ | -------- | ------------------------------------------------------------------- |
 | `entity`           | yes      | A temperature entity (value in its state or `current_temperature`). |
-| `name`             | no       | Label override; defaults to the entity's friendly name.             |
-| `occupancy_entity` | no       | A binary occupancy entity backing the **"Occupied"** badge.         |
+| `name`             | no       | Label override. Defaults to the entity's friendly name.             |
+| `occupancy_entity` | no       | A binary occupancy entity that backs an "Occupied" badge.           |
 
-The sub-screen is hidden unless at least one configured sensor is usable; sensors
-that are missing, `unavailable`, or non-numeric are dropped, and the occupancy
-badge appears only when an `occupancy_entity` is supplied (graceful degradation).
-
-### Graceful degradation
-
-Each Home-Screen element is shown only when its data exists: humidity, the
-equipment indicator (`hvac_action`, softly inferred from setpoints when absent),
-the setpoint ovals (when the entity reports setpoints), and the weather icon (only
-with a `weather_entity`). A non-ecobee entity still yields a coherent card.
+Sensors that are missing, unavailable, or non-numeric are dropped, and the
+"Occupied" badge only appears when you provide an `occupancy_entity`.
 
 ## Development
 
-```bash
-npm install
-npm run dev        # preview harness with fixtures + a width slider (dev/)
-npm run test       # unit tests for the degradation logic
-npm run test:browser  # rendering parity in real headless Firefox (npx playwright install firefox first)
-npm run typecheck
-npm run lint
-npm run build      # single ES module → dist/ecosee.js
-```
-
-The preview harness (`dev/`) renders the card against hand-built `hass` fixtures —
-a rich ecobee, a bare generic thermostat, and an unavailable entity — so the UI
-can be built without a running Home Assistant.
-
-## Releasing
-
-Releases are automated and version-driven. Bump `version` in `package.json` and
-merge to `main`; the `Release` workflow builds the bundle and publishes a GitHub
-Release named `v<version>` with `dist/ecosee.js` attached. HACS resolves this
-Lovelace plugin to its latest release and downloads that asset, so a published
-release is what keeps the repository HACS-compliant. A push to `main` that doesn't
-change the version is a no-op.
+Run `npm run dev` for a live preview harness that renders the card against sample
+data with no Home Assistant behind it (the same thing published as the live demo).
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full build, test, and release
+workflow.
 
 ## License
 
