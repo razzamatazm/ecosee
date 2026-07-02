@@ -3,8 +3,8 @@ import { parseConfig } from '../src/config';
 import {
   editorSchema,
   composeEditorSchema,
-  sensorNameFields,
   sensorNameKey,
+  sensorEntityKey,
   toEditorData,
   normalizeEditorConfig,
 } from '../src/editor/editor';
@@ -48,18 +48,19 @@ describe('editorSchema — coverage', () => {
     expect(byName.humidity_entity).toEqual({
       entity: { domain: 'sensor', device_class: 'humidity' },
     });
-    expect(byName.air_quality_entity).toEqual({ entity: { domain: 'sensor', device_class: 'aqi' } });
+    expect(byName.air_quality_entity).toEqual({
+      entity: { domain: 'sensor', device_class: 'aqi' },
+    });
   });
 
   it('has no fan minimum-runtime field (removed in #57)', () => {
     expect(editorSchema().some((field) => field.name === 'fan_min_on_time_entity')).toBe(false);
   });
 
-  it('uses a multi-entity picker narrowed to temperature sensors (plus climate) for the sensors list (#56)', () => {
+  it('anchors the sensors block with a temperature-scoped entity picker (#56)', () => {
     const sensors = editorSchema().find((field) => field.name === 'sensors')?.selector;
     expect(sensors).toEqual({
       entity: {
-        multiple: true,
         filter: [{ domain: 'sensor', device_class: 'temperature' }, { domain: 'climate' }],
       },
     });
@@ -100,49 +101,66 @@ describe('editorSchema — optionality copy (#61)', () => {
   it('tells users each feature-gated element only appears once its entity is added', () => {
     const byName = Object.fromEntries(editorSchema().map((field) => [field.name, field.helper]));
     for (const name of ['weather_entity', 'air_quality_entity', 'uv_index_entity', 'sensors']) {
-      expect(byName[name], `field ${name} should note it is hidden until set`).toMatch(/hidden until/);
+      expect(byName[name], `field ${name} should note it is hidden until set`).toMatch(
+        /hidden until/,
+      );
     }
   });
 });
 
-describe('composeEditorSchema — per-sensor display names', () => {
-  it('adds no display-name fields when no sensor is configured', () => {
-    expect(sensorNameFields(base)).toEqual([]);
-    expect(composeEditorSchema(base)).toEqual(editorSchema());
+describe('composeEditorSchema — per-sensor rows', () => {
+  it('replaces the sensors anchor with just an add picker when none are configured', () => {
+    const schema = composeEditorSchema(base);
+    const names = schema.map((field) => field.name);
+    // No single `sensors` field renders; the anchor becomes the trailing add picker,
+    // and there are no display-name fields yet.
+    expect(names).not.toContain('sensors');
+    expect(names).toContain(sensorEntityKey(0));
+    expect(names.some((name) => name.startsWith(sensorNameKey('')))).toBe(false);
   });
 
-  it('adds one text field per configured sensor, right after the Sensors picker', () => {
+  it('puts each display-name field directly beneath the sensor it names, then a trailing add picker', () => {
     const config = {
       ...base,
       sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }, 'sensor.kitchen'],
     };
     const schema = composeEditorSchema(config);
     const names = schema.map((field) => field.name);
-    const sensorsAt = names.indexOf('sensors');
-    // The two name fields sit immediately after the picker, in picker order.
-    expect(names.slice(sensorsAt, sensorsAt + 3)).toEqual([
-      'sensors',
+    const sensorsAt = names.indexOf(sensorEntityKey(0));
+    // entity picker → its name field → entity picker → its name field → add picker.
+    expect(names.slice(sensorsAt, sensorsAt + 5)).toEqual([
+      sensorEntityKey(0),
       sensorNameKey('sensor.hallway'),
+      sensorEntityKey(1),
       sensorNameKey('sensor.kitchen'),
+      sensorEntityKey(2),
     ]);
     const nameField = schema.find((field) => field.name === sensorNameKey('sensor.hallway'));
     expect(nameField?.selector).toEqual({ text: {} });
     expect(nameField?.required).toBeFalsy();
+    // The single `sensors` field never renders — it is expanded into the rows above.
+    expect(names).not.toContain('sensors');
   });
 
   it('leaves the base schema (one field per config key) untouched', () => {
-    // The dynamic name fields are additive; editorSchema() stays the pure base.
-    expect(editorSchema().some((field) => field.name.startsWith(sensorNameKey('')))).toBe(false);
+    // The dynamic per-sensor fields are additive; editorSchema() stays the pure base.
+    const names = editorSchema().map((field) => field.name);
+    expect(names).toContain('sensors');
+    expect(names.some((name) => name.startsWith(sensorNameKey('')))).toBe(false);
+    expect(names.some((name) => name.startsWith('sensor_entity::'))).toBe(false);
   });
 });
 
 describe('toEditorData', () => {
-  it('maps object-form sensors to their entity ids for the picker', () => {
+  it('spreads sensor entity ids across the per-index picker fields', () => {
     const data = toEditorData({
       ...base,
       sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }, 'sensor.kitchen'],
     });
-    expect(data.sensors).toEqual(['sensor.hallway', 'sensor.kitchen']);
+    expect(data[sensorEntityKey(0)]).toBe('sensor.hallway');
+    expect(data[sensorEntityKey(1)]).toBe('sensor.kitchen');
+    // No single `sensors` key is rendered; the pickers carry the list now.
+    expect('sensors' in data).toBe(false);
   });
 
   it('surfaces each stored display name under its per-sensor name field', () => {
@@ -196,17 +214,23 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
   });
 
   it('drops an empty sensors list and keeps a shorthand list', () => {
-    expect('sensors' in normalizeEditorConfig({ ...base, sensors: [] }, base)).toBe(false);
+    // No picker holds a value → the sensors key is dropped entirely.
+    expect('sensors' in normalizeEditorConfig({ ...base }, base)).toBe(false);
     expect(
-      normalizeEditorConfig({ ...base, sensors: ['sensor.kitchen', 'sensor.den'] }, base).sensors,
+      normalizeEditorConfig(
+        { ...base, [sensorEntityKey(0)]: 'sensor.kitchen', [sensorEntityKey(1)]: 'sensor.den' },
+        base,
+      ).sensors,
     ).toEqual(['sensor.kitchen', 'sensor.den']);
   });
 
   it('keeps standby_screen when on but drops it when off or unset (#64)', () => {
-    expect(normalizeEditorConfig({ ...base, standby_screen: true }, base).standby_screen).toBe(true);
-    expect('standby_screen' in normalizeEditorConfig({ ...base, standby_screen: false }, base)).toBe(
-      false,
+    expect(normalizeEditorConfig({ ...base, standby_screen: true }, base).standby_screen).toBe(
+      true,
     );
+    expect(
+      'standby_screen' in normalizeEditorConfig({ ...base, standby_screen: false }, base),
+    ).toBe(false);
     expect('standby_screen' in normalizeEditorConfig({ ...base }, base)).toBe(false);
   });
 
@@ -214,13 +238,17 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     const prev = { ...base, sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }] };
     // If ha-form does not echo the untouched name field, fall back to the stored
     // name rather than silently dropping it.
-    const next = normalizeEditorConfig({ ...base, sensors: ['sensor.hallway'] }, prev);
+    const next = normalizeEditorConfig({ ...base, [sensorEntityKey(0)]: 'sensor.hallway' }, prev);
     expect(next.sensors).toEqual([{ entity: 'sensor.hallway', name: 'Hallway' }]);
   });
 
   it('writes a display name typed in the GUI into object-form', () => {
     const next = normalizeEditorConfig(
-      { ...base, sensors: ['sensor.hallway'], [sensorNameKey('sensor.hallway')]: 'Front Hall' },
+      {
+        ...base,
+        [sensorEntityKey(0)]: 'sensor.hallway',
+        [sensorNameKey('sensor.hallway')]: 'Front Hall',
+      },
       base,
     );
     expect(next.sensors).toEqual([{ entity: 'sensor.hallway', name: 'Front Hall' }]);
@@ -233,7 +261,8 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
     const next = normalizeEditorConfig(
       {
         ...base,
-        sensors: ['sensor.hallway', 'sensor.kitchen'],
+        [sensorEntityKey(0)]: 'sensor.hallway',
+        [sensorEntityKey(1)]: 'sensor.kitchen',
         [sensorNameKey('sensor.hallway')]: 'Hallway',
       },
       prev,
@@ -244,7 +273,7 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
   it('clears a display name when its field is emptied (back to shorthand)', () => {
     const prev = { ...base, sensors: [{ entity: 'sensor.hallway', name: 'Hallway' }] };
     const next = normalizeEditorConfig(
-      { ...base, sensors: ['sensor.hallway'], [sensorNameKey('sensor.hallway')]: '   ' },
+      { ...base, [sensorEntityKey(0)]: 'sensor.hallway', [sensorNameKey('sensor.hallway')]: '   ' },
       prev,
     );
     expect(next.sensors).toEqual(['sensor.hallway']);
@@ -256,7 +285,11 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
       sensors: [{ entity: 'sensor.hallway', occupancy_entity: 'binary_sensor.hall' }],
     };
     const next = normalizeEditorConfig(
-      { ...base, sensors: ['sensor.hallway'], [sensorNameKey('sensor.hallway')]: 'Hall' },
+      {
+        ...base,
+        [sensorEntityKey(0)]: 'sensor.hallway',
+        [sensorNameKey('sensor.hallway')]: 'Hall',
+      },
       prev,
     );
     expect(next.sensors).toEqual([
@@ -290,7 +323,7 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
       humidity_entity: '', // user cleared it
       air_quality_entity: 'sensor.aqi',
       uv_index_entity: 'sensor.uv',
-      sensors: ['sensor.kitchen'],
+      [sensorEntityKey(0)]: 'sensor.kitchen',
       inactivity_timeout: 0,
     };
     const config = parseConfig(normalizeEditorConfig(formValue, {}));
