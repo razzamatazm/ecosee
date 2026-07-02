@@ -1,4 +1,4 @@
-import { css, html, nothing, type CSSResult, type TemplateResult } from 'lit';
+import { css, html, svg, nothing, type CSSResult, type TemplateResult } from 'lit';
 
 /**
  * The device's outer silhouette, shared by every surface (issue #76). One
@@ -68,8 +68,15 @@ export function renderShape(options: ShapeOptions = {}): TemplateResult {
   return html`
     <svg class="shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       ${
+        // These fragments MUST use Lit's `svg` tag, not `html`: a nested `html`
+        // template is parsed as a standalone HTML fragment, so `<defs>`/`<clipPath>`/
+        // `<g>`/`<path>` land in the XHTML namespace and render as inert unknown
+        // elements inside the SVG — the equipment edge glow then never paints in ANY
+        // engine (issue #89, a regression from the #76 silhouette extraction that split
+        // this markup out of the outer `<svg>` template). `svg` parses them in the SVG
+        // namespace so they are real graphics. The outer `<svg>` + `.fill` stay `html`.
         glow
-          ? html`<defs>
+          ? svg`<defs>
               <clipPath id="ecosee-squircle">
                 <path d=${SQUIRCLE_PATH} />
               </clipPath>
@@ -79,7 +86,7 @@ export function renderShape(options: ShapeOptions = {}): TemplateResult {
       <path class="fill" d=${SQUIRCLE_PATH} />
       ${
         glow
-          ? html`<g class="glow" clip-path="url(#ecosee-squircle)">
+          ? svg`<g class="glow" clip-path="url(#ecosee-squircle)">
               <path d=${SQUIRCLE_PATH} stroke-width="5.5" opacity="0.18" />
               <path d=${SQUIRCLE_PATH} stroke-width="2.2" opacity="0.5" />
               <path d=${SQUIRCLE_PATH} stroke-width="0.9" opacity="1" />
