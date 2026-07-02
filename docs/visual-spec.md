@@ -147,13 +147,15 @@ then the setpoint ovals — see also the equipment edge glow below.
   expiry is likewise omitted — HA doesn't expose the next transition time (ADR-0003).
 - **Air-quality & UV-index foot cluster** — two optional indicators at the **foot of
   the cluster**, below the setpoint ovals, each backed by its own sensor entity
-  (independent of the bound climate entity). The **air-quality element** is a subtle
-  badge — a wind glyph + the AQI number, tinted to its severity band (the band color
-  carries the category; the word is dropped, issue #66, but still announced to
-  assistive tech). The **UV-index gauge** is a small arc meter — a green→violet
-  gradient arc filled to the reading's fraction of the WHO scale, the index in the
-  arc's mouth tinted to its band, with a muted `UVI` label (the band color carries the
-  category; the word is dropped, issue #91, but still announced to assistive tech).
+  (independent of the bound climate entity). The **air-quality gauge** is a small arc
+  meter in the UV gauge's exact style — an EPA band-color gradient arc filled to the
+  reading's fraction of a 0–300 scale, the rounded AQI in the arc's mouth tinted to
+  its band, with a muted `AQI` label (the band color carries the category; the word
+  is dropped, issue #66, but still announced to assistive tech). The **UV-index
+  gauge** is a small arc meter — a green→violet gradient arc filled to the reading's
+  fraction of the WHO scale, the index in the arc's mouth tinted to its band, with a
+  muted `UVI` label (the band color carries the category; the word is dropped, issue
+  #91, but still announced to assistive tech). The two read as balanced twin meters.
   Layout is **count-aware** (issue #75): **both present** sit **side by side**; **only
   one present** is **centered** on its own (the setpoint-oval single-vs-both idiom);
   **neither present** is omitted entirely. Each shows only when its entity is set and
@@ -323,8 +325,8 @@ edit.
 
 ### Weather — `reference/weather-current.jpeg` (page 1), `weather-forecast.jpeg` (page 2)
 The Overlay reached from the Home Screen weather icon and from Main Menu › Weather,
-backed by the configured `weather_entity`. Two pages, each with the pager and the
-provider footer. **Condition glyphs take a natural per-condition color**
+backed by the configured `weather_entity`. Two pages, each footed by the pager
+alone. **Condition glyphs take a natural per-condition color**
 (`--ecosee-weather-*`, issue #31 — yellow sun, grey cloud, blue rain, …); the
 chance-of-precip umbrella and Hum. droplet, the temperatures, the day names and the
 pager are cyan on black.
@@ -340,12 +342,12 @@ pager are cyan on black.
   (Tue / Wed / …), a condition-colored glyph, the cyan **high**, a muted labeled low
   **"Lo [low]"** (legible as the day's low, not a section heading — issue #33), and a
   **☂ + %** chance-of-precip (no "PoP" jargon — issue #32).
-- **Pager:** `1 of 2` / `2 of 2` centered above the footer, a chevron on each side;
+- **Pager:** `1 of 2` / `2 of 2` centered at the foot, a chevron on each side;
   the arrows wrap (both stay live on both pages, as on the device). When the entity
   offers no forecast the pager collapses to a single page (page 1 only).
-- **Footer:** "Data provided by [provider]" from the entity's `attribution`
-  attribute (rendered verbatim when it already credits a provider); hidden when
-  absent.
+- **Footer:** the pager is the whole footer — there is no "Data provided by …"
+  credit. The entity's `attribution` attribute is still derived on `WeatherModel`
+  for anything that wants it later, just not rendered.
 - **Data sources & graceful degradation (ADR-0001):**
   - Current temp / condition / Hum. come from the weather entity's own attributes
     (`temperature`, `state`, `humidity`); each is hidden when absent. The
