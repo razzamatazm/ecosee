@@ -12,7 +12,11 @@ export interface SensorConfig {
   /** Optional label override; defaults to the entity's friendly name. */
   name?: string;
   /** A binary occupancy entity (e.g. `binary_sensor.*`) that backs the "Occupied"
-   *  badge for this sensor. Omit it and the badge is simply not shown. */
+   *  badge for this sensor. Optional: when omitted, the Card auto-pairs the occupancy
+   *  binary_sensor that shares this temperature sensor's device (the ecobee
+   *  remote-sensor case — ADR-0010), so ecobee sensors get the badge with no extra
+   *  config. Set this only to override that (e.g. a different binary source). If
+   *  nothing resolves either way, the badge is simply not shown. */
   occupancy_entity?: string;
 }
 

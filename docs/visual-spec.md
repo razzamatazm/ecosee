@@ -308,10 +308,12 @@ edit.
   line, and a circled **expand chevron** on the right. The thermostat's own card
   gets the wall-display glyph; curated sensors get the remote-sensor glyph.
 - **Reading line:** the current **temperature°** (degree sign only, no unit letter,
-  matching the device); when an occupancy entity is configured, a ` | ` divider and
-  the occupancy badge follow — **"Occupied"** when it reports `on`, **"Unoccupied"**
-  otherwise. With no occupancy entity (or an unavailable one), the badge is omitted
-  and the line is just the temperature (ADR-0001 graceful degradation).
+  matching the device); when an occupancy entity is configured **or auto-paired from
+  the sensor's device** (ADR-0010), a ` | ` divider and the occupancy badge follow —
+  **"Occupied"** when it reports `on`, **"Unoccupied"** otherwise. With no occupancy
+  entity resolved (none configured, none auto-paired, or an unavailable one), the
+  badge is omitted and the line is just the temperature (ADR-0001 graceful
+  degradation).
 - **Populated** from a user-curated `sensors:` list (see the README config table);
   the thermostat's own temperature is auto-included **first**. A sensor card is
   dropped when its entity is missing / `unavailable` / non-numeric; the thermostat

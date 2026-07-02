@@ -31,8 +31,22 @@ export interface ClimateAttributes {
   supported_features?: number;
 }
 
+/** One entry in the entity registry (`hass.entities`). We read only the device
+ *  link — enough to auto-pair a temperature sensor with the occupancy
+ *  binary_sensor that shares its device (ADR-0010). Everything else the registry
+ *  carries is ignored. */
+export interface HassEntityRegistryEntry {
+  entity_id: string;
+  device_id?: string | null;
+}
+
 export interface HomeAssistant {
   states: Record<string, HassEntityBase>;
+  /** The entity registry, keyed by entity id. The HA frontend passes this on the
+   *  `hass` object; typed optional because the seam tests build `hass` by hand and
+   *  the Card must degrade when it is absent (ADR-0001). Used only for occupancy
+   *  auto-pairing (ADR-0010). */
+  entities?: Record<string, HassEntityRegistryEntry>;
   config?: {
     unit_system?: {
       temperature?: string;

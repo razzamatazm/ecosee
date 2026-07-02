@@ -1,5 +1,5 @@
 import type { EcoseeCardConfig } from '../src/config';
-import type { HomeAssistant, HassEntityBase } from '../src/types/hass';
+import type { HomeAssistant, HassEntityBase, HassEntityRegistryEntry } from '../src/types/hass';
 
 // Hand-built `hass` snapshots for the preview harness. They exercise the
 // graceful-degradation seam end to end: a rich ecobee, a bare generic
@@ -16,6 +16,9 @@ function makeHass(options: {
   weather?: boolean;
   unit?: string;
   extra?: HassEntityBase[];
+  /** Optional entity registry, so fixtures can exercise occupancy auto-pairing
+   *  (ADR-0010) the way the real HA frontend supplies it. */
+  entities?: Record<string, HassEntityRegistryEntry>;
 }): HomeAssistant {
   const states: Record<string, HassEntityBase> = {
     [options.climate.entity_id]: options.climate,
@@ -37,6 +40,7 @@ function makeHass(options: {
   for (const entity of options.extra ?? []) states[entity.entity_id] = entity;
   return {
     states,
+    ...(options.entities ? { entities: options.entities } : {}),
     config: { unit_system: { temperature: options.unit ?? '°F' } },
     callService: async (domain, service, data, _target, _notify, returnResponse) => {
       console.info('[dev] callService', `${domain}.${service}`, data);
@@ -218,8 +222,10 @@ const ecobeeOff: Fixture = {
 };
 
 // Reproduces docs/reference/sensors.jpeg: the thermostat's own temp first, then a
-// curated list of remote sensors — some with an occupancy entity (→ "Occupied"),
-// some without (badge hidden, ADR-0001). Open Main Menu › Sensors to view.
+// curated list of remote sensors covering all three occupancy paths — Hallway/Kitchen
+// name an explicit `occupancy_entity`; Office names none but is auto-paired from its
+// device's `binary_sensor.*_occupancy` (ADR-0010); Garage has no occupancy source at
+// all (badge hidden, ADR-0001). Open Main Menu › Sensors to view.
 const ecobeeSensors: Fixture = {
   label: 'Room sensors',
   config: {
@@ -228,11 +234,8 @@ const ecobeeSensors: Fixture = {
     weather_entity: 'weather.home',
     sensors: [
       { entity: 'sensor.hallway_temp', name: 'Hallway', occupancy_entity: 'binary_sensor.hallway' },
-      {
-        entity: 'sensor.office_temp',
-        name: 'Office',
-        occupancy_entity: 'binary_sensor.office',
-      },
+      // No occupancy_entity: the badge is auto-paired from the shared device (ADR-0010).
+      { entity: 'sensor.office_temp', name: 'Office' },
       { entity: 'sensor.kitchen_temp', name: 'Kitchen', occupancy_entity: 'binary_sensor.kitchen' },
       { entity: 'sensor.garage_temp', name: 'Garage' },
     ],
@@ -258,9 +261,24 @@ const ecobeeSensors: Fixture = {
       { entity_id: 'sensor.kitchen_temp', state: '77', attributes: { friendly_name: 'Kitchen' } },
       { entity_id: 'sensor.garage_temp', state: '64', attributes: { friendly_name: 'Garage' } },
       { entity_id: 'binary_sensor.hallway', state: 'on', attributes: {} },
-      { entity_id: 'binary_sensor.office', state: 'on', attributes: {} },
       { entity_id: 'binary_sensor.kitchen', state: 'on', attributes: {} },
+      // Office's occupancy sensor: no explicit config points at it — auto-pairing
+      // finds it via the shared device + `device_class: occupancy` (ADR-0010).
+      {
+        entity_id: 'binary_sensor.office_occupancy',
+        state: 'on',
+        attributes: { device_class: 'occupancy' },
+      },
     ],
+    // Registry entries that put Office's temp + occupancy sensors on one device,
+    // so auto-pairing (ADR-0010) can join them the way the ecobee integration does.
+    entities: {
+      'sensor.office_temp': { entity_id: 'sensor.office_temp', device_id: 'dev_office' },
+      'binary_sensor.office_occupancy': {
+        entity_id: 'binary_sensor.office_occupancy',
+        device_id: 'dev_office',
+      },
+    },
   }),
 };
 

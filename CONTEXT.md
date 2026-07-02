@@ -53,7 +53,10 @@ _Avoid_: forecast view.
 
 **Sensors Screen**:
 The Overlay listing temperature readings from configured Home Assistant sensor
-entities (not limited to ecobee remote sensors).
+entities (not limited to ecobee remote sensors). Each card may carry an
+**"Occupied"/"Unoccupied"** badge; its occupancy source is the sensor's explicit
+`occupancy_entity` or, failing that, the occupancy `binary_sensor` auto-paired from
+the same device (ADR-0010).
 _Avoid_: rooms view.
 
 **Standby Screen**:

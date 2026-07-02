@@ -6,14 +6,24 @@ import type { HassEntityBase, HomeAssistant } from '../src/types/hass';
 /** Build a `hass` from an arbitrary set of entities + a unit. Mirrors the sibling
  *  seam tests, but the Sensors seam reads many entities (the thermostat plus each
  *  configured temperature / occupancy entity), so this takes a list. */
-function hass(entities: HassEntityBase[], unit = '°F'): HomeAssistant {
+function hass(
+  entities: HassEntityBase[],
+  unit = '°F',
+  registry?: Record<string, { entity_id: string; device_id?: string | null }>,
+): HomeAssistant {
   const states: Record<string, HassEntityBase> = {};
   for (const entity of entities) states[entity.entity_id] = entity;
   return {
     states,
     config: { unit_system: { temperature: unit } },
     callService: async () => undefined,
+    ...(registry ? { entities: registry } : {}),
   };
+}
+
+/** Shorthand for an entity-registry entry linking an entity id to a device. */
+function reg(entity_id: string, device_id: string) {
+  return { entity_id, device_id };
 }
 
 function entity(
@@ -166,6 +176,209 @@ describe('toSensorsModel — occupancy badge', () => {
       sensors: [{ entity: 'sensor.hallway' }],
     });
     expect(model.cards[0].occupied).toBeNull();
+  });
+});
+
+describe('toSensorsModel — auto-paired occupancy (device registry, ADR-0010)', () => {
+  it('auto-pairs the occupancy binary_sensor sharing the sensor’s device', () => {
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.office_occ', 'on', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.office_occ': reg('binary_sensor.office_occ', 'dev_office'),
+        },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBe(true);
+  });
+
+  it('an explicit occupancy_entity wins over an auto-pairable device sibling', () => {
+    // The device sibling reports `on`; the explicitly-configured entity reports
+    // `off` — the explicit choice must win (auto-pair is only a fallback).
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.office_occ', 'on', { device_class: 'occupancy' }),
+          entity('binary_sensor.explicit', 'off', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.office_occ': reg('binary_sensor.office_occ', 'dev_office'),
+        },
+      ),
+      {
+        ...baseConfig,
+        sensors: [{ entity: 'sensor.office_temp', occupancy_entity: 'binary_sensor.explicit' }],
+      },
+    );
+    expect(model.cards[1].occupied).toBe(false);
+  });
+
+  it('does not pair a same-device binary_sensor that is not an occupancy class', () => {
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.office_door', 'on', { device_class: 'door' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.office_door': reg('binary_sensor.office_door', 'dev_office'),
+        },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBeNull();
+  });
+
+  it('does not pair an occupancy binary_sensor on a different device', () => {
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.other_occ', 'on', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.other_occ': reg('binary_sensor.other_occ', 'dev_hallway'),
+        },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBeNull();
+  });
+
+  it('is null when the temperature sensor has no device in the registry', () => {
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.office_occ', 'on', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        { 'binary_sensor.office_occ': reg('binary_sensor.office_occ', 'dev_office') },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBeNull();
+  });
+
+  it('is null when there is no entity registry at all (older HA / hand-built hass)', () => {
+    const model = toSensorsModel(
+      hass([
+        thermostat(72),
+        entity('sensor.office_temp', '73', {}),
+        entity('binary_sensor.office_occ', 'on', { device_class: 'occupancy' }),
+      ]),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBeNull();
+  });
+
+  it('degrades to null when the auto-paired occupancy entity is unavailable', () => {
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.office_occ', 'unavailable', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.office_occ': reg('binary_sensor.office_occ', 'dev_office'),
+        },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBeNull();
+  });
+
+  it('does NOT fall back to a device sibling when an explicit occupancy_entity is set but unavailable', () => {
+    // Explicit config is authoritative: a broken explicit entity keeps the badge
+    // hidden rather than silently borrowing the healthy same-device sibling's state
+    // (ADR-0010 — fallback, never override; guards the `??` in `occupancy`).
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.explicit', 'unavailable', { device_class: 'occupancy' }),
+          entity('binary_sensor.office_occ', 'on', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.office_occ': reg('binary_sensor.office_occ', 'dev_office'),
+        },
+      ),
+      {
+        ...baseConfig,
+        sensors: [{ entity: 'sensor.office_temp', occupancy_entity: 'binary_sensor.explicit' }],
+      },
+    );
+    expect(model.cards[1].occupied).toBeNull();
+  });
+
+  it('skips a non-occupancy binary_sensor on the device and pairs the occupancy one', () => {
+    // The door sensor (listed first) reports `on`; the occupancy sensor reports
+    // `off`. Pairing the first binary_sensor regardless of class would read `true` —
+    // assert the loop skips the door and continues to the occupancy sibling.
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.office_temp', '73', {}),
+          entity('binary_sensor.office_door', 'on', { device_class: 'door' }),
+          entity('binary_sensor.office_occ', 'off', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'sensor.office_temp': reg('sensor.office_temp', 'dev_office'),
+          'binary_sensor.office_door': reg('binary_sensor.office_door', 'dev_office'),
+          'binary_sensor.office_occ': reg('binary_sensor.office_occ', 'dev_office'),
+        },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.office_temp' }] },
+    );
+    expect(model.cards[1].occupied).toBe(false);
+  });
+
+  it('never auto-pairs the thermostat’s own card, even when its device has an occupancy sibling', () => {
+    // ADR-0010 scopes auto-pair to configured sensors; the thermostat's own card
+    // keeps occupied:null even if its climate entity shares a device with occupancy.
+    const model = toSensorsModel(
+      hass(
+        [
+          thermostat(72),
+          entity('sensor.hallway', '73', {}),
+          entity('binary_sensor.thermostat_occ', 'on', { device_class: 'occupancy' }),
+        ],
+        '°F',
+        {
+          'climate.t': reg('climate.t', 'dev_thermostat'),
+          'binary_sensor.thermostat_occ': reg('binary_sensor.thermostat_occ', 'dev_thermostat'),
+        },
+      ),
+      { ...baseConfig, sensors: [{ entity: 'sensor.hallway' }] },
+    );
+    expect(model.cards[0].occupied).toBeNull();
+    expect(model.cards[0].isThermostat).toBe(true);
   });
 });
 

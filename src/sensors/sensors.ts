@@ -8,7 +8,8 @@ import { UNAVAILABLE } from '../climate/home-view';
 // already-degraded list of sensor cards from raw `hass` + config: the thermostat's
 // own temperature first, then each user-curated temperature entity, dropping any
 // that is missing / unavailable / non-numeric and attaching an occupancy badge
-// only when a usable occupancy entity is configured (CONTEXT.md Sensors Screen;
+// when a usable occupancy entity is configured or auto-paired from the sensor's
+// device (ADR-0010; CONTEXT.md Sensors Screen;
 // ADR-0001 graceful degradation). All the entity-reading lives here so it is
 // unit-testable without rendering a Lit element; the overlay is purely
 // presentational and read-only (no "participating in average" UI — HA can't back
@@ -24,8 +25,9 @@ export interface SensorCard {
   name: string;
   /** Parsed current temperature, formatted by the overlay against `unit`. */
   temp: number;
-  /** Tri-state occupancy: `null` when no usable occupancy entity is configured for
-   *  this sensor (badge hidden, ADR-0001); otherwise whether it reports occupied. */
+  /** Tri-state occupancy: `null` when no usable occupancy entity is configured or
+   *  auto-paired for this sensor (badge hidden, ADR-0001); otherwise whether it
+   *  reports occupied. */
   occupied: boolean | null;
   /** True only for the thermostat's own temperature card (always first). */
   isThermostat: boolean;
@@ -60,10 +62,36 @@ function readTemp(entity: HassEntityBase): number | null {
   return num(entity.state) ?? num(entity.attributes.current_temperature);
 }
 
-/** Tri-state occupancy for a configured sensor: `null` when no occupancy entity is
- *  configured or it is missing/unavailable (badge hidden); otherwise whether the
- *  (binary) occupancy entity reports `on`. */
-function occupancy(hass: HomeAssistant, occupancyEntity: string | undefined): boolean | null {
+/** The `device_class` an occupancy binary_sensor reports — the value we auto-pair
+ *  on. ecobee registers each remote sensor as one device carrying both a
+ *  `sensor.*_temperature` and a `binary_sensor.*_occupancy` with this class. */
+const OCCUPANCY_DEVICE_CLASS = 'occupancy';
+
+/** Auto-pair (ADR-0010): given a configured temperature entity, find an occupancy
+ *  binary_sensor that shares its device — the ecobee remote-sensor case, where the
+ *  temperature and occupancy entities live on the same device. Returns the sibling's
+ *  entity id, or `undefined` when the entity registry is absent, the temp entity has
+ *  no device, or that device carries no occupancy binary_sensor. In every such case
+ *  the badge stays hidden (ADR-0001 graceful degradation). This is a fallback only —
+ *  an explicit `occupancy_entity` bypasses it entirely (see `occupancy`). */
+function autoPairOccupancy(hass: HomeAssistant, tempEntityId: string): string | undefined {
+  const registry = hass.entities;
+  if (!registry) return undefined;
+  const deviceId = registry[tempEntityId]?.device_id;
+  if (!deviceId) return undefined;
+  for (const [id, entry] of Object.entries(registry)) {
+    if (entry.device_id !== deviceId || !id.startsWith('binary_sensor.')) continue;
+    if (hass.states[id]?.attributes.device_class === OCCUPANCY_DEVICE_CLASS) return id;
+  }
+  return undefined;
+}
+
+/** Tri-state occupancy for a configured sensor. An explicit `occupancy_entity` wins;
+ *  otherwise we auto-pair the temperature sensor's device sibling (autoPairOccupancy).
+ *  `null` when neither resolves, or the resolved entity is missing/unavailable (badge
+ *  hidden); otherwise whether the (binary) occupancy entity reports `on`. */
+function occupancy(hass: HomeAssistant, sensor: SensorConfig): boolean | null {
+  const occupancyEntity = sensor.occupancy_entity ?? autoPairOccupancy(hass, sensor.entity);
   if (!occupancyEntity) return null;
   const entity = isUsable(hass, occupancyEntity);
   if (!entity) return null;
@@ -79,7 +107,7 @@ function toSensorCard(hass: HomeAssistant, sensor: SensorConfig): SensorCard | n
     key: sensor.entity,
     name: sensor.name ?? str(entity.attributes.friendly_name) ?? sensor.entity,
     temp,
-    occupied: occupancy(hass, sensor.occupancy_entity),
+    occupied: occupancy(hass, sensor),
     isThermostat: false,
   };
 }

@@ -194,14 +194,19 @@ thermostat's own temperature is listed first automatically, so this is for the
 extra rooms you want alongside it. Each item is either a bare entity id or an
 object:
 
-| Field              | Required | Description                                                         |
-| ------------------ | -------- | ------------------------------------------------------------------- |
-| `entity`           | yes      | A temperature entity (value in its state or `current_temperature`). |
-| `name`             | no       | Label override. Defaults to the entity's friendly name.             |
-| `occupancy_entity` | no       | A binary occupancy entity that backs an "Occupied" badge.           |
+| Field              | Required | Description                                                                                                                   |
+| ------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `entity`           | yes      | A temperature entity (value in its state or `current_temperature`).                                                           |
+| `name`             | no       | Label override. Defaults to the entity's friendly name.                                                                       |
+| `occupancy_entity` | no       | A binary occupancy entity that backs an "Occupied" badge. Auto-detected for ecobee remote sensors; set this only to override. |
 
-Sensors that are missing, unavailable, or non-numeric are dropped, and the
-"Occupied" badge only appears when you provide an `occupancy_entity`.
+Sensors that are missing, unavailable, or non-numeric are dropped. The
+"Occupied" / "Unoccupied" badge appears whenever an occupancy sensor can be found:
+for **ecobee remote sensors it is automatic** — the card pairs each room's occupancy
+sensor to its temperature sensor because they share a device, so you get the badge
+with no extra config. Set `occupancy_entity` only to point at a specific binary
+sensor or to override that automatic pairing; a sensor with no occupancy source
+shows just its temperature.
 
 ## Development
 

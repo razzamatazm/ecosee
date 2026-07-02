@@ -73,7 +73,7 @@ interface OverlayDescriptor {
   render(hass: HomeAssistant, config: EcoseeCardConfig): TemplateResult | typeof nothing;
 }
 
-const VERSION = '0.5.2';
+const VERSION = '0.6.0';
 
 /**
  * `<ecosee-card>` — the host Lovelace element. It owns the `hass` wiring and
