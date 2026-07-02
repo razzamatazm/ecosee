@@ -22,6 +22,10 @@
   <a href="#configuration">Configure</a>
 </p>
 
+<p align="center">
+  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=razzamatazm&repository=ecosee&category=plugin"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Open the ecosee repository inside HACS on your Home Assistant instance." /></a>
+</p>
+
 ecosee is a modern replacement for Home Assistant's default thermostat card.
 Point it at any `climate` entity and you get a clean, full-screen view: a large
 current temperature, the room humidity, a soft glow around the edge while the
@@ -127,14 +131,27 @@ on a wall tablet.
 
 ## Install (HACS)
 
+If you have [HACS](https://hacs.xyz), one click does it:
+
+[![Open the ecosee repository inside HACS on your Home Assistant instance.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=razzamatazm&repository=ecosee&category=plugin)
+
+That opens your Home Assistant, adds this repository to HACS, and drops you on its
+download page. Download it and reload your browser. HACS registers the card
+resource for you.
+
+<details>
+<summary>Prefer to add it by hand?</summary>
+
 1. In HACS, open the menu (top right) and choose **Custom repositories**. Add
-   `https://github.com/razzamatazm/ecosee` as a **Lovelace** (Dashboard)
-   repository.
+   `https://github.com/razzamatazm/ecosee` as a **Dashboard** repository.
 2. Install **ecosee** from the list.
 3. If HACS does not add the resource for you, add it under
    **Settings → Dashboards → Resources**: URL `/hacsfiles/ecosee/ecosee.js`,
    type **JavaScript Module**.
-4. Add the card to a dashboard (see below).
+
+</details>
+
+Then add the card to a dashboard (see [Configuration](#configuration)).
 
 ## Configuration
 
