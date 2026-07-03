@@ -188,6 +188,30 @@ describe('toHomeView — fan glyph availability (issues #45, #73)', () => {
   });
 });
 
+describe('toHomeView — fan glyph honors show_fan', () => {
+  const fanView = (attributes: Record<string, unknown>, showFan: EcoseeCardConfig['show_fan']) =>
+    toHomeView(
+      hass({ climate: { entity_id: 'climate.t', state: 'cool', attributes } }),
+      config({ show_fan: showFan }),
+    );
+
+  it('show_fan: always surfaces the glyph for an On/Auto-only fan', () => {
+    expect(fanView({ fan_modes: ['auto', 'on'] }, 'always').fanAvailable).toBe(true);
+    // Still hidden when the fan sub-screen itself is unavailable.
+    expect(fanView({ fan_modes: [] }, 'always').fanAvailable).toBe(false);
+    expect(fanView({ fan_modes: ['auto', 'on', 'low'] }, 'always').fanAvailable).toBe(true);
+  });
+
+  it('show_fan: never hides the glyph even with real speeds', () => {
+    expect(fanView({ fan_modes: ['auto', 'on', 'low', 'high'] }, 'never').fanAvailable).toBe(false);
+  });
+
+  it('show_fan: auto matches the default speeds-only rule', () => {
+    expect(fanView({ fan_modes: ['auto', 'on'] }, 'auto').fanAvailable).toBe(false);
+    expect(fanView({ fan_modes: ['auto', 'on', 'low'] }, 'auto').fanAvailable).toBe(true);
+  });
+});
+
 describe('toHomeView — air quality', () => {
   const withAqi = (aqiState: HassEntityBase | undefined, configured = true) =>
     toHomeView(

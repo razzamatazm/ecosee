@@ -141,3 +141,64 @@ describe('parseConfig — standby_screen', () => {
     );
   });
 });
+
+describe('parseConfig — show_fan', () => {
+  it('leaves show_fan undefined when the key is absent (auto default)', () => {
+    expect(parseConfig(base).show_fan).toBeUndefined();
+  });
+
+  it('accepts each legal value', () => {
+    expect(parseConfig({ ...base, show_fan: 'auto' }).show_fan).toBe('auto');
+    expect(parseConfig({ ...base, show_fan: 'always' }).show_fan).toBe('always');
+    expect(parseConfig({ ...base, show_fan: 'never' }).show_fan).toBe('never');
+  });
+
+  it('throws on an unknown value', () => {
+    expect(() => parseConfig({ ...base, show_fan: 'sometimes' })).toThrow(
+      /`show_fan` must be one of/,
+    );
+  });
+
+  it('throws on a non-string value', () => {
+    expect(() => parseConfig({ ...base, show_fan: true })).toThrow(/`show_fan` must be one of/);
+  });
+});
+
+describe('parseConfig — standby (per-element visibility, YAML-only)', () => {
+  it('leaves standby undefined when the key is absent (every element shown)', () => {
+    expect(parseConfig(base).standby).toBeUndefined();
+  });
+
+  it('reads the per-element toggles, leaving unset ones undefined', () => {
+    const config = parseConfig({ ...base, standby: { weather: false, glow: false } });
+    expect(config.standby).toEqual({
+      weather: false,
+      outdoor_temp: undefined,
+      current_temp: undefined,
+      glow: false,
+    });
+  });
+
+  it('accepts all four toggles', () => {
+    const config = parseConfig({
+      ...base,
+      standby: { weather: true, outdoor_temp: false, current_temp: true, glow: false },
+    });
+    expect(config.standby).toEqual({
+      weather: true,
+      outdoor_temp: false,
+      current_temp: true,
+      glow: false,
+    });
+  });
+
+  it('throws when standby is not an object', () => {
+    expect(() => parseConfig({ ...base, standby: true })).toThrow(/`standby` must be an object/);
+  });
+
+  it('throws when a standby toggle is not a boolean', () => {
+    expect(() => parseConfig({ ...base, standby: { glow: 'off' } })).toThrow(
+      /`standby.glow` must be a boolean/,
+    );
+  });
+});

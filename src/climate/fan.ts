@@ -1,5 +1,5 @@
 import type { HomeAssistant } from '../types/hass';
-import type { EcoseeCardConfig } from '../config';
+import type { EcoseeCardConfig, ShowFan } from '../config';
 import { UNAVAILABLE } from './home-view';
 import { num } from './parse';
 import type { ServiceCall } from './service-call';
@@ -177,6 +177,20 @@ export function toFanModel(hass: HomeAssistant, config: EcoseeCardConfig): FanMo
  *  through Main Menu → Fan. */
 export function hasFanSpeedControls(model: FanModel): boolean {
   return model.available && model.options.some((option) => !FAN_ORDER.includes(option.fanMode));
+}
+
+/** Whether the Home Screen shows its top-row fan glyph, honoring the `show_fan`
+ *  config. `auto` (the default, unset) keeps the issue-#73 rule — the glyph appears
+ *  only for a genuine speed control (`hasFanSpeedControls`). `always` shows it
+ *  whenever the Fan sub-screen is reachable, so an On/Auto-only fan gets the glyph
+ *  too (tapping it opens straight to the On/Auto toggle). `never` hides the glyph
+ *  outright. An unavailable fan is never shown regardless (`model.available` is
+ *  false). The Fan sub-screen's own reachability via Main Menu → Fan is unaffected —
+ *  this governs only the corner shortcut. */
+export function showFanAffordance(model: FanModel, showFan: ShowFan | undefined): boolean {
+  if (showFan === 'never') return false;
+  if (showFan === 'always') return model.available;
+  return hasFanSpeedControls(model);
 }
 
 /** Build the `climate.set_fan_mode` call that switches the entity to the chosen

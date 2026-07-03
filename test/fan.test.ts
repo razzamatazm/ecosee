@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   toFanModel,
   hasFanSpeedControls,
+  showFanAffordance,
   setFanModeCall,
   setFanMinOnTimeCall,
 } from '../src/climate/fan';
@@ -98,8 +99,7 @@ describe('toFanModel — generic fan modes (graceful degradation)', () => {
 });
 
 describe('hasFanSpeedControls — Home Screen fan-glyph gate (issue #73)', () => {
-  const model = (fan_modes: unknown[]) =>
-    toFanModel(hass(climate('cool', { fan_modes })), config);
+  const model = (fan_modes: unknown[]) => toFanModel(hass(climate('cool', { fan_modes })), config);
 
   it('is false for an On/Auto-only fan (no real speed control)', () => {
     expect(hasFanSpeedControls(model(['auto', 'on']))).toBe(false);
@@ -118,6 +118,36 @@ describe('hasFanSpeedControls — Home Screen fan-glyph gate (issue #73)', () =>
   it('is false when the fan sub-screen itself is unavailable', () => {
     expect(hasFanSpeedControls(model([]))).toBe(false);
     expect(hasFanSpeedControls(toFanModel(hass(climate('unavailable', {})), config))).toBe(false);
+  });
+});
+
+describe('showFanAffordance — show_fan config gate', () => {
+  const model = (fan_modes: unknown[]) => toFanModel(hass(climate('cool', { fan_modes })), config);
+  const onAuto = model(['auto', 'on']);
+  const speeds = model(['auto', 'on', 'low', 'high']);
+  const gone = model([]);
+
+  it('auto (and unset) keeps the issue-#73 rule — speeds only', () => {
+    expect(showFanAffordance(speeds, 'auto')).toBe(true);
+    expect(showFanAffordance(onAuto, 'auto')).toBe(false);
+    expect(showFanAffordance(speeds, undefined)).toBe(true);
+    expect(showFanAffordance(onAuto, undefined)).toBe(false);
+  });
+
+  it('always shows the glyph for any reachable fan, On/Auto included', () => {
+    expect(showFanAffordance(onAuto, 'always')).toBe(true);
+    expect(showFanAffordance(speeds, 'always')).toBe(true);
+  });
+
+  it('never hides the glyph even for a speed-capable fan', () => {
+    expect(showFanAffordance(speeds, 'never')).toBe(false);
+    expect(showFanAffordance(onAuto, 'never')).toBe(false);
+  });
+
+  it('stays false for an unavailable fan regardless of the setting', () => {
+    expect(showFanAffordance(gone, 'always')).toBe(false);
+    expect(showFanAffordance(gone, 'auto')).toBe(false);
+    expect(showFanAffordance(gone, 'never')).toBe(false);
   });
 });
 

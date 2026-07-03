@@ -1,7 +1,7 @@
 import type { HomeAssistant } from '../types/hass';
 import type { EcoseeCardConfig } from '../config';
 import { num } from './parse';
-import { toFanModel, hasFanSpeedControls } from './fan';
+import { toFanModel, showFanAffordance } from './fan';
 
 // The graceful-degradation seam (ADR-0001). `toHomeView` is a pure function from
 // raw `hass` + config to a normalized, already-degraded view model: every field
@@ -71,12 +71,12 @@ export interface HomeView {
   setpoints: Setpoints | null;
   /** Whether a usable `weather` entity is configured (gates the weather icon). */
   weatherAvailable: boolean;
-  /** Whether the bound entity exposes a real fan *speed* control (a mode beyond
-   *  On/Auto). Gates the Home Screen's top-row fan glyph — the quick shortcut into
-   *  fan speed selection — the same way `weatherAvailable` gates the weather glyph
-   *  (issue #45). Tightened for issue #73: an On/Auto-only fan shows no glyph and
-   *  stays reachable through Main Menu → Fan, so this is `hasFanSpeedControls(model)`,
-   *  strictly narrower than the Fan sub-screen's own `toFanModel().available`. */
+  /** Whether the Home Screen shows its top-row fan glyph — the quick shortcut into
+   *  the Fan sub-screen — the same way `weatherAvailable` gates the weather glyph
+   *  (issue #45). Its default (issue #73) shows the glyph only for a real fan *speed*
+   *  control; the `show_fan` config widens it to `always` (any fan, On/Auto included)
+   *  or narrows it to `never`. See `showFanAffordance`. Either way the Fan sub-screen
+   *  stays reachable through Main Menu → Fan (`toFanModel().available`). */
   fanAvailable: boolean;
   /** The weather entity's current condition (`sunny` / `clear-night` / … ), or
    *  `null` when no usable weather entity is configured. The Home Screen's weather
@@ -284,7 +284,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     setpoints,
     weatherAvailable: weather !== null,
     weatherCondition: weather,
-    fanAvailable: hasFanSpeedControls(toFanModel(hass, config)),
+    fanAvailable: showFanAffordance(toFanModel(hass, config), config.show_fan),
     airQuality: toAirQuality(hass, config),
     uvIndex: toUvIndex(hass, config),
   };

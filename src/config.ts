@@ -20,6 +20,29 @@ export interface SensorConfig {
   occupancy_entity?: string;
 }
 
+/** When to show the Home Screen's top-row fan shortcut glyph (issues #45, #73).
+ *  `auto` (the default) shows it only when the entity exposes a real *speed*
+ *  control beyond On/Auto; `always` shows it whenever the Fan sub-screen is
+ *  reachable (an On/Auto-only fan then opens straight to the On/Auto toggle);
+ *  `never` hides it. Either way the Fan sub-screen stays reachable via Main Menu →
+ *  Fan — this only governs the corner shortcut. */
+export type ShowFan = 'auto' | 'always' | 'never';
+
+/** Per-element visibility for the Standby Screen (the dimmed idle display). Each
+ *  key defaults to shown; set one to `false` to hide that element. Deliberately
+ *  YAML-only — not surfaced in the GUI editor — a knob for tinkerers. Ignored
+ *  unless `standby_screen` is on. */
+export interface StandbyConfig {
+  /** The weather condition glyph beside the outdoor temperature. */
+  weather?: boolean;
+  /** The outdoor temperature (hiding it removes the whole top row, glyph included). */
+  outdoor_temp?: boolean;
+  /** The large current temperature. */
+  current_temp?: boolean;
+  /** The equipment-status edge glow — the outer glowing ring. */
+  glow?: boolean;
+}
+
 /** YAML-first config (ADR-0002): this schema is the source of truth and
  *  `setConfig` validates it. The GUI editor (issue #14, `src/editor/`) is a thin
  *  form *over* this schema, not a second source — it tracks the keys here. Only
@@ -62,6 +85,13 @@ export interface EcoseeCardConfig {
    *  behaves exactly as today (no standby). The switching behavior that reads this
    *  flag is a separate issue (#65) — this key is only the on/off setting. */
   standby_screen?: boolean;
+  /** Per-element visibility for the Standby Screen (YAML-only — a tinkerer knob, not
+   *  surfaced in the GUI editor). Each element defaults to shown; see StandbyConfig. */
+  standby?: StandbyConfig;
+  /** When to show the Home Screen's fan shortcut glyph (`auto` / `always` / `never`).
+   *  Absent ⇒ `auto` — the glyph appears only for a fan with real speed controls
+   *  (the default before this key existed). See ShowFan. */
+  show_fan?: ShowFan;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -112,6 +142,47 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     sensors: parseSensors(raw.sensors),
     inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
     standby_screen: parseStandbyScreen(raw.standby_screen),
+    standby: parseStandby(raw.standby),
+    show_fan: parseShowFan(raw.show_fan),
+  };
+}
+
+/** The legal `show_fan` values; `auto` (the default) is first. */
+const SHOW_FAN_VALUES: readonly ShowFan[] = ['auto', 'always', 'never'];
+
+/** Parse the optional `show_fan` control. Returns `undefined` when absent so the
+ *  seam applies the `auto` default (glyph only for a real speed control). Throws a
+ *  user-facing error for anything outside the small enum. */
+function parseShowFan(raw: unknown): ShowFan | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'string' || !SHOW_FAN_VALUES.includes(raw as ShowFan)) {
+    throw new Error("ecosee: `show_fan` must be one of 'auto', 'always', 'never'.");
+  }
+  return raw as ShowFan;
+}
+
+/** Parse the optional `standby` per-element visibility object. Returns `undefined`
+ *  when absent (every element shown). Each present key must be a boolean; unset keys
+ *  stay `undefined` so the seam treats them as shown. Throws a user-facing error for
+ *  a non-object value or a non-boolean toggle. */
+function parseStandby(raw: unknown): StandbyConfig | undefined {
+  if (raw === undefined) return undefined;
+  if (!isRecord(raw)) {
+    throw new Error('ecosee: `standby` must be an object of on/off toggles.');
+  }
+  const bool = (key: keyof StandbyConfig): boolean | undefined => {
+    const value = raw[key];
+    if (value === undefined) return undefined;
+    if (typeof value !== 'boolean') {
+      throw new Error(`ecosee: \`standby.${key}\` must be a boolean.`);
+    }
+    return value;
+  };
+  return {
+    weather: bool('weather'),
+    outdoor_temp: bool('outdoor_temp'),
+    current_temp: bool('current_temp'),
+    glow: bool('glow'),
   };
 }
 

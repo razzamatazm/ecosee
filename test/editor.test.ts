@@ -24,6 +24,7 @@ describe('editorSchema — coverage', () => {
       'air_quality_entity',
       'uv_index_entity',
       'sensors',
+      'show_fan',
       'inactivity_timeout',
       'standby_screen',
     ]);
@@ -75,6 +76,25 @@ describe('editorSchema — coverage', () => {
     const standby = editorSchema().find((field) => field.name === 'standby_screen');
     expect(standby?.selector).toEqual({ boolean: {} });
     expect(standby?.required).toBeFalsy();
+  });
+
+  it('uses a dropdown select for show_fan with auto default first', () => {
+    const showFan = editorSchema().find((field) => field.name === 'show_fan');
+    expect(showFan?.selector).toEqual({
+      select: {
+        mode: 'dropdown',
+        options: [
+          { value: 'auto', label: 'Auto (speeds only)' },
+          { value: 'always', label: 'Always' },
+          { value: 'never', label: 'Never' },
+        ],
+      },
+    });
+    expect(showFan?.required).toBeFalsy();
+  });
+
+  it('leaves the per-element standby customization YAML-only (not in the editor)', () => {
+    expect(editorSchema().some((field) => field.name === 'standby')).toBe(false);
   });
 
   it('has no comfort-icon field (removed in #58)', () => {
@@ -183,6 +203,12 @@ describe('toEditorData', () => {
   it('omits sensors when none are configured', () => {
     expect('sensors' in toEditorData({ ...base })).toBe(false);
   });
+
+  it('defaults show_fan to auto for the dropdown when the key is absent', () => {
+    expect(toEditorData({ ...base }).show_fan).toBe('auto');
+    // A stored value is reflected verbatim.
+    expect(toEditorData({ ...base, show_fan: 'always' }).show_fan).toBe('always');
+  });
 });
 
 describe('normalizeEditorConfig — optional-config-key hygiene', () => {
@@ -232,6 +258,28 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
       'standby_screen' in normalizeEditorConfig({ ...base, standby_screen: false }, base),
     ).toBe(false);
     expect('standby_screen' in normalizeEditorConfig({ ...base }, base)).toBe(false);
+  });
+
+  it('writes a non-default show_fan choice but drops the auto default', () => {
+    expect(normalizeEditorConfig({ ...base, show_fan: 'always' }, base).show_fan).toBe('always');
+    expect(normalizeEditorConfig({ ...base, show_fan: 'never' }, base).show_fan).toBe('never');
+    // `auto` is the default (first option), so it drops back to unset.
+    expect('show_fan' in normalizeEditorConfig({ ...base, show_fan: 'auto' }, base)).toBe(false);
+    expect('show_fan' in normalizeEditorConfig({ ...base }, base)).toBe(false);
+  });
+
+  it('resets show_fan to the auto default by dropping the key', () => {
+    // Was 'always', the user picks 'auto' in the dropdown → key removed, not written.
+    const prev = { ...base, show_fan: 'always' };
+    expect('show_fan' in normalizeEditorConfig({ ...prev, show_fan: 'auto' }, prev)).toBe(false);
+  });
+
+  it('preserves the YAML-only standby customization through an unrelated GUI edit', () => {
+    const prev = { ...base, standby: { glow: false } };
+    // The editor never surfaces `standby`, so an unrelated change must not drop it.
+    const next = normalizeEditorConfig({ ...toEditorData(prev), name: 'Den' }, prev);
+    expect(next.standby).toEqual({ glow: false });
+    expect(next.name).toBe('Den');
   });
 
   it('preserves a stored display name when the name field is untouched', () => {

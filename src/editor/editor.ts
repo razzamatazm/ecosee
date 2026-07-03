@@ -32,7 +32,7 @@ export interface EntityFilter {
  *  uses. A bare entity id → a domain- (and optionally device-class-) scoped `entity`
  *  picker; each sensor row → an entity picker filtered to temperature sensors (plus
  *  climate); a free string → `text`; the idle timeout → `number`; an opt-in toggle →
- *  `boolean`. */
+ *  `boolean`; a small fixed enum → `select` (the first option is its default). */
 export type EditorSelector =
   | {
       entity: {
@@ -44,7 +44,8 @@ export type EditorSelector =
     }
   | { text: Record<string, never> }
   | { number: { min?: number; mode?: 'box'; unit_of_measurement?: string } }
-  | { boolean: Record<string, never> };
+  | { boolean: Record<string, never> }
+  | { select: { options: Array<{ value: string; label: string }>; mode?: 'dropdown' | 'list' } };
 
 /** One `ha-form` field. `name`/`selector`/`required` are what `ha-form` consumes;
  *  `label`/`helper` ride along for the element's `computeLabel`/`computeHelper`
@@ -132,6 +133,23 @@ export function editorSchema(): EditorField[] {
       label: 'Sensors',
       helper: SENSORS_HELPER,
       selector: { entity: { filter: SENSOR_ENTITY_FILTER } },
+    },
+    {
+      name: 'show_fan',
+      label: 'Fan shortcut',
+      helper:
+        'Optional. When to show the Home Screen fan shortcut. Auto shows it only for fans with ' +
+        'real speeds; Always shows it for any fan (On/Auto included); Never hides it. Default Auto.',
+      selector: {
+        select: {
+          mode: 'dropdown',
+          options: [
+            { value: 'auto', label: 'Auto (speeds only)' },
+            { value: 'always', label: 'Always' },
+            { value: 'never', label: 'Never' },
+          ],
+        },
+      },
     },
     {
       name: 'inactivity_timeout',
@@ -274,6 +292,9 @@ function sensorEntityIds(value: unknown): string[] {
  *  (no field renders it). Everything else passes through unchanged. */
 export function toEditorData(config: Record<string, unknown>): Record<string, unknown> {
   const data: Record<string, unknown> = { ...config };
+  // Reflect the effective fan-shortcut choice in the dropdown even when the key is
+  // absent (unset ⇒ Auto), so the select never renders blank.
+  if (data.show_fan === undefined) data.show_fan = 'auto';
   if (config.sensors !== undefined) {
     delete data.sensors;
     readSensorObjects(config.sensors).forEach((sensor, index) => {
@@ -373,6 +394,15 @@ export function normalizeEditorConfig(
       // An opt-in toggle stays absent when off (graceful default), so only `true`
       // is written back; `false`/unset drops the key.
       if (raw === true) next[field.name] = true;
+      else delete next[field.name];
+      continue;
+    }
+    if ('select' in field.selector) {
+      // The first option is the default (e.g. `show_fan: auto`), so a default or
+      // empty choice drops the key — keeping the optional-config-key hygiene — while
+      // any non-default choice is written back.
+      const def = field.selector.select.options[0]?.value;
+      if (typeof raw === 'string' && raw !== '' && raw !== def) next[field.name] = raw;
       else delete next[field.name];
       continue;
     }

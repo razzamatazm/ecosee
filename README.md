@@ -166,6 +166,7 @@ weather_entity: weather.home # optional, shows the weather icon and screen
 humidity_entity: sensor.hallway_humidity # optional, if the thermostat has no humidity
 air_quality_entity: sensor.air_quality_index # optional, adds the AQI gauge
 uv_index_entity: sensor.uv_index # optional, adds the UV gauge
+show_fan: auto # optional, auto | always | never — the Home Screen fan shortcut
 standby_screen: true # optional, dims to a clock when left idle
 sensors: # optional, the Sensors screen (see below)
   - sensor.kitchen_temperature
@@ -174,18 +175,36 @@ sensors: # optional, the Sensors screen (see below)
     occupancy_entity: binary_sensor.hallway_occupancy
 ```
 
-| Option                   | Required | Description                                                                           |
-| ------------------------ | -------- | ------------------------------------------------------------------------------------- |
-| `entity`                 | yes      | The `climate.*` entity the card is bound to. One card drives one thermostat.          |
-| `name`                   | no       | Label override. Defaults to the entity's friendly name.                               |
-| `weather_entity`         | no       | A `weather` entity. Enables the weather icon and the Weather screen.                  |
-| `humidity_entity`        | no       | Humidity source, for when the climate entity does not report humidity itself.         |
-| `air_quality_entity`     | no       | An entity carrying a US EPA air-quality index. Adds the AQI gauge.                    |
-| `uv_index_entity`        | no       | An entity carrying a UV index. Adds the UV gauge.                                     |
-| `fan_min_on_time_entity` | no       | A `number` entity for fan minimum runtime. Adds a selector to the Fan screen.         |
-| `sensors`                | no       | Temperature entities for the Sensors screen (see below).                              |
-| `inactivity_timeout`     | no       | Seconds an open control waits, idle, before returning home. `0` disables. Default 25. |
-| `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                           |
+| Option                   | Required | Description                                                                                                                                        |
+| ------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `entity`                 | yes      | The `climate.*` entity the card is bound to. One card drives one thermostat.                                                                       |
+| `name`                   | no       | Label override. Defaults to the entity's friendly name.                                                                                            |
+| `weather_entity`         | no       | A `weather` entity. Enables the weather icon and the Weather screen.                                                                               |
+| `humidity_entity`        | no       | Humidity source, for when the climate entity does not report humidity itself.                                                                      |
+| `air_quality_entity`     | no       | An entity carrying a US EPA air-quality index. Adds the AQI gauge.                                                                                 |
+| `uv_index_entity`        | no       | An entity carrying a UV index. Adds the UV gauge.                                                                                                  |
+| `fan_min_on_time_entity` | no       | A `number` entity for fan minimum runtime. Adds a selector to the Fan screen.                                                                      |
+| `sensors`                | no       | Temperature entities for the Sensors screen (see below).                                                                                           |
+| `show_fan`               | no       | When to show the Home Screen fan shortcut: `auto` (only for fans with real speeds), `always` (any fan, On/Auto included), `never`. Default `auto`. |
+| `inactivity_timeout`     | no       | Seconds an open control waits, idle, before returning home. `0` disables. Default 25.                                                              |
+| `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                                                                                        |
+| `standby`                | no       | YAML-only. Hide individual standby elements — see below. Ignored unless `standby_screen` is on.                                                    |
+
+#### Customizing the standby screen
+
+`standby` is a YAML-only block (not in the visual editor) that hides individual
+elements of the dimmed idle display. Each toggle defaults to shown; set one to
+`false` to hide it. Hiding `outdoor_temp` removes the whole top row (the weather
+glyph lives there); hiding just `weather` keeps the temperature but drops its glyph.
+
+```yaml
+standby_screen: true
+standby:
+  weather: false # hide the weather condition glyph
+  outdoor_temp: false # hide the outdoor temperature (removes the top row)
+  current_temp: false # hide the large current temperature
+  glow: false # hide the equipment status edge glow (the outer glowing ring)
+```
 
 ### The Sensors screen
 

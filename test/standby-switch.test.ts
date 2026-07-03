@@ -108,6 +108,60 @@ describe('toStandbyView — hass → view (issue #65)', () => {
   });
 });
 
+describe('toStandbyView — per-element visibility (standby config, YAML-only)', () => {
+  const rich = () =>
+    fakeHass({
+      entities: [
+        climateEntity('cool', { current_temperature: 72, hvac_action: 'cooling' }),
+        weatherEntity('cloudy', 48),
+      ],
+    }).hass;
+  const base = {
+    type: 'custom:ecosee-card',
+    entity: 'climate.t',
+    weather_entity: 'weather.home',
+    standby_screen: true,
+  } as const;
+
+  it('shows every element by default (no standby key)', () => {
+    const view = toStandbyView(rich(), base);
+    expect(view).toMatchObject({
+      currentTemp: 72,
+      outdoorTemp: 48,
+      weatherCondition: 'cloudy',
+      equipment: 'cooling',
+    });
+  });
+
+  it('hides the weather glyph but keeps the outdoor temp with weather: false', () => {
+    const view = toStandbyView(rich(), { ...base, standby: { weather: false } });
+    expect(view.weatherCondition).toBeNull();
+    expect(view.outdoorTemp).toBe(48);
+  });
+
+  it('drops the whole outdoor row with outdoor_temp: false', () => {
+    const view = toStandbyView(rich(), { ...base, standby: { outdoor_temp: false } });
+    expect(view.outdoorTemp).toBeNull();
+  });
+
+  it('hides the current temperature with current_temp: false', () => {
+    const view = toStandbyView(rich(), { ...base, standby: { current_temp: false } });
+    expect(view.currentTemp).toBeNull();
+  });
+
+  it('kills the equipment glow (and its label) with glow: false', () => {
+    const view = toStandbyView(rich(), { ...base, standby: { glow: false } });
+    expect(view.equipment).toBeNull();
+  });
+
+  it('leaves an unset toggle showing its element', () => {
+    const view = toStandbyView(rich(), { ...base, standby: { glow: false } });
+    // Only glow was turned off; the rest still render.
+    expect(view.currentTemp).toBe(72);
+    expect(view.weatherCondition).toBe('cloudy');
+  });
+});
+
 describe('ecosee-card — Home ↔ Standby switching (issue #65)', () => {
   it('switches to the Standby Screen after 60s idle on the bare Home Screen', async () => {
     const { hass } = fakeHass({ entities: [climateEntity('cool', { current_temperature: 72 })] });
