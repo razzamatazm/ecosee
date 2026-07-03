@@ -30,6 +30,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run demo
+      # Ship the standalone Deep Sea Adventure toy alongside the demo so it has a
+      # live link at /ecosee/deep-sea-adventure-boost/ (self-contained, no build).
+      - run: cp -r deep-sea-adventure-boost demo-dist/deep-sea-adventure-boost
       - uses: actions/upload-pages-artifact@v3
         with:
           path: demo-dist
