@@ -279,6 +279,18 @@ export class EcoseeTemperatureOverlay extends LitElement {
     const model = this._edit;
     const edit = model && model[model.active];
     if (!edit) return;
+    // Suppress the compatibility mouse `click` this pointer gesture would otherwise
+    // synthesize. The scrubber fully drives itself off pointer events — a scrub
+    // commits on `pointermove`/release and a value-neutral tap dismisses on
+    // `pointerup` — so the trailing click is never wanted. Left alone, a tap-to-
+    // dismiss releases on `pointerup`, we pop the overlay, and the gesture's *late*
+    // touch ghost click then hit-tests the now-exposed Home Screen temperature
+    // button underneath and immediately re-opens the overlay (the ✕/backdrop dodge
+    // this because they dismiss ON the click, consuming it). `preventDefault` on
+    // pointerdown is the Pointer Events contract for "this surface owns the gesture;
+    // don't emit legacy mouse/click events" — it leaves pointermove/up and
+    // setPointerCapture untouched, so scrubbing is unaffected.
+    event.preventDefault();
     this._drag = { startY: event.clientY, startValue: edit.value, moved: false };
     (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
   };
