@@ -78,7 +78,11 @@ export class EcoseeComfortSettingOverlay extends LitElement {
     .list {
       width: 68cqw;
       max-height: 80cqw;
-      overflow-y: auto;
+      /* Vertical scroll only. A bare overflow-y:auto forces the visible x-axis to
+         compute to auto too, so a long label produced a left-right scroll (kiosk
+         pull-to-scrub territory). Pin x to hidden; long labels truncate (see the
+         .label rule), matching the device's own ellipsis behavior. */
+      overflow: hidden auto;
       border: 0.6cqw solid var(--ecosee-accent, #62cfe9);
       border-radius: 6cqw;
       pointer-events: auto;
@@ -117,6 +121,16 @@ export class EcoseeComfortSettingOverlay extends LitElement {
       width: 7.5cqw;
       height: 7.5cqw;
       flex: none;
+    }
+
+    /* Long preset names truncate with an ellipsis rather than widen the row.
+       min-width:0 lets the flex item shrink below its content width (the default
+       auto min is what let it push the row past the list). */
+    .label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     /* Selected row: filled cyan with dark text (visual-spec.md). */
