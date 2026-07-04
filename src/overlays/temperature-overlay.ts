@@ -320,6 +320,26 @@ export class EcoseeTemperatureOverlay extends LitElement {
     }
   };
 
+  // Gesture lock: while a drag is in progress, cancel the native touch so a
+  // vertical scrub can't trigger the page's pull-to-refresh (or scroll). The
+  // `.scrubber` already sets `touch-action: none`, which handles well-behaved
+  // browsers; some kiosk/Fire-tablet WebViews honor it inconsistently and still
+  // pull-to-refresh mid-scrub. Cancelling `touchmove` defeats that regardless,
+  // because the browser can only start pull-to-refresh from a touch we let run.
+  // Attached non-passive (Lit options object) so `preventDefault` is honored, and
+  // gated on `_drag` so taps and any non-scrub touch are untouched. `_drag` is set
+  // on pointerdown, which precedes the first touchmove, so the very first move —
+  // the one that would commit the browser to pull-to-refresh — is already cancelled.
+  // App-level pull-to-refresh (Fully Kiosk's setting, the HA Companion app's native
+  // swipe-refresh) lives outside the WebView and can't be reached from here; that's
+  // a toggle in the app, not a card fix.
+  private _onScrubberTouchMove = {
+    handleEvent: (event: TouchEvent): void => {
+      if (this._drag) event.preventDefault();
+    },
+    passive: false,
+  };
+
   // Keyboard operation of the scrubber slider (operable without a pointer): ↑/→
   // raise, ↓/← lower the active setpoint by one step. This follows the ARIA slider
   // convention and the unchanged "higher values up" layout, so it intentionally
@@ -383,6 +403,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
         @pointermove=${this._onScrubberMove}
         @pointerup=${this._onScrubberUp}
         @pointercancel=${this._onScrubberUp}
+        @touchmove=${this._onScrubberTouchMove}
         @keydown=${this._onScrubberKey}
       >
         <div class="stack above">${above.map(neighbor)}</div>
