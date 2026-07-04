@@ -38,12 +38,13 @@ function fireAction(card: EcoseeCard, action: string, setpoint?: 'heat' | 'cool'
   );
 }
 
-/** Dispatch a Main Menu selection the way <ecosee-main-menu-overlay> does. */
-function fireMenuSelect(card: EcoseeCard, target: string): void {
+/** Dispatch a bottom tab-bar tap the way <ecosee-overlay> does (a section target, or
+ *  `thermostat` for the temp badge that returns Home). */
+function fireTabSelect(card: EcoseeCard, target: string): void {
   card
-    .shadowRoot!.querySelector('ecosee-main-menu-overlay')!
+    .shadowRoot!.querySelector('ecosee-overlay')!
     .dispatchEvent(
-      new CustomEvent('ecosee-menu-select', { detail: { target }, bubbles: true, composed: true }),
+      new CustomEvent('ecosee-tab-select', { detail: { target }, bubbles: true, composed: true }),
     );
 }
 
@@ -169,8 +170,8 @@ describe('ecosee-card wiring — apply path', () => {
   });
 });
 
-describe('ecosee-card wiring — navigation (hub-and-picker)', () => {
-  it('dismissing a menu-reached sub-screen returns to the Main Menu, not Home', async () => {
+describe('ecosee-card wiring — navigation (tab bar)', () => {
+  it('the gear opens a Main Menu section directly; a tab switch replaces it; dismiss returns Home', async () => {
     const { hass } = fakeHass({
       entities: [
         climateEntity('heat', {
@@ -182,21 +183,37 @@ describe('ecosee-card wiring — navigation (hub-and-picker)', () => {
     });
     const card = await mountCard(hass);
 
+    // The gear lands directly on the first reachable section (System) — no
+    // drill-down list in between.
     fireAction(card, 'menu');
     await card.updateComplete;
-    expect(overlayPresent(card, 'ecosee-main-menu-overlay')).toBe(true);
+    expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(true);
 
-    // Choose Fan from the menu — pushed onto the stack.
-    fireMenuSelect(card, 'fan');
+    // A tab tap replaces the section (a flat switch, not a push).
+    fireTabSelect(card, 'fan');
     await card.updateComplete;
     expect(overlayPresent(card, 'ecosee-fan-overlay')).toBe(true);
-    expect(overlayPresent(card, 'ecosee-main-menu-overlay')).toBe(false);
+    expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(false);
 
-    // One dismiss pops a single level — back to the menu, not all the way Home.
+    // Dismissing a section returns Home (there is no menu to fall back to).
     fireDismiss(card);
     await card.updateComplete;
-    expect(overlayPresent(card, 'ecosee-main-menu-overlay')).toBe(true);
     expect(overlayPresent(card, 'ecosee-fan-overlay')).toBe(false);
+  });
+
+  it('the tab bar temp badge returns to Home from a section', async () => {
+    const { hass } = fakeHass({
+      entities: [climateEntity('heat', { hvac_modes: ['off', 'heat', 'cool'] })],
+    });
+    const card = await mountCard(hass);
+
+    fireAction(card, 'menu');
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(true);
+
+    fireTabSelect(card, 'thermostat');
+    await card.updateComplete;
+    expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(false);
   });
 
   it('opens the Fan sub-screen from the Home top-row shortcut, dismissing back to Home (issue #45)', async () => {
@@ -284,15 +301,14 @@ describe('ecosee-card wiring — pickers close on selection (issues #38/#39)', (
     expect(overlayPresent(card, 'ecosee-overlay')).toBe(false);
   });
 
-  it('a menu-reached picker returns to the previous screen (System sub-screen), not Home', async () => {
+  it('a picker opened from a section returns to that section (System), not Home', async () => {
     const { hass } = fakeHass({
       entities: [climateEntity('cool', { hvac_modes: ['off', 'heat', 'cool'] })],
     });
     const card = await mountCard(hass);
 
+    // The gear lands on the System section; its selectors push focused pickers.
     fireAction(card, 'menu');
-    await card.updateComplete;
-    fireMenuSelect(card, 'system');
     await card.updateComplete;
     expect(overlayPresent(card, 'ecosee-system-overlay')).toBe(true);
 

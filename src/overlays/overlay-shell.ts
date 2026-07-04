@@ -1,8 +1,17 @@
-import { LitElement, html, css, type TemplateResult } from 'lit';
-import { customElement } from 'lit/decorators.js';
+import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
+import { customElement, property } from 'lit/decorators.js';
 import { icons } from '../icons';
+import type { TabBarModel, TabIcon, TabTarget } from '../menu/tab-bar';
 import { renderShape, shapeStyles } from '../styles/shape';
 import { emitOverlayDismiss } from './overlay-dismiss';
+
+/** Section-tab glyphs. The gear (Main Menu affordance) doubles as the System
+ *  (settings) tab, keeping one cog glyph for both. */
+const TAB_ICONS: Record<TabIcon, typeof icons.menu> = {
+  gear: icons.menu,
+  sensor: icons.sensor,
+  fan: icons.fan,
+};
 
 /**
  * `<ecosee-overlay>` — the overlay shell. A content-agnostic squircle that mounts
@@ -57,6 +66,14 @@ export class EcoseeOverlay extends LitElement {
       font-family: var(--ecosee-font, system-ui, sans-serif);
       overflow: hidden;
       user-select: none;
+      /* Bottom space a section body must leave clear so its content never hides
+         behind the tab bar. The shell owns this number (it owns the bar's geometry:
+         bottom 7u + height 8u ≈ 15u, plus margin); section overlays read it via
+         var(--ecosee-tabbar-inset) rather than re-deriving it. 0 when no bar. */
+      --ecosee-tabbar-inset: 0px;
+    }
+    .shell.tabbed {
+      --ecosee-tabbar-inset: calc(17 * var(--ecosee-u, 4.6px));
     }
 
     /* Behind the content; catches taps on any non-control area to dismiss. */
@@ -86,18 +103,19 @@ export class EcoseeOverlay extends LitElement {
       pointer-events: none;
     }
 
-    /* Inset from the top-right corner. The superellipse curves inward there, so a
-       tight corner offset (was 6u) put the ✕ right on the bevel and cramped against
-       the edge — uncomfortable to reach on a touch dashboard. 9u pulls it into the
-       flat of the surface with a comfortable margin while staying clear of centered
-       overlay content below. */
+    /* Inset from the top-LEFT corner, matching the device (its ✕ / back control
+       sits top-left on every sub-screen). The superellipse curves inward there, so
+       a tight corner offset (was 6u) put the ✕ right on the bevel and cramped
+       against the edge — uncomfortable to reach on a touch dashboard. 9u pulls it
+       into the flat of the surface with a comfortable margin while staying clear of
+       centered overlay content below. */
     .close {
       appearance: none;
       background: none;
       border: none;
       position: absolute;
       top: calc(9 * var(--ecosee-u, 4.6px));
-      right: calc(9 * var(--ecosee-u, 4.6px));
+      left: calc(9 * var(--ecosee-u, 4.6px));
       width: calc(9 * var(--ecosee-u, 4.6px));
       height: calc(9 * var(--ecosee-u, 4.6px));
       padding: calc(1.4 * var(--ecosee-u, 4.6px));
@@ -105,21 +123,118 @@ export class EcoseeOverlay extends LitElement {
       cursor: pointer;
       z-index: 2;
     }
+
+    /* The device's persistent bottom navigation, shown across the Main Menu section
+       screens (System / Sensors / Fan). Shell chrome like the ✕: absolutely placed,
+       sized in the fixed unit (the shell is not a query container), above the content.
+       The full-width nav stays pointer-transparent so its empty flanks fall through to
+       the dismiss backdrop (outside-tap-to-dismiss); only the buttons opt back in. */
+    .tabbar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: calc(7 * var(--ecosee-u, 4.6px));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: calc(8 * var(--ecosee-u, 4.6px));
+      z-index: 2;
+      pointer-events: none;
+    }
+    .tab {
+      appearance: none;
+      background: none;
+      border: none;
+      margin: 0;
+      padding: 0;
+      width: calc(8 * var(--ecosee-u, 4.6px));
+      height: calc(8 * var(--ecosee-u, 4.6px));
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: auto;
+      /* Inactive tabs are muted; the active section and the temp badge are accent —
+         the device's "you are here" cue. */
+      color: var(--ecosee-muted, #6f96a3);
+      cursor: pointer;
+    }
+    .tab.active {
+      color: var(--ecosee-accent, #62cfe9);
+    }
+    /* Left badge: the current temperature in a cyan ring, tapping it returns to the
+       thermostat (Home). Falls back to the wall-display glyph when temp is unknown. */
+    .tab.temp {
+      border: calc(0.5 * var(--ecosee-u, 4.6px)) solid var(--ecosee-accent, #62cfe9);
+      border-radius: 50%;
+      color: var(--ecosee-accent, #62cfe9);
+      font-family: inherit;
+      font-weight: 600;
+      font-size: calc(3.3 * var(--ecosee-u, 4.6px));
+    }
+    .tab.temp.glyph {
+      padding: calc(1.4 * var(--ecosee-u, 4.6px));
+    }
+    .tab svg {
+      width: 100%;
+      height: 100%;
+    }
   `,
   ];
+
+  /** The bottom navigation model, supplied by the card for the Main Menu section
+   *  screens and absent (⇒ no bar) elsewhere (Temperature, the pickers, Weather). */
+  @property({ attribute: false }) tabs?: TabBarModel;
 
   private _dismiss = (): void => {
     emitOverlayDismiss(this);
   };
 
+  /** Announce a tab tap; the card routes it (a section opens that screen, the temp
+   *  badge returns Home). Bubbling + composed so it clears the shadow boundary and
+   *  reaches the card's single overlay listener, like the other overlay events. */
+  private _selectTab(target: TabTarget): void {
+    this.dispatchEvent(
+      new CustomEvent('ecosee-tab-select', { detail: { target }, bubbles: true, composed: true }),
+    );
+  }
+
   override render(): TemplateResult {
     return html`
-      <div class="shell">
+      <div class="shell ${this.tabs?.available ? 'tabbed' : ''}">
         ${renderShape()}
         <div class="backdrop" @click=${this._dismiss}></div>
         <button class="close" aria-label="Close" @click=${this._dismiss}>${icons.close}</button>
         <div class="content"><slot></slot></div>
+        ${this._renderTabBar()}
       </div>
+    `;
+  }
+
+  private _renderTabBar(): TemplateResult | typeof nothing {
+    const tabs = this.tabs;
+    if (!tabs?.available) return nothing;
+    return html`
+      <nav class="tabbar" aria-label="Menu sections">
+        <button
+          class="tab temp ${tabs.temp === null ? 'glyph' : ''}"
+          aria-label="Thermostat"
+          @click=${() => this._selectTab('thermostat')}
+        >
+          ${tabs.temp === null ? icons.thermostat : tabs.temp}
+        </button>
+        ${tabs.items.map(
+          (item) => html`
+            <button
+              class="tab ${item.active ? 'active' : ''}"
+              aria-label=${item.label}
+              aria-current=${item.active ? 'page' : 'false'}
+              @click=${() => this._selectTab(item.target)}
+            >
+              ${TAB_ICONS[item.icon]}
+            </button>
+          `,
+        )}
+      </nav>
     `;
   }
 }

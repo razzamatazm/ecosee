@@ -45,8 +45,11 @@ export class EcoseeSensorsOverlay extends LitElement {
       align-items: center;
       justify-content: flex-start;
       gap: calc(5 * var(--ecosee-u, 4.6px));
+      /* Reserve the tab bar's zone at the bottom so the scrolling list can't hide its
+         last card behind it. The size is the shell's --ecosee-tabbar-inset (it owns
+         the bar's geometry); this falls back to the normal 8u when no bar is present. */
       padding: calc(13 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px))
-        calc(8 * var(--ecosee-u, 4.6px));
+        var(--ecosee-tabbar-inset, calc(8 * var(--ecosee-u, 4.6px)));
     }
 
     .header {
@@ -74,7 +77,9 @@ export class EcoseeSensorsOverlay extends LitElement {
        empty margins still fall through to the backdrop. */
     .list {
       width: 84cqw;
-      max-height: 60cqw;
+      /* Caps how many cards are visible before the list scrolls (the last one peeks,
+         as on the device); the root's bottom inset keeps it clear of the tab bar. */
+      max-height: 54cqw;
       display: flex;
       flex-direction: column;
       gap: 3cqw;

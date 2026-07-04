@@ -52,11 +52,10 @@ export class EcoseeSystemOverlay extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
-      /* The top padding / gap are deliberately tighter than the title-only
-         hub (main-menu-overlay): with both selectors stacked (their labels are
-         too wide to share a row) the cluster runs tall, and the looser rhythm
-         pushed the Comfort Setting pill into the bottom squircle curve, which
-         clipped it. */
+      /* The top padding / gap are kept deliberately tight: a looser rhythm pushed
+         the lower selector pill into the bottom squircle curve and clipped it. This
+         still matters when the two selectors wrap to stacked rows (a long custom
+         Comfort Setting value), which runs the cluster tall. */
       gap: calc(6 * var(--ecosee-u, 4.6px));
       padding: calc(12 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px))
         calc(10 * var(--ecosee-u, 4.6px));
@@ -83,8 +82,10 @@ export class EcoseeSystemOverlay extends LitElement {
       color: var(--ecosee-accent, #62cfe9);
     }
 
-    /* Selectors sit side by side, wrapping to stacked rows when their values are too
-       wide to share a row (e.g. "Heat / Cool (Auto)"). */
+    /* Selectors sit side by side as on the device. Each column is only as wide as
+       its label, so the sub-title labels are kept compact (and one line) to let both
+       fit; flex-wrap still drops them to stacked rows if a value pill grows wide
+       (a long custom Comfort Setting), preserving graceful degradation. */
     .selectors {
       width: 100%;
       display: flex;
@@ -100,8 +101,9 @@ export class EcoseeSystemOverlay extends LitElement {
       gap: 2.5cqw;
     }
     .selector-label {
-      font-size: 6.5cqw;
+      font-size: 5cqw;
       font-weight: 600;
+      white-space: nowrap;
       color: var(--ecosee-accent, #62cfe9);
     }
 
@@ -115,7 +117,7 @@ export class EcoseeSystemOverlay extends LitElement {
       align-items: center;
       justify-content: center;
       gap: 2.5cqw;
-      min-width: 30cqw;
+      min-width: 26cqw;
       max-width: 80cqw;
       padding: 3cqw 4cqw;
       background: none;
@@ -207,9 +209,11 @@ export class EcoseeSystemOverlay extends LitElement {
     `;
   }
 
-  /** The active System Mode's label for the selector summary (— if none reported). */
+  /** The active System Mode's label for the selector summary (— if none reported).
+   *  Uses the terse `summary` ("Auto") so it fits beside Comfort Setting; the picker
+   *  list still shows the full `label`. */
   private _modeValue(): string {
-    return this.systemMode?.options.find((o) => o.selected)?.label ?? '—';
+    return this.systemMode?.options.find((o) => o.selected)?.summary ?? '—';
   }
 
   /** The active Comfort Setting's label for the selector summary (— if none held). */

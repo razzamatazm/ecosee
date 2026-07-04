@@ -30,6 +30,10 @@ export interface SystemModeOption {
   mode: DeviceMode;
   hvacMode: string;
   label: string;
+  /** Compact label for the System screen's summary pill — the device's terse form
+   *  ("Auto" for Heat / Cool), so System Mode and Comfort Setting fit side by side
+   *  as on the device. Equals `label` for every mode that is already short. */
+  summary: string;
   selected: boolean;
 }
 
@@ -54,6 +58,13 @@ const LABELS: Record<DeviceMode, string> = {
   fan_only: 'Fan only',
   off: 'Off',
 };
+
+/** Compact labels for the System screen's summary pill: the device's terse forms
+ *  (its System screen shows "Auto", not "Heat / Cool (Auto)"), so the two selectors
+ *  sit side by side instead of wrapping. Only Heat / Cool is terser than `LABELS`;
+ *  every other mode reuses its full label, and the picker list always uses the full
+ *  `label` where disambiguation matters. */
+const SUMMARY_LABELS: Record<DeviceMode, string> = { ...LABELS, heat_cool: 'Auto' };
 
 function deviceMode(hvacMode: string): DeviceMode | null {
   const mode = toMode(hvacMode);
@@ -86,6 +97,7 @@ export function toSystemModeModel(hass: HomeAssistant, config: EcoseeCardConfig)
     mode,
     hvacMode: raw.get(mode)!,
     label: LABELS[mode],
+    summary: SUMMARY_LABELS[mode],
     selected: mode === current,
   }));
 

@@ -6,7 +6,6 @@ import { EcoseeHomeScreen } from '../src/screens/home-screen';
 import { EcoseeOverlay } from '../src/overlays/overlay-shell';
 import { EcoseeComfortSettingOverlay } from '../src/overlays/comfort-setting-overlay';
 import { EcoseeFanOverlay } from '../src/overlays/fan-overlay';
-import { EcoseeMainMenuOverlay } from '../src/overlays/main-menu-overlay';
 import { EcoseeSensorsOverlay } from '../src/overlays/sensors-overlay';
 import { EcoseeSystemModeOverlay } from '../src/overlays/system-mode-overlay';
 import { EcoseeSystemOverlay } from '../src/overlays/system-overlay';
@@ -38,7 +37,6 @@ const CONTAINER_BODIES: ReadonlyArray<readonly [string, StyleHost]> = [
   ['ecosee-home-screen', EcoseeHomeScreen],
   ['ecosee-comfort-setting-overlay', EcoseeComfortSettingOverlay],
   ['ecosee-fan-overlay', EcoseeFanOverlay],
-  ['ecosee-main-menu-overlay', EcoseeMainMenuOverlay],
   ['ecosee-sensors-overlay', EcoseeSensorsOverlay],
   ['ecosee-system-mode-overlay', EcoseeSystemModeOverlay],
   ['ecosee-system-overlay', EcoseeSystemOverlay],

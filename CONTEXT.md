@@ -70,18 +70,37 @@ _Avoid_: screensaver, idle face, lock screen, dim mode.
 
 **System Mode**:
 The heat/cool operating mode. The device's own labels are **Heat**, **Cool**,
-**Heat / Cool (Auto)**, **Off** — use these in UI copy, not "Auto" alone. A generic
-`climate` entity (ADR-0001) may also run in **Dry** or **Fan only**; the Card
-recognizes and lists these (with Home Assistant's labels) even though the ecobee
-device has neither. Surfaces in Home Assistant as the `climate` entity's `hvac_mode`.
-_Avoid_: HVAC mode (in UI copy), operation mode, "Auto" (use "Heat / Cool (Auto)").
+**Heat / Cool (Auto)**, **Off** — use these in UI copy, not "Auto" alone. The one
+exception is the System screen's compact **summary pill**, which shows the device's
+terse form (**Auto** for Heat / Cool) so it fits beside the Comfort Setting pill;
+the picker list still uses the full label. A generic `climate` entity (ADR-0001) may
+also run in **Dry** or **Fan only**; the Card recognizes and lists these (with Home
+Assistant's labels) even though the ecobee device has neither. Surfaces in Home
+Assistant as the `climate` entity's `hvac_mode`.
+_Avoid_: HVAC mode (in UI copy), operation mode, "Auto" alone as the mode name
+(except the compact summary pill noted above).
 
 **Main Menu**:
-The hub reached from the Home Screen that lists sub-screens (System, Fan, Sensors,
-Weather, …). The System sub-screen holds both the System Mode and Comfort Setting
-selectors; tapping a selector opens a focused **Picker**. Navigation is hub-and-picker,
-not a flat set of sibling overlays.
-_Avoid_: settings, drawer.
+The section screens reached from the Home Screen's gear — **System**, **Sensors**,
+**Fan** — navigated by a persistent **Tab Bar** at the bottom. The gear lands
+directly on the first reachable section (no intermediate list); the Tab Bar switches
+between the sibling sections and its left temperature badge returns to the thermostat
+(Home). The System section holds both the System Mode and Comfort Setting selectors;
+tapping a selector opens a focused **Picker** pushed on top (dismissing it returns to
+the section). Weather is reached from the Home Screen's own affordance, not the Tab
+Bar — as on the device, whose bottom bar carries thermostat/sensors/fan/settings but
+not weather (the voice/mic tab has no Home Assistant meaning and is dropped).
+_Avoid_: settings, drawer, drill-down list (the earlier hub list is gone — only the
+selector→Picker step remains a drill-in).
+
+**Tab Bar**:
+The device's persistent bottom navigation across the Main Menu sections. Rendered as
+shell chrome (like the ✕) on the System / Sensors / Fan screens only, never on the
+pickers, Temperature, or Weather. Left to right: a temperature **badge** (returns
+Home), then one icon tab per reachable section — sensors, fan, and the gear (which is
+the System/settings tab, kept rightmost). A tab shows only when its section is
+reachable for the bound entity (graceful degradation, ADR-0001).
+_Avoid_: navbar, footer, toolbar.
 
 **Comfort Setting**:
 An ecobee named climate preset — Home, Away, Sleep, plus user-defined ones — each

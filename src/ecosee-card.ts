@@ -1,7 +1,7 @@
 import { LitElement, html, css, nothing, type TemplateResult, type PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { CARD_TYPE, parseConfig, type EcoseeCardConfig } from './config';
-import { toHomeView } from './climate/home-view';
+import { toHomeView, formatTemp, type HomeView } from './climate/home-view';
 import {
   toTempAdjustModel,
   selectSetpoint,
@@ -11,7 +11,7 @@ import {
 import { toSystemModeModel } from './climate/system-mode';
 import { toComfortSettingModel } from './climate/comfort-setting';
 import { toFanModel } from './climate/fan';
-import { toMainMenuModel, type MainMenuTarget } from './menu/main-menu';
+import { toTabBarModel, TAB_SECTIONS, type TabBarModel, type TabTarget } from './menu/tab-bar';
 import { InactivityTimer, inactivityTimeoutMs, standbyReturnMs } from './overlays/inactivity-timer';
 import type { SystemSelectTarget } from './overlays/system-overlay';
 import { toSensorsModel } from './sensors/sensors';
@@ -39,7 +39,6 @@ import './overlays/system-mode-overlay';
 import './overlays/comfort-setting-overlay';
 import './overlays/system-overlay';
 import './overlays/fan-overlay';
-import './overlays/main-menu-overlay';
 import './overlays/sensors-overlay';
 import './overlays/weather-overlay';
 import { EDITOR_TYPE } from './editor/ecosee-card-editor';
@@ -48,7 +47,8 @@ import './editor/ecosee-card-editor';
 /** An Overlay that can mount over the Home Screen. `system` is the Main Menu's
  *  System sub-screen (the hub holding the System Mode + Comfort Setting selectors);
  *  `system-mode` / `comfort-setting` are the focused pickers it routes to; the rest
- *  are the Main Menu sub-screens — all now have overlays. */
+ *  are the Main Menu sections, reached via the gear and switched between with the
+ *  bottom tab bar. */
 type OverlayKind =
   | 'temperature'
   | 'system-mode'
@@ -56,8 +56,7 @@ type OverlayKind =
   | 'system'
   | 'fan'
   | 'sensors'
-  | 'weather'
-  | 'menu';
+  | 'weather';
 
 /**
  * One Overlay's wiring, gathered in a single place: whether it has anything to show
@@ -226,14 +225,6 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         <ecosee-weather-overlay
           .model=${toWeatherModel(hass, config, this._weatherForecasts)}
         ></ecosee-weather-overlay>
-      `,
-    },
-    menu: {
-      available: (hass, config) => toMainMenuModel(hass, config).available,
-      render: (hass, config) => html`
-        <ecosee-main-menu-overlay
-          .model=${toMainMenuModel(hass, config)}
-        ></ecosee-main-menu-overlay>
       `,
     },
   };
@@ -474,13 +465,13 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
             @pointerdown=${this._onHomeActivity}
             @mouseover=${this._onHomeActivity}
           ></ecosee-home-screen>
-          ${this._renderOverlay()}
+          ${this._renderOverlay(view)}
         </div>
       </div>
     `;
   }
 
-  private _renderOverlay(): TemplateResult | typeof nothing {
+  private _renderOverlay(view: HomeView): TemplateResult | typeof nothing {
     if (!this._overlay || !this._config || !this.hass) return nothing;
     const content = this._overlays[this._overlay].render(this.hass, this._config);
     if (content === nothing) return nothing;
@@ -493,10 +484,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     // `pointermove` alone, so a slow drag would otherwise let the timer expire.
     return html`
       <ecosee-overlay
+        .tabs=${this._tabBar(view)}
         @ecosee-overlay-dismiss=${this._closeOverlay}
         @ecosee-service-call=${this._onServiceCall}
-        @ecosee-menu-select=${this._onMenuSelect}
         @ecosee-system-select=${this._onSystemSelect}
+        @ecosee-tab-select=${this._onTabSelect}
         @pointerdown=${this._onOverlayActivity}
         @pointermove=${this._onOverlayActivity}
         @keydown=${this._onOverlayActivity}
@@ -524,7 +516,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         this._open('fan', 'home');
         break;
       case 'menu':
-        this._open('menu', 'home');
+        this._openMenu();
         break;
       case 'weather':
         this._open('weather', 'home');
@@ -571,19 +563,60 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     }
   }
 
-  /** Route a Main Menu selection to its sub-screen, pushed onto the stack so the
-   *  sub-screen's dismissal returns to the menu (hub-and-picker). The targets double
-   *  as overlay kinds, so opening each one runs its descriptor (e.g. the System hub's
-   *  availability gate, or Weather's forecast fetch). */
-  private _onMenuSelect = (event: CustomEvent<{ target: MainMenuTarget }>): void => {
-    this._open(event.detail.target, 'push');
-  };
-
   /** Route a System sub-screen selector to its focused picker, pushed onto the stack
    *  so the picker's dismissal returns to the System sub-screen (hub-and-picker). The
    *  selector targets double as overlay kinds. */
   private _onSystemSelect = (event: CustomEvent<{ target: SystemSelectTarget }>): void => {
     this._open(event.detail.target, 'push');
+  };
+
+  /** Open the Main Menu: land directly on the first reachable section (System, then
+   *  Sensors, then Fan), where the bottom tab bar takes over navigation between the
+   *  siblings — this replaces the old drill-down list. Weather is the last resort so
+   *  a weather-only entity's gear still opens something (Weather carries no tab bar
+   *  of its own, matching the device). `_open` re-checks availability, so an
+   *  unreachable pick is a safe no-op. */
+  private _openMenu(): void {
+    if (!this.hass || !this._config) return;
+    const hass = this.hass;
+    const config = this._config;
+    const order: OverlayKind[] = ['system', 'sensors', 'fan', 'weather'];
+    const first = order.find((kind) => this._overlays[kind].available(hass, config));
+    if (first) this._open(first, 'home');
+  }
+
+  /** The bottom tab bar for the current screen, or `undefined` (⇒ no bar) unless a
+   *  Main Menu section (System / Sensors / Fan) is showing. Availability comes from
+   *  the single overlay-descriptor table so the section predicates aren't duplicated;
+   *  the temp badge reads the same current temperature as the Home Screen. */
+  private _tabBar(view: HomeView): TabBarModel | undefined {
+    const kind = this._overlay;
+    if (!this.hass || !this._config || !kind) return undefined;
+    if (!(TAB_SECTIONS as readonly string[]).includes(kind)) return undefined;
+    const hass = this.hass;
+    const config = this._config;
+    // The badge mirrors the Home Screen's current temperature — same value, same
+    // shared formatter (whole °F, half °C) — so reuse the already-derived `view`
+    // rather than recomputing `toHomeView`, and never Math.round it independently.
+    const temp = view.currentTemp === null ? null : formatTemp(view.currentTemp, view.unit);
+    const model = toTabBarModel(kind, temp, {
+      system: this._overlays.system.available(hass, config),
+      sensors: this._overlays.sensors.available(hass, config),
+      fan: this._overlays.fan.available(hass, config),
+    });
+    return model.available ? model : undefined;
+  }
+
+  /** Route a tab tap: the temp badge returns to the thermostat (Home); a section
+   *  replaces the current screen (`'home'` mode) so the sibling sections stay a flat
+   *  switch — dismissing any of them returns Home, as on the device. */
+  private _onTabSelect = (event: CustomEvent<{ target: TabTarget }>): void => {
+    const target = event.detail.target;
+    if (target === 'thermostat') {
+      this._revertToHome();
+      return;
+    }
+    this._open(target, 'home');
   };
 
   /** Dismiss (✕ / outside-tap): pop one level and drop per-open state so a later

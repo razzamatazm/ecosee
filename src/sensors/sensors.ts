@@ -4,7 +4,7 @@ import { num } from '../climate/parse';
 import { UNAVAILABLE } from '../climate/home-view';
 
 // The derivation seam for the Sensors sub-screen (the sibling of `toHomeView` /
-// `toSystemModeModel` / `toMainMenuModel`). `toSensorsModel` builds an
+// `toSystemModeModel`). `toSensorsModel` builds an
 // already-degraded list of sensor cards from raw `hass` + config: the thermostat's
 // own temperature first, then each user-curated temperature entity, dropping any
 // that is missing / unavailable / non-numeric and attaching an occupancy badge
