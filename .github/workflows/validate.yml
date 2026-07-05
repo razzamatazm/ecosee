@@ -1,0 +1,27 @@
+# HACS validation. Runs the same checks HACS uses to decide whether a repository
+# is installable, and is a hard prerequisite for inclusion in the HACS default
+# store: it must pass green (no errors, no ignores) before the hacs/default PR
+# will be accepted. category is "plugin" because ecosee is a Lovelace dashboard
+# card. See https://www.hacs.xyz/docs/publish/action/
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  validate-hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: HACS validation
+        uses: hacs/action@main
+        with:
+          category: plugin
