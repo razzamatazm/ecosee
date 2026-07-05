@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, type TemplateResult } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
+import type { EquipmentStatus } from '../climate/home-view';
 import { icons } from '../icons';
 import type { TabBarModel, TabIcon, TabTarget } from '../menu/tab-bar';
 import { renderShape, shapeStyles } from '../styles/shape';
@@ -20,6 +21,11 @@ const TAB_ICONS: Record<TabIcon, typeof icons.menu> = {
  * tap. Active Overlay content is slotted in. This is the infrastructure every
  * later Overlay (System Mode, Fan, Sensors, Weather) reuses — the Temperature
  * Adjust overlay is just its first occupant.
+ *
+ * Because the shell's opaque canvas covers the Home Screen while an Overlay is open,
+ * it also carries the equipment edge glow (blue cooling / amber heating, keyed to the
+ * `equipment` property) so the "system is running" cue persists on every Overlay,
+ * not just Home / Standby (ADR-0011).
  *
  * Outside-tap contract: the slotted content fills the whole shell, so a dedicated
  * `.backdrop` layer sits *behind* it and slotted content is `pointer-events: none`
@@ -74,6 +80,41 @@ export class EcoseeOverlay extends LitElement {
     }
     .shell.tabbed {
       --ecosee-tabbar-inset: calc(17 * var(--ecosee-u, 4.6px));
+    }
+
+    /* Equipment-status edge glow, keyed to hvac_action — the SAME crisp squircle-edge
+       line the Home Screen draws (ADR-0011 supersedes ADR-0009's "Overlay shell has
+       none" clause): blue cooling / amber heating, nothing idle. The glow markup and
+       the reveal/color chain mirror the Home Screen (home-screen.ts) so the surfaces
+       never drift; unlike the Standby Screen the overlay is a bright active surface, so
+       it uses the Home Screen's full-strength glow (no standby dimming). Without this
+       the shell's opaque canvas covers the Home Screen's glow the moment any overlay
+       opens, so the "system is running" cue vanished while adjusting the temperature. */
+    .shape .glow {
+      display: none;
+    }
+    .shape .glow path {
+      fill: none;
+      stroke: currentColor;
+    }
+    .shell.cooling .glow {
+      display: block;
+      color: var(--ecosee-cool, #49b6ea);
+    }
+    .shell.heating .glow {
+      display: block;
+      color: var(--ecosee-heat, #f3a13c);
+    }
+
+    /* The glow conveys equipment state by color alone, so announce it to assistive
+       tech (WCAG), matching the Home Screen and Standby Screen. */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
     }
 
     /* Behind the content; catches taps on any non-control area to dismiss. */
@@ -185,6 +226,13 @@ export class EcoseeOverlay extends LitElement {
    *  screens and absent (⇒ no bar) elsewhere (Temperature, the pickers, Weather). */
   @property({ attribute: false }) tabs?: TabBarModel;
 
+  /** Equipment Status (`'cooling'` / `'heating'` / `'idle'`), or `null` when not
+   *  expressible. Supplied by the card straight from the Home Screen's `hvac_action`
+   *  derivation so the overlay agrees with Home; it reveals the edge glow (blue
+   *  cooling / amber heating, nothing idle) so the "system is running" cue persists
+   *  while any overlay is open (ADR-0011). */
+  @property({ attribute: false }) equipment?: EquipmentStatus | null;
+
   private _dismiss = (): void => {
     emitOverlayDismiss(this);
   };
@@ -199,15 +247,31 @@ export class EcoseeOverlay extends LitElement {
   }
 
   override render(): TemplateResult {
+    const classes = ['shell', this.tabs?.available ? 'tabbed' : '', this.equipment ?? '']
+      .filter(Boolean)
+      .join(' ');
     return html`
-      <div class="shell ${this.tabs?.available ? 'tabbed' : ''}">
-        ${renderShape()}
+      <div class=${classes}>
+        ${renderShape({ glow: true })}
+        ${
+          this.equipment
+            ? html`<span class="sr-only">${this._equipLabel(this.equipment)}</span>`
+            : nothing
+        }
         <div class="backdrop" @click=${this._dismiss}></div>
         <button class="close" aria-label="Close" @click=${this._dismiss}>${icons.close}</button>
         <div class="content"><slot></slot></div>
         ${this._renderTabBar()}
       </div>
     `;
+  }
+
+  /** Screen-reader label for the equipment glow, mirroring the Home Screen and Standby
+   *  Screen so every surface announces the same words for the same `hvac_action`. */
+  private _equipLabel(equipment: EquipmentStatus): string {
+    if (equipment === 'cooling') return 'Cooling';
+    if (equipment === 'heating') return 'Heating';
+    return 'Idle';
   }
 
   private _renderTabBar(): TemplateResult | typeof nothing {

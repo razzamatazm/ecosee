@@ -68,6 +68,13 @@ function firePointer(
   return event;
 }
 
+/** Dispatch the compatibility `click` that trails a pointer gesture — the event the
+ *  tap-to-dismiss now rides (issue #112). happy-dom does not synthesize it from a
+ *  pointerup, so tests fire it explicitly. */
+function fireClick(el: Element): void {
+  el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true }));
+}
+
 const scrubberOf = (el: Overlay): HTMLElement =>
   el.shadowRoot!.querySelector('.scrubber') as HTMLElement;
 
@@ -87,9 +94,12 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     const rec = recordEvents(el);
     const scrubber = scrubberOf(el);
 
-    // Press and release without moving — a tap on the selected value bubble.
+    // Press and release without moving — a tap on the selected value bubble. The
+    // dismiss rides the trailing `click`, not the `pointerup`, so the ghost click that
+    // would reopen the overlay is consumed by the scrubber, not the Home button (#112).
     firePointer(scrubber, 'pointerdown', 100);
     firePointer(scrubber, 'pointerup', 100);
+    fireClick(scrubber);
 
     expect(rec.dismisses).toBe(1);
     expect(rec.calls).toHaveLength(0); // the dismissing tap sends no setpoint write
@@ -104,6 +114,7 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     firePointer(scrubber, 'pointerdown', 100);
     firePointer(scrubber, 'pointermove', 122);
     firePointer(scrubber, 'pointerup', 122);
+    fireClick(scrubber); // a click may trail the drag; a scrub must never dismiss
 
     expect(rec.calls).toEqual([SET_69]);
     expect(rec.dismisses).toBe(0);
@@ -130,6 +141,7 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     firePointer(scrubber, 'pointermove', 122); // 68 → 69
     firePointer(scrubber, 'pointermove', 100); // back to 68
     firePointer(scrubber, 'pointerup', 100);
+    fireClick(scrubber); // moved during the gesture → not a tap, so no dismiss
 
     expect(rec.dismisses).toBe(0);
     expect(rec.calls).toHaveLength(0);
@@ -141,31 +153,52 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     const scrubber = scrubberOf(el);
 
     // Same shape as a value-neutral tap, but the browser cancels the gesture — this
-    // must NOT be read as a tap-to-dismiss.
+    // must NOT be read as a tap-to-dismiss, even if a stray click trails it.
     firePointer(scrubber, 'pointerdown', 100);
     firePointer(scrubber, 'pointercancel', 100);
+    fireClick(scrubber);
 
     expect(rec.dismisses).toBe(0);
     expect(rec.calls).toHaveLength(0);
   });
 });
 
-// Ghost-click guard (issue #112): the scrubber dismisses on `pointerup`, so the
-// gesture's trailing compatibility `click` is unwanted — left alone it lands on the
-// Home Screen temperature button exposed once the overlay closes and re-opens it.
-// `_onScrubberDown` suppresses that click with preventDefault, then restores the focus
-// preventDefault would otherwise strip so keyboard adjustment stays reachable.
+// Ghost-click guard (issue #112, iOS redux): a value-neutral tap dismisses on the
+// trailing `click` — like the ✕ and backdrop — NOT on `pointerup`. Closing on
+// pointerup tore the overlay down before the gesture's ghost click, which then
+// hit-tested the exposed Home Screen temperature button and reopened the overlay. The
+// 0.8.1 fix (preventDefault on pointerdown to suppress the compat click) is not
+// honored by iOS WebKit for touch, so the reopen persisted on the device; dismissing
+// ON the click sidesteps the whole class — the click lands on the still-mounted
+// scrubber, never the button underneath.
 describe('Temperature Adjust — scrubber ghost-click guard (issue #112)', () => {
-  it('preventDefaults the scrubber pointerdown so the tap synthesizes no ghost click', async () => {
+  it('does not dismiss on pointerup alone — the dismiss rides the trailing click', async () => {
     const el = await mount();
-    const down = firePointer(scrubberOf(el), 'pointerdown', 100, { cancelable: true });
-    expect(down.defaultPrevented).toBe(true);
+    const rec = recordEvents(el);
+    const scrubber = scrubberOf(el);
+
+    firePointer(scrubber, 'pointerdown', 100);
+    firePointer(scrubber, 'pointerup', 100);
+    expect(rec.dismisses).toBe(0); // still open until the click lands on the scrubber
+
+    fireClick(scrubber);
+    expect(rec.dismisses).toBe(1);
   });
 
-  it('still focuses the scrubber on pointerdown, so ↑/↓ keys work after a pointer scrub', async () => {
+  it('leaves the pointerdown default intact, so the tap still synthesizes its click', async () => {
+    const el = await mount();
+    // The click is now WANTED — it carries the dismiss — so pointerdown must NOT
+    // preventDefault (the opposite of the 0.8.1 guard, which iOS ignored anyway).
+    const down = firePointer(scrubberOf(el), 'pointerdown', 100, { cancelable: true });
+    expect(down.defaultPrevented).toBe(false);
+  });
+
+  it('focuses the scrubber on pointerdown (preventScroll), so ↑/↓ keys work after a pointer scrub', async () => {
     const el = await mount();
     const scrubber = scrubberOf(el);
     firePointer(scrubber, 'pointerdown', 100);
+    // Focus is retained for keyboard operability; `preventScroll` stops iOS from
+    // scrolling the slider into view mid-scrub (the "display shifts up" report).
     expect(el.shadowRoot!.activeElement).toBe(scrubber);
   });
 });

@@ -1,5 +1,10 @@
 # Show the Equipment Status edge glow on the Standby Screen too
 
+**Update:** the "Overlay shell still has none" clause below is **superseded by
+[ADR-0011](./0011-overlay-equipment-glow.md)** — the glow now renders on the Overlay
+shell too (full strength), so it shows on every Overlay while the system runs. The
+Standby glow decision here otherwise stands unchanged.
+
 **Status: Accepted.** Origin: issue #90. **Supersedes the "equipment edge glow is
 Home-Screen-only" clause of [ADR-0006](./0006-shared-superellipse-silhouette.md)**
 (the shared-silhouette + canvas-fill contract of ADR-0006 otherwise stands

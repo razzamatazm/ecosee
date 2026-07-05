@@ -72,7 +72,7 @@ interface OverlayDescriptor {
   render(hass: HomeAssistant, config: EcoseeCardConfig): TemplateResult | typeof nothing;
 }
 
-const VERSION = '0.8.1';
+const VERSION = '0.8.2';
 
 /**
  * `<ecosee-card>` — the host Lovelace element. It owns the `hass` wiring and
@@ -485,6 +485,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     return html`
       <ecosee-overlay
         .tabs=${this._tabBar(view)}
+        .equipment=${view.equipment}
         @ecosee-overlay-dismiss=${this._closeOverlay}
         @ecosee-service-call=${this._onServiceCall}
         @ecosee-system-select=${this._onSystemSelect}

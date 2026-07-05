@@ -253,6 +253,17 @@ export class EcoseeTemperatureOverlay extends LitElement {
    *  start (stays open — a scrub is not a tap). */
   private _drag: { startY: number; startValue: number; moved: boolean } | null = null;
 
+  /** Set on release when the just-finished gesture was a value-neutral *tap* (a
+   *  press/release that never moved the value), so the trailing `click` dismisses
+   *  the overlay. Dismissing on the *click* — not on `pointerup` — is what stops the
+   *  gesture's ghost click from reopening the overlay: the ✕ and backdrop dismiss on
+   *  click and never suffer this, because the click that would reopen is the same one
+   *  that closed, and it hit-tests the scrubber (still mounted at click time), not the
+   *  Home Screen temperature button (#112). Suppressing the compat click on
+   *  `pointerdown` instead — the 0.8.1 approach — is not honored by iOS WebKit for
+   *  touch, so the ghost click survived and the overlay reopened on the device. */
+  private _tapToDismiss = false;
+
   override willUpdate(changed: PropertyValues<this>): void {
     // Seed (and re-seed on a fresh open) the live edit state from the model.
     if (changed.has('model') && this.model) this._edit = this.model;
@@ -279,25 +290,19 @@ export class EcoseeTemperatureOverlay extends LitElement {
     const model = this._edit;
     const edit = model && model[model.active];
     if (!edit) return;
-    // Suppress the compatibility mouse `click` this pointer gesture would otherwise
-    // synthesize. The scrubber fully drives itself off pointer events — a scrub
-    // commits on `pointermove`/release and a value-neutral tap dismisses on
-    // `pointerup` — so the trailing click is never wanted. Left alone, a tap-to-
-    // dismiss releases on `pointerup`, we pop the overlay, and the gesture's *late*
-    // touch ghost click then hit-tests the now-exposed Home Screen temperature
-    // button underneath and immediately re-opens the overlay (the ✕/backdrop dodge
-    // this because they dismiss ON the click, consuming it). `preventDefault` on
-    // pointerdown is the Pointer Events contract for "this surface owns the gesture;
-    // don't emit legacy mouse/click events" — it leaves pointermove/up and
-    // setPointerCapture untouched, so scrubbing is unaffected.
-    event.preventDefault();
+    // A fresh gesture: clear any leftover tap decision until this release classifies it.
+    this._tapToDismiss = false;
     const el = event.currentTarget as HTMLElement;
-    // preventDefault also suppresses the compat `mousedown` that would have focused
-    // this role="slider", which would strand the ↑/↓ key handler after a pointer
-    // scrub. Restore it explicitly. Pointer-initiated focus doesn't match
+    // Focus the slider so ↑/↓ keys work after a pointer scrub, but WITHOUT scrolling
+    // it into view: on iOS a bare `el.focus()` scrolls the focused element to the top
+    // of its scroll container, which shoved the whole card up inside Home Assistant's
+    // more-info dialog mid-scrub (the "display shifts up" report). `preventScroll`
+    // keeps the focus without the scroll. Pointer-initiated focus doesn't match
     // `:focus-visible`, so no focus ring appears on tap — only keyboard operability
-    // is retained.
-    el.focus();
+    // is retained. No `preventDefault` here: the trailing compat `click` is now
+    // wanted (a value-neutral tap dismisses ON it — see `_onScrubberClick`), and iOS
+    // WebKit ignores pointerdown `preventDefault` for touch anyway.
+    el.focus({ preventScroll: true });
     this._drag = { startY: event.clientY, startValue: edit.value, moved: false };
     el.setPointerCapture(event.pointerId);
   };
@@ -329,14 +334,28 @@ export class EcoseeTemperatureOverlay extends LitElement {
     const edit = this._edit && this._edit[this._edit.active];
     if (this._edit && edit && edit.value !== drag.startValue) {
       this._emit(this._edit);
-    } else if (event.type === 'pointerup' && !drag.moved) {
-      // Value-neutral tap on the selected value: dismiss the overlay, matching the
-      // device, and send NO setpoint write since nothing changed (#93). Gated to a
-      // real pointerup — a `pointercancel` is the browser aborting the gesture, not a
-      // deliberate tap — and skipped for a scrub that netted back to start (`moved`),
-      // which is a gesture, not a tap.
-      emitOverlayDismiss(this);
+      return;
     }
+    // Value-neutral: a real `pointerup` that never moved the value is a *tap*. Defer
+    // the dismiss to the trailing `click` (see `_tapToDismiss` / `_onScrubberClick`)
+    // rather than closing here — closing on `pointerup` is what let the ghost click
+    // reopen the overlay from the Home Screen on iOS (#112). A `pointercancel` (the
+    // browser aborting the gesture) or a scrub that netted back to start (`moved`) is
+    // not a tap and produces no dismiss.
+    this._tapToDismiss = event.type === 'pointerup' && !drag.moved;
+  };
+
+  // The tap's trailing `click`: a value-neutral tap on the selected value dismisses
+  // here, matching the device and sending no setpoint write (#93). Dismissing on the
+  // click (like the ✕ and backdrop) — not on `pointerup` — means the click that would
+  // otherwise reopen the overlay is the same one that closes it, and it lands on the
+  // still-mounted scrubber, never the Home Screen temperature button underneath
+  // (#112). A scrub/nudge emits no dismiss: `_tapToDismiss` is only set for a genuine
+  // stationary tap, so a click that trails a scrub is ignored.
+  private _onScrubberClick = (): void => {
+    if (!this._tapToDismiss) return;
+    this._tapToDismiss = false;
+    emitOverlayDismiss(this);
   };
 
   // Gesture lock: while a drag is in progress, cancel the native touch so a
@@ -422,6 +441,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
         @pointermove=${this._onScrubberMove}
         @pointerup=${this._onScrubberUp}
         @pointercancel=${this._onScrubberUp}
+        @click=${this._onScrubberClick}
         @touchmove=${this._onScrubberTouchMove}
         @keydown=${this._onScrubberKey}
       >

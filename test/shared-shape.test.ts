@@ -113,10 +113,11 @@ describe('shared superellipse silhouette (issue #76)', () => {
     expect(shapeStyles.cssText).toMatch(/\.fill\s*\{[^}]*fill:\s*var\(\s*--ecosee-bg/);
   });
 
-  it('draws the equipment edge glow on the Home and Standby screens, not the Overlay shell (ADR-0009)', async () => {
-    // ADR-0009 supersedes ADR-0006's Home-Screen-only glow: the Standby Screen now
-    // shares the equipment glow too (it also has equipment state). The Overlay shell
-    // has none — it shares the silhouette + canvas fill but never carries equipment.
+  it('draws the equipment edge glow on the Home, Standby, and Overlay surfaces (ADR-0011)', async () => {
+    // ADR-0009 first extended the Home-Screen-only glow to the Standby Screen; ADR-0011
+    // extends it to the Overlay shell too, so the "system is running" cue persists on
+    // every Overlay (the shell's opaque canvas otherwise hides the Home Screen's glow).
+    // The shell reveals it via the shared glow markup keyed to its `equipment` property.
     const [home, standby, overlay] = await Promise.all([
       mountHome(),
       mountStandby(),
@@ -124,7 +125,7 @@ describe('shared superellipse silhouette (issue #76)', () => {
     ]);
     expect(home.shadowRoot!.querySelector('svg.shape .glow')).not.toBeNull();
     expect(standby.shadowRoot!.querySelector('svg.shape .glow')).not.toBeNull();
-    expect(overlay.shadowRoot!.querySelector('svg.shape .glow')).toBeNull();
+    expect(overlay.shadowRoot!.querySelector('svg.shape .glow')).not.toBeNull();
   });
 
   it('renders the glow group + clip as REAL SVG elements, not XHTML (issue #89)', async () => {

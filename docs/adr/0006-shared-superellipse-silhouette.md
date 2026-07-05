@@ -1,9 +1,10 @@
 # Shared superellipse silhouette across every surface
 
 > **Update:** the "equipment edge glow is Home-Screen-only" clause below is
-> **superseded by [ADR-0009](./0009-standby-equipment-glow.md)** — the equipment glow
-> now renders on the Standby Screen too (dimmed), keyed to the same equipment status.
-> The silhouette + canvas-fill contract of this ADR is otherwise unchanged.
+> **superseded by [ADR-0009](./0009-standby-equipment-glow.md)** (Standby Screen, dimmed)
+> and **[ADR-0011](./0011-overlay-equipment-glow.md)** (the Overlay shell too, full
+> strength) — the glow now renders on every surface with equipment state, keyed to the
+> same status. The silhouette + canvas-fill contract of this ADR is otherwise unchanged.
 
 The device's outer edge is a true **superellipse** (|x|⁴ + |y|⁴ = 1) — the ecobee
 squircle, softer at the corners than a constant-radius `border-radius`. That shape
