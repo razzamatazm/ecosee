@@ -291,8 +291,15 @@ export class EcoseeTemperatureOverlay extends LitElement {
     // don't emit legacy mouse/click events" — it leaves pointermove/up and
     // setPointerCapture untouched, so scrubbing is unaffected.
     event.preventDefault();
+    const el = event.currentTarget as HTMLElement;
+    // preventDefault also suppresses the compat `mousedown` that would have focused
+    // this role="slider", which would strand the ↑/↓ key handler after a pointer
+    // scrub. Restore it explicitly. Pointer-initiated focus doesn't match
+    // `:focus-visible`, so no focus ring appears on tap — only keyboard operability
+    // is retained.
+    el.focus();
     this._drag = { startY: event.clientY, startValue: edit.value, moved: false };
-    (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
+    el.setPointerCapture(event.pointerId);
   };
 
   private _onScrubberMove = (event: PointerEvent): void => {

@@ -48,11 +48,24 @@ function recordEvents(el: Element): { calls: ServiceCall[]; dismisses: number } 
   return record;
 }
 
-/** Fire a pointer event carrying a screen-Y at the scrubber. */
-function firePointer(el: Element, type: string, clientY: number): void {
-  el.dispatchEvent(
-    new PointerEvent(type, { clientY, pointerId: 1, bubbles: true, composed: true }),
-  );
+/** Fire a pointer event carrying a screen-Y at the scrubber, returning the dispatched
+ *  event so a test can inspect it (e.g. `defaultPrevented`). Pass `cancelable` when the
+ *  test needs to observe whether a handler called `preventDefault`. */
+function firePointer(
+  el: Element,
+  type: string,
+  clientY: number,
+  opts: { cancelable?: boolean } = {},
+): PointerEvent {
+  const event = new PointerEvent(type, {
+    clientY,
+    pointerId: 1,
+    bubbles: true,
+    composed: true,
+    cancelable: opts.cancelable ?? false,
+  });
+  el.dispatchEvent(event);
+  return event;
 }
 
 const scrubberOf = (el: Overlay): HTMLElement =>
@@ -122,26 +135,6 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     expect(rec.calls).toHaveLength(0);
   });
 
-  it('preventDefaults the scrubber pointerdown so the tap synthesizes no ghost click', async () => {
-    // The tap dismisses on pointerup, then the overlay is torn down. If the gesture
-    // still emitted its compatibility mouse `click`, that late touch ghost click would
-    // hit-test the Home Screen temperature button now exposed underneath and re-open
-    // the overlay. preventDefault on pointerdown suppresses that click at the source.
-    const el = await mount();
-    const scrubber = scrubberOf(el);
-
-    const down = new PointerEvent('pointerdown', {
-      clientY: 100,
-      pointerId: 1,
-      bubbles: true,
-      composed: true,
-      cancelable: true,
-    });
-    scrubber.dispatchEvent(down);
-
-    expect(down.defaultPrevented).toBe(true);
-  });
-
   it('a pointercancel (browser-aborted gesture), not a tap, neither writes nor dismisses', async () => {
     const el = await mount();
     const rec = recordEvents(el);
@@ -154,5 +147,25 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
 
     expect(rec.dismisses).toBe(0);
     expect(rec.calls).toHaveLength(0);
+  });
+});
+
+// Ghost-click guard (issue #112): the scrubber dismisses on `pointerup`, so the
+// gesture's trailing compatibility `click` is unwanted — left alone it lands on the
+// Home Screen temperature button exposed once the overlay closes and re-opens it.
+// `_onScrubberDown` suppresses that click with preventDefault, then restores the focus
+// preventDefault would otherwise strip so keyboard adjustment stays reachable.
+describe('Temperature Adjust — scrubber ghost-click guard (issue #112)', () => {
+  it('preventDefaults the scrubber pointerdown so the tap synthesizes no ghost click', async () => {
+    const el = await mount();
+    const down = firePointer(scrubberOf(el), 'pointerdown', 100, { cancelable: true });
+    expect(down.defaultPrevented).toBe(true);
+  });
+
+  it('still focuses the scrubber on pointerdown, so ↑/↓ keys work after a pointer scrub', async () => {
+    const el = await mount();
+    const scrubber = scrubberOf(el);
+    firePointer(scrubber, 'pointerdown', 100);
+    expect(el.shadowRoot!.activeElement).toBe(scrubber);
   });
 });
