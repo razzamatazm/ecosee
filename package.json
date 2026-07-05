@@ -1,6 +1,6 @@
 {
   "name": "ecosee",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "description": "A full-screen thermostat card for Home Assistant, over any climate entity.",
   "type": "module",
   "license": "MIT",
