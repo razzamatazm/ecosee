@@ -92,6 +92,13 @@ export interface EcoseeCardConfig {
    *  Absent ⇒ `auto` — the glyph appears only for a fan with real speed controls
    *  (the default before this key existed). See ShowFan. */
   show_fan?: ShowFan;
+  /** Minimum separation (deadband) between the heat and cool setpoints in Heat /
+   *  Cool (Auto), in the display unit. Most ACs enforce a minimum gap server-side
+   *  (commonly 3°F ≈ 1.5°C); pushing the setpoints closer than that gets rejected
+   *  and the entity reverts — which looks like "the temperature won't change". The
+   *  scrubber keeps this gap by *pushing* the paired setpoint instead of stalling.
+   *  Absent ⇒ the unit default (3°F / 1.5°C). `0` lets the two setpoints meet. */
+  min_gap?: number;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -144,7 +151,20 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     standby_screen: parseStandbyScreen(raw.standby_screen),
     standby: parseStandby(raw.standby),
     show_fan: parseShowFan(raw.show_fan),
+    min_gap: parseMinGap(raw.min_gap),
   };
+}
+
+/** Parse the optional `min_gap` (minimum heat/cool separation, in the display
+ *  unit). Returns `undefined` when absent so the seam applies the unit default
+ *  (3°F / 1.5°C); `0` is a legal "let them meet". Throws a user-facing error for
+ *  anything other than a non-negative number. */
+function parseMinGap(raw: unknown): number | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'number' || Number.isNaN(raw) || raw < 0) {
+    throw new Error('ecosee: `min_gap` must be a non-negative number of degrees.');
+  }
+  return raw;
 }
 
 /** The legal `show_fan` values; `auto` (the default) is first. */

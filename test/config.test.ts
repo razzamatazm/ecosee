@@ -125,6 +125,32 @@ describe('parseConfig — inactivity_timeout', () => {
   });
 });
 
+describe('parseConfig — min_gap', () => {
+  it('leaves min_gap undefined when the key is absent (seam applies unit default)', () => {
+    expect(parseConfig(base).min_gap).toBeUndefined();
+  });
+
+  it('accepts a positive number of degrees', () => {
+    expect(parseConfig({ ...base, min_gap: 4 }).min_gap).toBe(4);
+  });
+
+  it('accepts 0 (setpoints may meet)', () => {
+    expect(parseConfig({ ...base, min_gap: 0 }).min_gap).toBe(0);
+  });
+
+  it('throws on a negative value', () => {
+    expect(() => parseConfig({ ...base, min_gap: -1 })).toThrow(
+      /`min_gap` must be a non-negative number/,
+    );
+  });
+
+  it('throws on a non-numeric value', () => {
+    expect(() => parseConfig({ ...base, min_gap: '3' })).toThrow(
+      /`min_gap` must be a non-negative number/,
+    );
+  });
+});
+
 describe('parseConfig — standby_screen', () => {
   it('leaves standby_screen undefined when the key is absent (off by default)', () => {
     expect(parseConfig(base).standby_screen).toBeUndefined();

@@ -63,6 +63,7 @@ const TEMP_ADJUST_MODEL: TempAdjustModel = {
   heat: { setpoint: 'heat', value: 70, min: 45, max: 90, step: 1 },
   cool: { setpoint: 'cool', value: 75, min: 55, max: 95, step: 1 },
   active: 'cool',
+  minGap: 3,
 };
 
 /** Layout and paint have settled before we measure. */

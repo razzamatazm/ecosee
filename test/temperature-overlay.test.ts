@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 // Side-effect import: register <ecosee-temperature-overlay> via @customElement.
 import '../src/overlays/temperature-overlay';
 import type { LitElement } from 'lit';
@@ -17,15 +17,27 @@ import type { EcoseeCardConfig } from '../src/config';
 
 const config: EcoseeCardConfig = { type: 'custom:ecosee-card', entity: 'climate.t' };
 
-/** A single-setpoint Heat model at 68°F on a whole-degree grid (45–92). */
-function heatModel(): ReturnType<typeof toTempAdjustModel> {
+/** A single-setpoint Heat model at `temp`°F on a whole-degree grid (45–92). */
+function heatModel(temp = 68): ReturnType<typeof toTempAdjustModel> {
   const { hass } = fakeHass({
     entities: [
-      climateEntity('heat', { temperature: 68, min_temp: 45, max_temp: 92, target_temp_step: 1 }),
+      climateEntity('heat', { temperature: temp, min_temp: 45, max_temp: 92, target_temp_step: 1 }),
     ],
   });
   return toTempAdjustModel(hass, config);
 }
+
+/** A `set_temperature` write to `temp`°F on `climate.t`. */
+const setTemp = (temp: number) => ({
+  domain: 'climate',
+  service: 'set_temperature',
+  data: { entity_id: 'climate.t', temperature: temp },
+});
+
+/** Push the trailing-debounce window past its edge so the pending write fires. */
+const flushWrite = (): void => {
+  vi.advanceTimersByTime(650);
+};
 
 type Overlay = LitElement & { model: unknown; entityId: string };
 
@@ -84,8 +96,15 @@ const SET_69 = {
   data: { entity_id: 'climate.t', temperature: 69 },
 };
 
+beforeEach(() => {
+  // Fake only the timer APIs the debounce/reconcile use; leave microtasks real so
+  // Lit's `updateComplete` still resolves.
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+});
+
 afterEach(() => {
   document.body.innerHTML = '';
+  vi.useRealTimers();
 });
 
 describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
@@ -116,6 +135,8 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     firePointer(scrubber, 'pointerup', 122);
     fireClick(scrubber); // a click may trail the drag; a scrub must never dismiss
 
+    expect(rec.calls).toHaveLength(0); // write is debounced, not fired on release
+    flushWrite();
     expect(rec.calls).toEqual([SET_69]);
     expect(rec.dismisses).toBe(0);
   });
@@ -128,6 +149,7 @@ describe('Temperature Adjust — tap-to-dismiss (issue #93)', () => {
     inc.click();
     await el.updateComplete;
 
+    flushWrite();
     expect(rec.calls).toEqual([SET_69]);
     expect(rec.dismisses).toBe(0);
   });
@@ -200,5 +222,70 @@ describe('Temperature Adjust — scrubber ghost-click guard (issue #112)', () =>
     // Focus is retained for keyboard operability; `preventScroll` stops iOS from
     // scrolling the slider into view mid-scrub (the "display shifts up" report).
     expect(el.shadowRoot!.activeElement).toBe(scrubber);
+  });
+});
+
+describe('Temperature Adjust — debounced write + optimistic hold', () => {
+  const nudgeUp = async (el: Overlay): Promise<void> => {
+    (el.shadowRoot!.querySelector('button[aria-label="Increase"]') as HTMLButtonElement).click();
+    await el.updateComplete;
+  };
+
+  it('coalesces a rapid burst of nudges into a single write of the final value', async () => {
+    const el = await mount();
+    const rec = recordEvents(el);
+
+    await nudgeUp(el); // 68 → 69
+    await nudgeUp(el); // 69 → 70
+    expect(rec.calls).toHaveLength(0); // nothing written mid-burst
+
+    flushWrite();
+    expect(rec.calls).toEqual([setTemp(70)]); // one call, latest value only
+  });
+
+  it('flushes the pending write when the overlay closes before the debounce fires', async () => {
+    const el = await mount();
+    const rec = recordEvents(el);
+
+    await nudgeUp(el); // 68 → 69, write still pending
+    el.remove(); // close before the debounce window elapses
+
+    expect(rec.calls).toEqual([SET_69]); // the edit is not lost
+  });
+
+  it('holds the just-written value against an unrelated hass update that lacks it', async () => {
+    const el = await mount();
+    const rec = recordEvents(el);
+
+    await nudgeUp(el); // 68 → 69
+    flushWrite(); // write 69; now optimistically holding 69
+
+    // An unrelated refresh recomputes the model still at the pre-write 68.
+    el.model = heatModel(68);
+    await el.updateComplete;
+
+    // If the handle had snapped back to 68, the next nudge would write 69 again.
+    await nudgeUp(el);
+    flushWrite();
+    expect(rec.calls).toEqual([setTemp(69), setTemp(70)]);
+  });
+
+  it('gives up the hold after the reconcile window and accepts the reported state', async () => {
+    const el = await mount();
+    const rec = recordEvents(el);
+
+    await nudgeUp(el); // 68 → 69
+    flushWrite(); // write 69; holding
+
+    // The device rejected the write and someone/something set it to 60 instead.
+    el.model = heatModel(60);
+    await el.updateComplete;
+    vi.advanceTimersByTime(4100); // past RECONCILE_MS → hold expires, accept reality (60)
+    await el.updateComplete;
+
+    // Nudging now builds on the accepted 60, proving the hold released.
+    await nudgeUp(el);
+    flushWrite();
+    expect(rec.calls).toEqual([setTemp(69), setTemp(61)]);
   });
 });

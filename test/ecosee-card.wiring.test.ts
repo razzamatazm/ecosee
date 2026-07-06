@@ -72,6 +72,7 @@ function overlayPresent(card: EcoseeCard, tag: string): boolean {
 
 afterEach(() => {
   document.body.innerHTML = '';
+  vi.useRealTimers();
 });
 
 describe('ecosee-card wiring — apply path', () => {
@@ -96,7 +97,9 @@ describe('ecosee-card wiring — apply path', () => {
     const increase = overlay.shadowRoot!.querySelector(
       'button[aria-label="Increase"]',
     ) as HTMLButtonElement;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     increase.click();
+    vi.advanceTimersByTime(650); // the overlay debounces the write
 
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({
@@ -127,9 +130,11 @@ describe('ecosee-card wiring — apply path', () => {
     await card.updateComplete;
     const overlay = card.shadowRoot!.querySelector('ecosee-temperature-overlay') as LitElement;
     await overlay.updateComplete;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     (
       overlay.shadowRoot!.querySelector('button[aria-label="Increase"]') as HTMLButtonElement
     ).click();
+    vi.advanceTimersByTime(650); // the overlay debounces the write
 
     expect(calls[0]).toMatchObject({
       domain: 'climate',
@@ -158,9 +163,11 @@ describe('ecosee-card wiring — apply path', () => {
     await card.updateComplete;
     const overlay = card.shadowRoot!.querySelector('ecosee-temperature-overlay') as LitElement;
     await overlay.updateComplete;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     (
       overlay.shadowRoot!.querySelector('button[aria-label="Increase"]') as HTMLButtonElement
     ).click();
+    vi.advanceTimersByTime(650); // the overlay debounces the write
 
     expect(calls[0]).toMatchObject({
       domain: 'climate',

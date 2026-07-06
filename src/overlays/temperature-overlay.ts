@@ -22,6 +22,28 @@ const SCRUBBER_RADIUS = 2;
  *  across the card's size range. */
 const PX_PER_STEP = 22;
 
+/** Trailing debounce before a change is written to the entity. A held ± button or
+ *  a rapid burst of nudges coalesces into a single `set_temperature` call carrying
+ *  the final value, instead of one write per step. This is what keeps cloud
+ *  thermostats (Nest, ecobee) from rate-limiting the burst and reverting — the same
+ *  "looks frozen" failure class as an under-minimum range. The bubble still tracks
+ *  every step live; only the network write waits. */
+const WRITE_DEBOUNCE_MS = 600;
+
+/** How long to hold the user's just-written value on screen before deferring to
+ *  incoming entity state. A slow-confirming (or rejecting) device would otherwise
+ *  snap the handle back the instant any unrelated `hass` update recomputes the
+ *  model with the not-yet-applied setpoint. If the device never confirms within
+ *  this window we accept reality (the write was rejected — e.g. an invalid range). */
+const RECONCILE_MS = 4000;
+
+/** True when two models carry the same heat/cool setpoint values — the signal that
+ *  the device has echoed a pending write and the optimistic hold can release. */
+function sameSetpoints(a: TempAdjustModel, b: TempAdjustModel): boolean {
+  return (a.heat?.value ?? null) === (b.heat?.value ?? null) &&
+    (a.cool?.value ?? null) === (b.cool?.value ?? null);
+}
+
 /**
  * `<ecosee-temperature-overlay>` — the Temperature Adjust overlay's content
  * (slotted into <ecosee-overlay>). Laid out as the device is (see
@@ -264,9 +286,38 @@ export class EcoseeTemperatureOverlay extends LitElement {
    *  touch, so the ghost click survived and the overlay reopened on the device. */
   private _tapToDismiss = false;
 
+  /** The value we last wrote (or scheduled to write) and are waiting for the
+   *  device to echo back. While set, incoming `model` updates that don't yet
+   *  reflect it are held off (see `willUpdate`) so the handle doesn't snap back
+   *  mid-interaction. Cleared once the device confirms or `RECONCILE_MS` elapses. */
+  private _pending: TempAdjustModel | null = null;
+
+  /** Trailing-debounce timer for the pending write (`WRITE_DEBOUNCE_MS`). */
+  private _writeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Give-up timer for the optimistic hold (`RECONCILE_MS`). */
+  private _reconcileTimer: ReturnType<typeof setTimeout> | null = null;
+
   override willUpdate(changed: PropertyValues<this>): void {
-    // Seed (and re-seed on a fresh open) the live edit state from the model.
-    if (changed.has('model') && this.model) this._edit = this.model;
+    if (!changed.has('model') || !this.model) return;
+    const incoming = this.model;
+    // Never re-seed mid-drag: a `hass` refresh landing during a scrub would yank
+    // the handle out from under the finger.
+    if (this._drag) return;
+    // Optimistic hold (#3): while a write is pending, ignore model updates that
+    // still carry the pre-write setpoints — otherwise an unrelated `hass` refresh
+    // (current temp, humidity, …) would recompute the model and snap the handle
+    // back to the value the device hasn't applied yet. Re-seed once the device
+    // confirms (setpoints match), if the system mode changed underneath us, or
+    // when no write is in flight.
+    const hold =
+      this._pending !== null &&
+      incoming.mode === this._pending.mode &&
+      !sameSetpoints(incoming, this._pending);
+    if (hold) return;
+    this._edit = incoming;
+    this._pending = null;
+    this._clearReconcile();
   }
 
   /** Emit the `climate.set_temperature` call that writes the current edit. */
@@ -276,10 +327,53 @@ export class EcoseeTemperatureOverlay extends LitElement {
     emitServiceCall(this, call);
   }
 
-  /** A discrete change (nudge / chip): update the edit and commit immediately. */
+  /** A change (nudge / chip / scrub release): reflect it live, mark it pending so
+   *  incoming state won't clobber it, and debounce the actual write so a burst
+   *  coalesces into one call (#1). */
   private _commit(next: TempAdjustModel): void {
     this._edit = next;
-    this._emit(next);
+    this._pending = next;
+    if (this._writeTimer) clearTimeout(this._writeTimer);
+    this._writeTimer = setTimeout(() => this._flushWrite(), WRITE_DEBOUNCE_MS);
+  }
+
+  /** Fire the debounced write and start the reconcile hold. */
+  private _flushWrite(): void {
+    this._writeTimer = null;
+    if (this._edit) this._emit(this._edit);
+    this._startReconcile();
+  }
+
+  private _startReconcile(): void {
+    this._clearReconcile();
+    this._reconcileTimer = setTimeout(() => {
+      // The device never echoed our value (likely rejected the range) — stop
+      // holding and defer to whatever the entity actually reports now.
+      this._reconcileTimer = null;
+      this._pending = null;
+      if (this.model) {
+        this._edit = this.model;
+        this.requestUpdate();
+      }
+    }, RECONCILE_MS);
+  }
+
+  private _clearReconcile(): void {
+    if (this._reconcileTimer) clearTimeout(this._reconcileTimer);
+    this._reconcileTimer = null;
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    // Flush any pending write so closing the overlay right after a nudge still
+    // commits it, then drop the timers — nothing left to reconcile once gone.
+    if (this._writeTimer) {
+      clearTimeout(this._writeTimer);
+      this._writeTimer = null;
+      if (this._edit) this._emit(this._edit);
+    }
+    this._clearReconcile();
+    this._pending = null;
   }
 
   // Drag-to-scrub: the scrubber is a vertical wheel — drag DOWN to raise the
@@ -333,7 +427,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
     // nets back to where it started) must not write an unrequested setpoint.
     const edit = this._edit && this._edit[this._edit.active];
     if (this._edit && edit && edit.value !== drag.startValue) {
-      this._emit(this._edit);
+      this._commit(this._edit);
       return;
     }
     // Value-neutral: a real `pointerup` that never moved the value is a *tap*. Defer

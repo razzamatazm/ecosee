@@ -185,12 +185,34 @@ sensors: # optional, the Sensors screen (see below)
 | `uv_index_entity`        | no       | An entity carrying a UV index. Adds the UV gauge.                                                                                                  |
 | `fan_min_on_time_entity` | no       | A `number` entity for fan minimum runtime. Adds a selector to the Fan screen.                                                                      |
 | `sensors`                | no       | Temperature entities for the Sensors screen (see below).                                                                                           |
-| `show_fan`               | no       | When to show the Home Screen fan shortcut: `auto` (only for fans with real speeds), `always` (any fan, On/Auto included), `never`. Default `auto`. |
 | `inactivity_timeout`     | no       | Seconds an open control waits, idle, before returning home. `0` disables. Default 25.                                                              |
 | `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                                                                                        |
-| `standby`                | no       | YAML-only. Hide individual standby elements — see below. Ignored unless `standby_screen` is on.                                                    |
 
-#### Customizing the standby screen
+#### Advanced
+
+Finer-grained knobs for tuning specific screens. `show_fan` is also in the visual
+editor; `standby` and `min_gap` are YAML-only.
+
+| Option     | Required | Description                                                                            |
+| ---------- | -------- | -------------------------------------------------------------------------------------- |
+| `show_fan` | no       | When to show the Home Screen fan shortcut: `auto` (only for fans with real speeds), `always` (any fan, On/Auto included), `never`. Default `auto`. |
+| `standby`  | no       | Hide individual elements of the standby (idle) screen — see below. Ignored unless `standby_screen` is on.                                          |
+| `min_gap`  | no       | Minimum separation between the heat and cool setpoints in Heat / Cool (Auto), in your temperature unit. Default 3°F / 1.5°C. `0` lets them meet.   |
+
+##### Heat / Cool (Auto) minimum gap
+
+Most air conditioners in Heat / Cool (Auto) mode require a minimum gap (deadband)
+between the heating and cooling targets (commonly 3°F). When you drag one setpoint
+toward the other, the card keeps this gap by **pushing** the paired setpoint along
+(the same way an ecobee or Nest thermostat does), so the near-overlap range stays
+responsive instead of appearing stuck. Set `min_gap` if your equipment needs a
+different spread, or `min_gap: 0` to let the two setpoints touch.
+
+```yaml
+min_gap: 3 # keep heat and cool at least 3° apart in Auto (default 3°F / 1.5°C)
+```
+
+##### Standby screen elements
 
 `standby` is a YAML-only block (not in the visual editor) that hides individual
 elements of the dimmed idle display. Each toggle defaults to shown; set one to

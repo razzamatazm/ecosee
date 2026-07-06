@@ -22,6 +22,13 @@ export type Setpoint = 'heat' | 'cool';
 const STEP_F = 1;
 const STEP_C = 0.5;
 
+/** Default minimum heat↔cool separation (deadband) kept in Heat / Cool (Auto),
+ *  in the display unit, when `min_gap` is not configured. 3°F ≈ 1.5°C matches the
+ *  floor most ACs enforce server-side (e.g. Nest's 1.6667°C). Overridable — and
+ *  disable-able with `min_gap: 0` — via config. */
+const GAP_F = 3;
+const GAP_C = 1.5;
+
 /** One editable setpoint: its current value (already clamped + snapped to the
  *  step grid) and the bounds it must respect. `min`/`max` are `null` when the
  *  entity doesn't expose them — the value is then unclamped on that side rather
@@ -46,10 +53,20 @@ export interface TempAdjustModel {
   heat: SetpointEdit | null;
   cool: SetpointEdit | null;
   active: Setpoint;
+  /** Minimum separation the scrubber keeps between heat and cool in Heat / Cool
+   *  (Auto) by pushing the paired setpoint. Ignored outside `heat_cool`. */
+  minGap: number;
 }
 
 function stepForUnit(unit: string): number {
   return unit.includes('C') ? STEP_C : STEP_F;
+}
+
+/** The minimum heat↔cool separation to keep: the configured `min_gap` (in the
+ *  display unit), or the unit default when unset. `0` is honored (setpoints may
+ *  meet). */
+function gapForUnit(unit: string, config: EcoseeCardConfig): number {
+  return config.min_gap ?? (unit.includes('C') ? GAP_C : GAP_F);
 }
 
 /** Snap a degree value to a tidy precision, killing the floating-point dust that
@@ -80,7 +97,7 @@ function makeEdit(
 }
 
 function unavailable(unit: string, mode: SystemMode, active: Setpoint): TempAdjustModel {
-  return { available: false, unit, mode, heat: null, cool: null, active };
+  return { available: false, unit, mode, heat: null, cool: null, active, minGap: 0 };
 }
 
 export function toTempAdjustModel(hass: HomeAssistant, config: EcoseeCardConfig): TempAdjustModel {
@@ -94,6 +111,7 @@ export function toTempAdjustModel(hass: HomeAssistant, config: EcoseeCardConfig)
 
   const attrs = entity.attributes;
   const step = stepForUnit(unit);
+  const minGap = gapForUnit(unit, config);
   const min = num(attrs.min_temp);
   const max = num(attrs.max_temp);
 
@@ -106,7 +124,7 @@ export function toTempAdjustModel(hass: HomeAssistant, config: EcoseeCardConfig)
     // Default to editing the cool setpoint when it exists (it is the one the
     // device foregrounds); fall back to heat for a heat-only Heat / Cool (Auto)
     // entity.
-    return { available: true, unit, mode, heat, cool, active: cool ? 'cool' : 'heat' };
+    return { available: true, unit, mode, heat, cool, active: cool ? 'cool' : 'heat', minGap };
   }
 
   const single = num(attrs.temperature);
@@ -119,6 +137,7 @@ export function toTempAdjustModel(hass: HomeAssistant, config: EcoseeCardConfig)
       heat: makeEdit('heat', single, min, max, step),
       cool: null,
       active: 'heat',
+      minGap,
     };
   }
   return {
@@ -128,6 +147,7 @@ export function toTempAdjustModel(hass: HomeAssistant, config: EcoseeCardConfig)
     heat: null,
     cool: makeEdit('cool', single, min, max, step),
     active: 'cool',
+    minGap,
   };
 }
 
@@ -135,31 +155,61 @@ function activeEdit(model: TempAdjustModel): SetpointEdit | null {
   return model[model.active];
 }
 
-/** Effective bounds for the active setpoint. In Heat / Cool (Auto) the two
- *  setpoints may not cross — heat is capped at cool and cool floored at heat — so
- *  the overlay can never emit a `target_temp_low > target_temp_high` payload. */
-function bounds(
-  model: TempAdjustModel,
-  edit: SetpointEdit,
-): { min: number | null; max: number | null } {
-  let { min, max } = edit;
-  if (model.mode === 'heat_cool') {
-    if (edit.setpoint === 'heat' && model.cool) {
-      max = max === null ? model.cool.value : Math.min(max, model.cool.value);
-    }
-    if (edit.setpoint === 'cool' && model.heat) {
-      min = min === null ? model.heat.value : Math.max(min, model.heat.value);
-    }
-  }
-  return { min, max };
-}
-
+/** Apply a scrubbed value to the active setpoint.
+ *
+ *  Single modes are a plain snap+clamp. In Heat / Cool (Auto) the two setpoints
+ *  must stay at least `model.minGap` apart (the device's deadband). Rather than
+ *  stalling the active handle when it reaches that boundary — which reads as "the
+ *  temperature won't change" — we *push* the paired setpoint to keep the gap,
+ *  matching how ecobee / Nest thermostats behave. The paired setpoint only ever
+ *  moves away from the active one (heat down, cool up), never closer, and it
+ *  stops at its own min/max — at which point the active handle is floored/capped
+ *  so the gap still holds. `setTemperatureCall` emits both together, so the
+ *  device receives a valid range and never has to reject-and-revert. */
 function withValue(model: TempAdjustModel, value: number): TempAdjustModel {
   const edit = activeEdit(model);
   if (!edit) return model;
-  const b = bounds(model, edit);
-  const next: SetpointEdit = { ...edit, value: snapClamp(value, b.min, b.max, edit.step) };
-  return { ...model, [edit.setpoint]: next };
+
+  const other =
+    model.mode === 'heat_cool' ? model[edit.setpoint === 'cool' ? 'heat' : 'cool'] : null;
+  if (!other) {
+    const next: SetpointEdit = { ...edit, value: snapClamp(value, edit.min, edit.max, edit.step) };
+    return { ...model, [edit.setpoint]: next };
+  }
+
+  const gap = model.minGap;
+  let active = snapClamp(value, edit.min, edit.max, edit.step);
+  let pushed = other.value;
+
+  if (edit.setpoint === 'cool') {
+    // cool − heat ≥ gap: as cool closes in, push heat down to hold the gap.
+    if (active - other.value < gap) {
+      let target = active - gap;
+      if (other.min !== null && target < other.min) {
+        // Heat has bottomed out — floor cool so the gap still holds.
+        target = other.min;
+        active = snapClamp(other.min + gap, edit.min, edit.max, edit.step);
+      }
+      pushed = snapClamp(target, other.min, other.max, other.step);
+    }
+  } else {
+    // cool − heat ≥ gap: as heat closes in, push cool up to hold the gap.
+    if (other.value - active < gap) {
+      let target = active + gap;
+      if (other.max !== null && target > other.max) {
+        // Cool has topped out — cap heat so the gap still holds.
+        target = other.max;
+        active = snapClamp(other.max - gap, edit.min, edit.max, edit.step);
+      }
+      pushed = snapClamp(target, other.min, other.max, other.step);
+    }
+  }
+
+  return {
+    ...model,
+    [edit.setpoint]: { ...edit, value: active },
+    [other.setpoint]: { ...other, value: pushed },
+  };
 }
 
 /** Step the active setpoint up (+1) or down (−1) by one `step`. */

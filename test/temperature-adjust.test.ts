@@ -162,15 +162,16 @@ describe('nudge', () => {
     expect(nudge(atMin, -1).heat?.value).toBe(45);
   });
 
-  it('does not let the heat setpoint cross above cool in Auto', () => {
+  it('pushes cool up to keep the min gap when heat closes in (Auto)', () => {
     const auto = toTempAdjustModel(
       hass(climate('heat_cool', { target_temp_low: 74, target_temp_high: 75, ...BOUNDS })),
       config,
     );
     const editingHeat = selectSetpoint(auto, 'heat');
-    const bumped = nudge(nudge(editingHeat, 1), 1); // 74 → 75, then capped
-    expect(bumped.heat?.value).toBe(75);
-    expect(bumped.cool?.value).toBe(75);
+    // Default °F gap is 3. Raising heat 74 → 76 shoves cool up to 76 + 3 = 79.
+    const bumped = nudge(nudge(editingHeat, 1), 1);
+    expect(bumped.heat?.value).toBe(76);
+    expect(bumped.cool?.value).toBe(79);
   });
 });
 
@@ -181,13 +182,37 @@ describe('setValue', () => {
     expect(setValue(model, 100).cool?.value).toBe(92);
   });
 
-  it('floors the cool setpoint at heat in Auto (no crossing)', () => {
+  it('pushes heat down to keep the min gap when cool closes in (Auto)', () => {
     const auto = toTempAdjustModel(
       hass(climate('heat_cool', { target_temp_low: 70, target_temp_high: 75, ...BOUNDS })),
       config,
     );
-    // active is cool by default; dragging it below heat (70) floors at 70.
-    expect(setValue(auto, 66).cool?.value).toBe(70);
+    // active is cool by default. Default °F gap is 3, so dragging cool to 66
+    // drops it to 66 (not floored at 70) and shoves heat down to 66 − 3 = 63.
+    const next = setValue(auto, 66);
+    expect(next.cool?.value).toBe(66);
+    expect(next.heat?.value).toBe(63);
+  });
+
+  it('floors both setpoints at min_temp when cool is pushed to the bottom (Auto)', () => {
+    const auto = toTempAdjustModel(
+      hass(climate('heat_cool', { target_temp_low: 70, target_temp_high: 75, ...BOUNDS })),
+      config,
+    );
+    // Heat cannot go below min_temp (45), so cool is floored at 45 + gap = 48.
+    const next = setValue(auto, 46);
+    expect(next.heat?.value).toBe(45);
+    expect(next.cool?.value).toBe(48);
+  });
+
+  it('honors a custom min_gap (0 lets the setpoints meet)', () => {
+    const auto = toTempAdjustModel(
+      hass(climate('heat_cool', { target_temp_low: 70, target_temp_high: 75, ...BOUNDS })),
+      { ...config, min_gap: 0 },
+    );
+    const next = setValue(auto, 70);
+    expect(next.cool?.value).toBe(70);
+    expect(next.heat?.value).toBe(70);
   });
 });
 
@@ -225,13 +250,15 @@ describe('scrub — inverted drag-to-scrub (#53)', () => {
     expect(scrub(c, 21, 22, 22).cool?.value).toBe(21.5); // one step down → +0.5
   });
 
-  it('does not let the cool setpoint cross below heat in Auto', () => {
+  it('pushes heat down when the cool scrubber closes in on it (Auto)', () => {
     const auto = toTempAdjustModel(
       hass(climate('heat_cool', { target_temp_low: 70, target_temp_high: 75, ...BOUNDS })),
       config,
     );
-    // active is cool (75); dragging up 6 steps → 69, floored at heat (70).
-    expect(scrub(auto, 75, -6 * 22, 22).cool?.value).toBe(70);
+    // active is cool (75); dragging down 6 steps → 69, which shoves heat to 66.
+    const next = scrub(auto, 75, -6 * 22, 22);
+    expect(next.cool?.value).toBe(69);
+    expect(next.heat?.value).toBe(66);
   });
 
   it('is a no-op on an unavailable model', () => {
