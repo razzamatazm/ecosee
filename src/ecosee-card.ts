@@ -72,6 +72,21 @@ interface OverlayDescriptor {
   render(hass: HomeAssistant, config: EcoseeCardConfig): TemplateResult | typeof nothing;
 }
 
+/**
+ * The on-screen ceiling the fixed device canvas is scaled down to when `compact:
+ * true` is configured, in px. The canvas itself stays `--ecosee-base-size` (460px),
+ * so this only changes the scale ratio (320/460 = ~0.70) and nothing about the
+ * layout: the Home Screen, every Overlay and the Standby Screen render exactly as
+ * they already do in a narrow dashboard column.
+ *
+ * 320 is chosen to sit clear of the 220px legible floor (`--ecosee-min-size`), so
+ * the floor still does its job in a genuinely narrow column and a compact Card
+ * never collides with it. At this size the dominant current temperature still
+ * renders around 134px (42cqw of 320), so the Card's primary reading stays
+ * dominant.
+ */
+const COMPACT_MAX_SIZE = 320;
+
 const VERSION = '0.10.0';
 
 /**
@@ -348,6 +363,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     if (changed.has('_nav') || changed.has('_config') || changed.has('_standby')) {
       this._syncStandbyTimer();
     }
+    // `compact` changes the size ceiling, so a config edit must re-scale immediately.
+    // The ResizeObserver only fires on a slot-width change, and toggling the key in
+    // the GUI editor does not change the slot - without this the new size would not
+    // appear until the next resize.
+    if (changed.has('_config')) this._syncDeviceScale();
   }
 
   /** Measure the dashboard slot and set the transform scale that fits the
@@ -362,7 +382,13 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     const styles = getComputedStyle(this);
     const base = parseFloat(styles.getPropertyValue('--ecosee-base-size')) || 460;
     const min = parseFloat(styles.getPropertyValue('--ecosee-min-size')) || 220;
-    const max = parseFloat(styles.getPropertyValue('--ecosee-max-size')) || 460;
+    const tokenMax = parseFloat(styles.getPropertyValue('--ecosee-max-size')) || 460;
+    // `compact` lowers the ceiling only, and composes with the token rather than
+    // overwriting it: a dashboard that already narrows the Card through card_mod or
+    // a theme keeps its own cap, and whichever cap is smaller wins - the intuitive
+    // reading of a key named "compact". Writing nothing when the key is off leaves
+    // the token default standing, the same principle as `_setOrClear` below.
+    const max = this._config?.compact ? Math.min(tokenMax, COMPACT_MAX_SIZE) : tokenMax;
     const rendered = resolveDeviceSize(width, min, max);
     const scale = rendered > 0 && base > 0 ? rendered / base : 0;
     // The .sizer collapses to the rendered size but the host stays full-slot

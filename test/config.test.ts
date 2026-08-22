@@ -168,6 +168,21 @@ describe('parseConfig — standby_screen', () => {
   });
 });
 
+describe('parseConfig — compact', () => {
+  it('leaves compact undefined when the key is absent (full size by default)', () => {
+    expect(parseConfig(base).compact).toBeUndefined();
+  });
+
+  it('accepts an explicit boolean', () => {
+    expect(parseConfig({ ...base, compact: true }).compact).toBe(true);
+    expect(parseConfig({ ...base, compact: false }).compact).toBe(false);
+  });
+
+  it('throws when compact is not a boolean', () => {
+    expect(() => parseConfig({ ...base, compact: 'yes' })).toThrow(/`compact` must be a boolean/);
+  });
+});
+
 describe('parseConfig — show_fan', () => {
   it('leaves show_fan undefined when the key is absent (auto default)', () => {
     expect(parseConfig(base).show_fan).toBeUndefined();

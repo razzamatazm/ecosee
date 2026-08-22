@@ -337,3 +337,104 @@ describe('ecosee-card wiring — pickers close on selection (issues #38/#39)', (
     expect(overlayPresent(card, 'ecosee-system-mode-overlay')).toBe(false);
   });
 });
+
+// The `compact` key's whole job is to hand `resolveDeviceSize` a lower ceiling.
+// `resolveDeviceSize` itself is unit-tested in device-size.test.ts; what these
+// cover is the seam between the two - that the config key actually reaches the
+// clamp, that it composes with a `--ecosee-max-size` override rather than
+// replacing it, and that toggling it re-scales without waiting for a resize
+// (the ResizeObserver only fires on a slot-width change, which a GUI edit is not).
+describe('ecosee-card wiring — compact', () => {
+  /** happy-dom lays nothing out and resolves no custom properties, so both inputs
+   *  to the size sync have to be supplied: a definite slot width on the host, and
+   *  the three size tokens. Returns the token map so a test can override one. */
+  function stubSizing(card: EcoseeCard, slotWidth: number): Record<string, string> {
+    const tokenValues: Record<string, string> = {
+      '--ecosee-base-size': '460px',
+      '--ecosee-min-size': '220px',
+      '--ecosee-max-size': '460px',
+    };
+    Object.defineProperty(card, 'clientWidth', { value: slotWidth, configurable: true });
+    vi.spyOn(window, 'getComputedStyle').mockImplementation(
+      (element: Element) =>
+        ({
+          getPropertyValue: (property: string) =>
+            element === card ? (tokenValues[property] ?? '') : '',
+        }) as unknown as CSSStyleDeclaration,
+    );
+    return tokenValues;
+  }
+
+  /** The on-screen edge length the Card published for its slot, in px. */
+  function renderedSize(card: EcoseeCard): number {
+    return parseFloat(card.style.getPropertyValue('--ecosee-rendered-size'));
+  }
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('caps a compact Card at the compact ceiling in a slot wider than it', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+    stubSizing(card, 900);
+
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t', compact: true });
+    await card.updateComplete;
+
+    expect(renderedSize(card)).toBe(320);
+    // The canvas is unchanged at 460, so only the scale ratio moved.
+    expect(Number(card.style.getPropertyValue('--ecosee-scale'))).toBeCloseTo(320 / 460, 5);
+  });
+
+  it('renders at full size without the key, in the same slot', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+    stubSizing(card, 900);
+
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t' });
+    await card.updateComplete;
+
+    expect(renderedSize(card)).toBe(460);
+  });
+
+  it('re-scales when the key is toggled, without a slot-width change', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+    stubSizing(card, 900);
+
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t', compact: true });
+    await card.updateComplete;
+    expect(renderedSize(card)).toBe(320);
+
+    // The GUI editor clearing the toggle drops the key entirely (ADR-0001).
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t' });
+    await card.updateComplete;
+    expect(renderedSize(card)).toBe(460);
+  });
+
+  it('keeps a smaller --ecosee-max-size override instead of widening to the compact ceiling', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+    const tokenValues = stubSizing(card, 900);
+    // A dashboard that already narrows the Card through card_mod / a theme.
+    tokenValues['--ecosee-max-size'] = '280px';
+
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t', compact: true });
+    await card.updateComplete;
+
+    // The smaller of the two caps wins; compact never widens a Card.
+    expect(renderedSize(card)).toBe(280);
+  });
+
+  it('still tracks a slot narrower than the compact ceiling, down to the legible floor', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+    stubSizing(card, 260);
+
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t', compact: true });
+    await card.updateComplete;
+
+    expect(renderedSize(card)).toBe(260);
+  });
+});

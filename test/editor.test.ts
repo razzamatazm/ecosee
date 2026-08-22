@@ -27,6 +27,7 @@ describe('editorSchema — coverage', () => {
       'show_fan',
       'inactivity_timeout',
       'standby_screen',
+      'compact',
     ]);
   });
 
@@ -76,6 +77,12 @@ describe('editorSchema — coverage', () => {
     const standby = editorSchema().find((field) => field.name === 'standby_screen');
     expect(standby?.selector).toEqual({ boolean: {} });
     expect(standby?.required).toBeFalsy();
+  });
+
+  it('uses a boolean selector for the opt-in compact toggle', () => {
+    const compact = editorSchema().find((field) => field.name === 'compact');
+    expect(compact?.selector).toEqual({ boolean: {} });
+    expect(compact?.required).toBeFalsy();
   });
 
   it('uses a dropdown select for show_fan with auto default first', () => {
@@ -248,6 +255,12 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
         base,
       ).sensors,
     ).toEqual(['sensor.kitchen', 'sensor.den']);
+  });
+
+  it('keeps compact when on but drops it when off or unset', () => {
+    expect(normalizeEditorConfig({ ...base, compact: true }, base).compact).toBe(true);
+    expect('compact' in normalizeEditorConfig({ ...base, compact: false }, base)).toBe(false);
+    expect('compact' in normalizeEditorConfig({ ...base }, base)).toBe(false);
   });
 
   it('keeps standby_screen when on but drops it when off or unset (#64)', () => {

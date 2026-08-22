@@ -88,6 +88,13 @@ export interface EcoseeCardConfig {
   /** Per-element visibility for the Standby Screen (YAML-only — a tinkerer knob, not
    *  surfaced in the GUI editor). Each element defaults to shown; see StandbyConfig. */
   standby?: StandbyConfig;
+  /** Opt-in compact rendering: lowers the ceiling the fixed device canvas is scaled
+   *  down to, so the Card takes less room in a dashboard column. The layout itself is
+   *  untouched - the Home Screen, every Overlay and the Standby Screen are laid out at
+   *  the same `--ecosee-base-size` and scaled as one unit, exactly as they already are
+   *  in a narrow column. Absent/`false` means the Card renders at its full size as
+   *  today (ADR-0001 graceful degradation). See `COMPACT_MAX_SIZE` in `ecosee-card.ts`. */
+  compact?: boolean;
   /** When to show the Home Screen's fan shortcut glyph (`auto` / `always` / `never`).
    *  Absent ⇒ `auto` — the glyph appears only for a fan with real speed controls
    *  (the default before this key existed). See ShowFan. */
@@ -149,6 +156,7 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     sensors: parseSensors(raw.sensors),
     inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
     standby_screen: parseStandbyScreen(raw.standby_screen),
+    compact: parseCompact(raw.compact),
     standby: parseStandby(raw.standby),
     show_fan: parseShowFan(raw.show_fan),
     min_gap: parseMinGap(raw.min_gap),
@@ -204,6 +212,17 @@ function parseStandby(raw: unknown): StandbyConfig | undefined {
     current_temp: bool('current_temp'),
     glow: bool('glow'),
   };
+}
+
+/** Parse the optional `compact` toggle. Returns `undefined` when absent so the Card
+ *  renders at full size by default (graceful degradation); a boolean is taken
+ *  verbatim. Throws a user-facing error for any non-boolean value. */
+function parseCompact(raw: unknown): boolean | undefined {
+  if (raw === undefined) return undefined;
+  if (typeof raw !== 'boolean') {
+    throw new Error('ecosee: `compact` must be a boolean.');
+  }
+  return raw;
 }
 
 /** Parse the optional `standby_screen` toggle (issue #64). Returns `undefined` when

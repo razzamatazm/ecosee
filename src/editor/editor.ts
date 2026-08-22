@@ -164,6 +164,14 @@ export function editorSchema(): EditorField[] {
       helper: 'Optional. Enables the Standby Screen. Off by default.',
       selector: { boolean: {} },
     },
+    {
+      name: 'compact',
+      label: 'Compact',
+      helper:
+        'Optional. Renders the Card smaller in its dashboard column. The layout is unchanged, ' +
+        'just scaled down. Off by default.',
+      selector: { boolean: {} },
+    },
   ];
 }
 
