@@ -20,6 +20,20 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
+describe('overlay shell — thermostat name (issue #120)', () => {
+  it('labels every sub-screen with the thermostat name when one is supplied', async () => {
+    const shell = await mountShell();
+    shell.name = 'Upstairs';
+    await shell.updateComplete;
+    expect(shell.shadowRoot!.querySelector('.overlay-name')?.textContent?.trim()).toBe('Upstairs');
+  });
+
+  it('renders no label when no name is supplied', async () => {
+    const shell = await mountShell();
+    expect(shell.shadowRoot!.querySelector('.overlay-name')).toBeNull();
+  });
+});
+
 describe('overlay shell — dismissal', () => {
   it('emits ecosee-overlay-dismiss when the backdrop (outside area) is clicked', async () => {
     const shell = await mountShell();

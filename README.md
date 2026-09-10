@@ -178,7 +178,7 @@ sensors: # optional, the Sensors screen (see below)
 | Option                   | Required | Description                                                                                                                                        |
 | ------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `entity`                 | yes      | The `climate.*` entity the card is bound to. One card drives one thermostat.                                                                       |
-| `name`                   | no       | Label override. Defaults to the entity's friendly name.                                                                                            |
+| `name`                   | no       | Label shown above the temperature and atop every control screen. Defaults to the entity's friendly name.                                           |
 | `weather_entity`         | no       | A `weather` entity. Enables the weather icon and the Weather screen.                                                                               |
 | `humidity_entity`        | no       | Humidity source, for when the climate entity does not report humidity itself.                                                                      |
 | `air_quality_entity`     | no       | An entity carrying a US EPA air-quality index. Adds the AQI gauge.                                                                                 |

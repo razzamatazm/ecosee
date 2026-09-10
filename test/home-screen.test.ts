@@ -50,6 +50,22 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
+describe('Home Screen thermostat name (issue #120)', () => {
+  it('shows the name above the current temperature so multiple cards can be told apart', async () => {
+    const el = await mount(view({ name: 'Upstairs', humidity: 45 }));
+    const name = el.shadowRoot!.querySelector('.name');
+    expect(name?.textContent?.trim()).toBe('Upstairs');
+    const temp = el.shadowRoot!.querySelector('.temp')!;
+    expect(name!.compareDocumentPosition(temp) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('does not repeat the name when unavailable (the unavailable message already carries it)', async () => {
+    const el = await mount(view({ available: false }));
+    expect(el.shadowRoot!.querySelector('.name')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.unavailable')?.textContent).toContain('Living Room');
+  });
+});
+
 describe('Home Screen setpoint ovals', () => {
   it('shows both ovals in Heat / Cool (Auto), heat left and cool right', async () => {
     const el = await mount(view({ mode: 'heat_cool', setpoints: { heat: 70, cool: 75 } }));
