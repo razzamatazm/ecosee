@@ -34,4 +34,21 @@ describe('resolveDeviceSize', () => {
   it('ignores non-finite bounds rather than producing NaN', () => {
     expect(resolveDeviceSize(380, Number.NaN, Number.NaN)).toBe(380);
   });
+
+  // `compact: true` supplies a lower ceiling (COMPACT_MAX_SIZE, 320) and changes
+  // nothing else: the same clamp, the same floor. These pin that a compact Card
+  // caps at 320 in a wide column, still tracks a narrower slot, and never sinks
+  // below the legible floor.
+  it('caps a compact Card at the compact ceiling in a wide slot', () => {
+    expect(resolveDeviceSize(1000, 220, 320)).toBe(320);
+    expect(resolveDeviceSize(460, 220, 320)).toBe(320);
+  });
+
+  it('still tracks a slot narrower than the compact ceiling', () => {
+    expect(resolveDeviceSize(280, 220, 320)).toBe(280);
+  });
+
+  it('keeps the legible floor under the compact ceiling', () => {
+    expect(resolveDeviceSize(160, 220, 320)).toBe(220);
+  });
 });

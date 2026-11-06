@@ -178,7 +178,7 @@ sensors: # optional, the Sensors screen (see below)
 | Option                   | Required | Description                                                                                                                                        |
 | ------------------------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `entity`                 | yes      | The `climate.*` entity the card is bound to. One card drives one thermostat.                                                                       |
-| `name`                   | no       | Label override. Defaults to the entity's friendly name.                                                                                            |
+| `name`                   | no       | Label shown above the temperature and atop every control screen. Defaults to the entity's friendly name.                                           |
 | `weather_entity`         | no       | A `weather` entity. Enables the weather icon and the Weather screen.                                                                               |
 | `humidity_entity`        | no       | Humidity source, for when the climate entity does not report humidity itself.                                                                      |
 | `air_quality_entity`     | no       | An entity carrying a US EPA air-quality index. Adds the AQI gauge.                                                                                 |
@@ -187,6 +187,8 @@ sensors: # optional, the Sensors screen (see below)
 | `sensors`                | no       | Temperature entities for the Sensors screen (see below).                                                                                           |
 | `inactivity_timeout`     | no       | Seconds an open control waits, idle, before returning home. `0` disables. Default 25.                                                              |
 | `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                                                                                        |
+| `hide_name`              | no       | Hide the thermostat name on the Home Screen and control screens. Default off.                                                                      |
+| `compact`                | no       | Render the card smaller (up to 320px instead of 460px). Same layout, scaled down. Default off.                                                     |
 
 #### Advanced
 

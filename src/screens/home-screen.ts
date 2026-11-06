@@ -258,6 +258,20 @@ export class EcoseeHomeScreen extends LitElement {
         padding-bottom: 18cqw;
       }
 
+      /* Thermostat name (issue #120), so several cards on one dashboard can be told
+         apart. Quieter than the humidity line below it: fg color, not accent. */
+      .name {
+        max-width: 80cqw;
+        text-align: center;
+        font-size: 6cqw;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        color: var(--ecosee-fg, #d4eff9);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .hum {
         display: inline-flex;
         align-items: center;
@@ -511,6 +525,7 @@ export class EcoseeHomeScreen extends LitElement {
           ${
             view.available
               ? html`
+                  ${view.showName ? html`<div class="name" part="name">${view.name}</div>` : nothing}
                   ${
                     view.humidity !== null
                       ? html`<div class="hum">

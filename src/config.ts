@@ -88,6 +88,17 @@ export interface EcoseeCardConfig {
   /** Per-element visibility for the Standby Screen (YAML-only — a tinkerer knob, not
    *  surfaced in the GUI editor). Each element defaults to shown; see StandbyConfig. */
   standby?: StandbyConfig;
+  /** Opt-in compact rendering: lowers the ceiling the fixed device canvas is scaled
+   *  down to, so the Card takes less room in a dashboard column. The layout itself is
+   *  untouched - the Home Screen, every Overlay and the Standby Screen are laid out at
+   *  the same `--ecosee-base-size` and scaled as one unit, exactly as they already are
+   *  in a narrow column. Absent/`false` means the Card renders at its full size as
+   *  today (ADR-0001 graceful degradation). See `COMPACT_MAX_SIZE` in `ecosee-card.ts`. */
+  compact?: boolean;
+  /** Hide the thermostat name on the Home Screen and atop every Overlay (#120).
+   *  Absent/`false` means the name shows; the "unavailable" message keeps it either
+   *  way, since that is the only thing telling you which thermostat dropped out. */
+  hide_name?: boolean;
   /** When to show the Home Screen's fan shortcut glyph (`auto` / `always` / `never`).
    *  Absent ⇒ `auto` — the glyph appears only for a fan with real speed controls
    *  (the default before this key existed). See ShowFan. */
@@ -148,7 +159,9 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     uv_index_entity: optionalString('uv_index_entity'),
     sensors: parseSensors(raw.sensors),
     inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
-    standby_screen: parseStandbyScreen(raw.standby_screen),
+    standby_screen: parseOptionalBoolean(raw.standby_screen, 'standby_screen'),
+    compact: parseOptionalBoolean(raw.compact, 'compact'),
+    hide_name: parseOptionalBoolean(raw.hide_name, 'hide_name'),
     standby: parseStandby(raw.standby),
     show_fan: parseShowFan(raw.show_fan),
     min_gap: parseMinGap(raw.min_gap),
@@ -206,13 +219,13 @@ function parseStandby(raw: unknown): StandbyConfig | undefined {
   };
 }
 
-/** Parse the optional `standby_screen` toggle (issue #64). Returns `undefined` when
- *  absent so the feature stays off by default (graceful degradation); a boolean is
- *  taken verbatim. Throws a user-facing error for any non-boolean value. */
-function parseStandbyScreen(raw: unknown): boolean | undefined {
+/** Parse an optional on/off key (`standby_screen`, `compact`, `hide_name`). Returns
+ *  `undefined` when absent so the Card keeps its default behavior (ADR-0001 graceful
+ *  degradation); a boolean is taken verbatim. Throws a user-facing error otherwise. */
+function parseOptionalBoolean(raw: unknown, key: string): boolean | undefined {
   if (raw === undefined) return undefined;
   if (typeof raw !== 'boolean') {
-    throw new Error('ecosee: `standby_screen` must be a boolean.');
+    throw new Error(`ecosee: \`${key}\` must be a boolean.`);
   }
   return raw;
 }

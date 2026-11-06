@@ -43,6 +43,7 @@ const BROKEN_FONT_CSS = `
 const HOME_VIEW: HomeView = {
   available: true,
   name: 'Thermostat',
+  showName: true,
   currentTemp: 75,
   unit: '°F',
   humidity: 60,

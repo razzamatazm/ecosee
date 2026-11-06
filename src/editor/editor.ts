@@ -164,6 +164,20 @@ export function editorSchema(): EditorField[] {
       helper: 'Optional. Enables the Standby Screen. Off by default.',
       selector: { boolean: {} },
     },
+    {
+      name: 'compact',
+      label: 'Compact',
+      helper:
+        'Optional. Renders the Card smaller in its dashboard column. The layout is unchanged, ' +
+        'just scaled down. Off by default.',
+      selector: { boolean: {} },
+    },
+    {
+      name: 'hide_name',
+      label: 'Hide name',
+      helper: 'Optional. Hides the thermostat name on the Home Screen and control screens.',
+      selector: { boolean: {} },
+    },
   ];
 }
 
