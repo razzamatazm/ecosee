@@ -87,7 +87,7 @@ interface OverlayDescriptor {
  */
 const COMPACT_MAX_SIZE = 320;
 
-const VERSION = '0.10.0';
+const VERSION = '0.11.0';
 
 /**
  * `<ecosee-card>` — the host Lovelace element. It owns the `hass` wiring and
