@@ -20,6 +20,7 @@ describe('editorSchema — coverage', () => {
       'entity',
       'name',
       'weather_entity',
+      'temperature_entity',
       'humidity_entity',
       'air_quality_entity',
       'uv_index_entity',
@@ -29,6 +30,8 @@ describe('editorSchema — coverage', () => {
       'standby_screen',
       'compact',
       'hide_name',
+      'hide_glow',
+      'background_color',
     ]);
   });
 
@@ -256,6 +259,20 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
         base,
       ).sensors,
     ).toEqual(['sensor.kitchen', 'sensor.den']);
+  });
+
+  it('keeps hide_glow when on but drops it when off', () => {
+    expect(normalizeEditorConfig({ ...base, hide_glow: true }, base).hide_glow).toBe(true);
+    expect('hide_glow' in normalizeEditorConfig({ ...base, hide_glow: false }, base)).toBe(false);
+  });
+
+  it('keeps a background_color but drops an empty one', () => {
+    expect(
+      normalizeEditorConfig({ ...base, background_color: 'transparent' }, base).background_color,
+    ).toBe('transparent');
+    expect(
+      'background_color' in normalizeEditorConfig({ ...base, background_color: '' }, base),
+    ).toBe(false);
   });
 
   it('keeps hide_name when on but drops it when off or unset', () => {

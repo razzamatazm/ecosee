@@ -432,3 +432,48 @@ describe('toHomeView — hide_name', () => {
     expect(view.name).toBe('Upstairs');
   });
 });
+
+describe('toHomeView — temperature_entity', () => {
+  const climate: HassEntityBase = {
+    entity_id: 'climate.t',
+    state: 'heat',
+    attributes: { current_temperature: 70, temperature: 72, hvac_action: 'heating' },
+  };
+  const den = (state: string): HassEntityBase => ({
+    entity_id: 'sensor.den',
+    state,
+    attributes: {},
+  });
+
+  it("shows the sensor's reading instead of the thermostat's", () => {
+    const view = toHomeView(
+      hass({ climate, extraStates: { 'sensor.den': den('66.5') } }),
+      config({ temperature_entity: 'sensor.den' }),
+    );
+    expect(view.currentTemp).toBe(66.5);
+  });
+
+  it("falls back to the thermostat's reading while the sensor is unavailable", () => {
+    const view = toHomeView(
+      hass({ climate, extraStates: { 'sensor.den': den('unavailable') } }),
+      config({ temperature_entity: 'sensor.den' }),
+    );
+    expect(view.currentTemp).toBe(70);
+  });
+});
+
+describe('toHomeView — explicit non-heating hvac_action', () => {
+  it('reports idle for a fan-only run instead of guessing heating from the temperature', () => {
+    const view = toHomeView(
+      hass({
+        climate: {
+          entity_id: 'climate.t',
+          state: 'heat',
+          attributes: { current_temperature: 65, temperature: 72, hvac_action: 'fan' },
+        },
+      }),
+      config(),
+    );
+    expect(view.equipment).toBe('idle');
+  });
+});

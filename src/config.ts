@@ -55,6 +55,11 @@ export interface EcoseeCardConfig {
   name?: string;
   /** A `weather` entity that enables the weather icon + (later) overlay. */
   weather_entity?: string;
+  /** A temperature entity (a `sensor` state, or a `climate` entity's
+   *  `current_temperature`) shown in place of the thermostat's own reading on the
+   *  Home Screen, Standby Screen and the Sensors screen's thermostat card. While it
+   *  is unavailable the thermostat's own reading shows instead. */
+  temperature_entity?: string;
   /** Override humidity source when the climate entity has no `current_humidity`. */
   humidity_entity?: string;
   /** Glyph for custom Comfort Settings (presets without a built-in mapping). One of
@@ -99,6 +104,12 @@ export interface EcoseeCardConfig {
    *  Absent/`false` means the name shows; the "unavailable" message keeps it either
    *  way, since that is the only thing telling you which thermostat dropped out. */
   hide_name?: boolean;
+  /** Hide the heating/cooling edge glow on every surface. Absent/`false` keeps it. */
+  hide_glow?: boolean;
+  /** Any CSS color painted as the Card's canvas (Home, Standby and every Overlay),
+   *  or `transparent` to let the dashboard show through. Absent keeps the Skin's
+   *  near-black. Text colors are unchanged. */
+  background_color?: string;
   /** When to show the Home Screen's fan shortcut glyph (`auto` / `always` / `never`).
    *  Absent ⇒ `auto` — the glyph appears only for a fan with real speed controls
    *  (the default before this key existed). See ShowFan. */
@@ -133,16 +144,18 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     key:
       | 'name'
       | 'weather_entity'
+      | 'temperature_entity'
       | 'humidity_entity'
       | 'default_comfort_icon'
       | 'fan_min_on_time_entity'
       | 'air_quality_entity'
-      | 'uv_index_entity',
+      | 'uv_index_entity'
+      | 'background_color',
   ): string | undefined => {
     const value = raw[key];
     if (value === undefined) return undefined;
     if (typeof value !== 'string') {
-      throw new Error(`ecosee: \`${key}\` must be a string entity id.`);
+      throw new Error(`ecosee: \`${key}\` must be a string.`);
     }
     return value;
   };
@@ -152,6 +165,7 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     entity,
     name: optionalString('name'),
     weather_entity: optionalString('weather_entity'),
+    temperature_entity: optionalString('temperature_entity'),
     humidity_entity: optionalString('humidity_entity'),
     default_comfort_icon: optionalString('default_comfort_icon'),
     fan_min_on_time_entity: optionalString('fan_min_on_time_entity'),
@@ -162,6 +176,8 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     standby_screen: parseOptionalBoolean(raw.standby_screen, 'standby_screen'),
     compact: parseOptionalBoolean(raw.compact, 'compact'),
     hide_name: parseOptionalBoolean(raw.hide_name, 'hide_name'),
+    hide_glow: parseOptionalBoolean(raw.hide_glow, 'hide_glow'),
+    background_color: optionalString('background_color'),
     standby: parseStandby(raw.standby),
     show_fan: parseShowFan(raw.show_fan),
     min_gap: parseMinGap(raw.min_gap),
@@ -219,7 +235,7 @@ function parseStandby(raw: unknown): StandbyConfig | undefined {
   };
 }
 
-/** Parse an optional on/off key (`standby_screen`, `compact`, `hide_name`). Returns
+/** Parse an optional on/off key (`standby_screen`, `compact`, `hide_name`, `hide_glow`). Returns
  *  `undefined` when absent so the Card keeps its default behavior (ADR-0001 graceful
  *  degradation); a boolean is taken verbatim. Throws a user-facing error otherwise. */
 function parseOptionalBoolean(raw: unknown, key: string): boolean | undefined {

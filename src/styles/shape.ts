@@ -39,8 +39,16 @@ export const shapeStyles: CSSResult = css`
     z-index: 0;
     pointer-events: none;
   }
+  /* The canvas fill. --ecosee-surface (set from config background_color) lets the
+     canvas change without touching --ecosee-bg, which also inks text on light chips. */
   .shape .fill {
-    fill: var(--ecosee-bg, #0a0d10);
+    fill: var(--ecosee-surface, var(--ecosee-bg, #0a0d10));
+  }
+  /* Config hide_glow sets this to hidden on the card host; it inherits through every
+     surface's shadow root, so no surface needs its own flag. visibility overrides the
+     per-surface display reveal rules without competing with them. */
+  .shape .glow {
+    visibility: var(--ecosee-glow-visibility, visible);
   }
 `;
 

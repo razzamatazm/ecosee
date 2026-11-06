@@ -106,6 +106,12 @@ export function editorSchema(): EditorField[] {
       selector: { entity: { domain: 'weather' } },
     },
     {
+      name: 'temperature_entity',
+      label: 'Temperature entity',
+      helper: "Optional. Shows this sensor's temperature instead of the thermostat's own reading.",
+      selector: { entity: { filter: SENSOR_ENTITY_FILTER } },
+    },
+    {
       name: 'humidity_entity',
       label: 'Humidity entity',
       helper: 'Optional. Humidity source used only when the thermostat reports none.',
@@ -177,6 +183,19 @@ export function editorSchema(): EditorField[] {
       label: 'Hide name',
       helper: 'Optional. Hides the thermostat name on the Home Screen and control screens.',
       selector: { boolean: {} },
+    },
+    {
+      name: 'hide_glow',
+      label: 'Hide equipment glow',
+      helper: 'Optional. Hides the blue/amber edge glow shown while cooling or heating.',
+      selector: { boolean: {} },
+    },
+    {
+      name: 'background_color',
+      label: 'Background color',
+      helper:
+        'Optional. Any CSS color (e.g. #1a1a2e), or "transparent". Unset keeps the default near-black.',
+      selector: { text: {} },
     },
   ];
 }

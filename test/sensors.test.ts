@@ -44,6 +44,16 @@ function thermostat(currentTemp: number | null = 72, friendly = 'Living Room'): 
 
 const baseConfig: EcoseeCardConfig = { type: 'custom:ecosee-card', entity: 'climate.t' };
 
+describe('toSensorsModel — temperature_entity', () => {
+  it("shows the temperature_entity reading on the thermostat's own card", () => {
+    const model = toSensorsModel(
+      hass([thermostat(72), entity('sensor.den', '68', { friendly_name: 'Den' })]),
+      { ...baseConfig, temperature_entity: 'sensor.den', sensors: [{ entity: 'sensor.den' }] },
+    );
+    expect(model.cards[0]).toMatchObject({ isThermostat: true, temp: 68 });
+  });
+});
+
 describe('toSensorsModel — card list', () => {
   it('includes the thermostat’s own temperature first, then configured sensors in order', () => {
     const model = toSensorsModel(

@@ -168,6 +168,36 @@ describe('parseConfig — standby_screen', () => {
   });
 });
 
+describe('parseConfig — appearance and temperature_entity', () => {
+  it('leaves the new keys undefined when absent', () => {
+    const config = parseConfig(base);
+    expect(config.temperature_entity).toBeUndefined();
+    expect(config.hide_glow).toBeUndefined();
+    expect(config.background_color).toBeUndefined();
+  });
+
+  it('accepts valid values', () => {
+    const config = parseConfig({
+      ...base,
+      temperature_entity: 'sensor.den',
+      hide_glow: true,
+      background_color: 'transparent',
+    });
+    expect(config.temperature_entity).toBe('sensor.den');
+    expect(config.hide_glow).toBe(true);
+    expect(config.background_color).toBe('transparent');
+  });
+
+  it('rejects wrong types', () => {
+    expect(() => parseConfig({ ...base, hide_glow: 'yes' })).toThrow(
+      /`hide_glow` must be a boolean/,
+    );
+    expect(() => parseConfig({ ...base, background_color: 3 })).toThrow(
+      /`background_color` must be a string/,
+    );
+  });
+});
+
 describe('parseConfig — hide_name', () => {
   it('leaves hide_name undefined when the key is absent (name shown by default)', () => {
     expect(parseConfig(base).hide_name).toBeUndefined();
