@@ -453,6 +453,19 @@ describe('toHomeView — temperature_entity', () => {
     expect(view.currentTemp).toBe(66.5);
   });
 
+  it("converts a sensor reporting in the other unit to the dashboard's unit", () => {
+    const celsius: HassEntityBase = {
+      entity_id: 'sensor.den',
+      state: '20',
+      attributes: { unit_of_measurement: '°C' },
+    };
+    const view = toHomeView(
+      hass({ climate, extraStates: { 'sensor.den': celsius } }),
+      config({ temperature_entity: 'sensor.den' }),
+    );
+    expect(view.currentTemp).toBe(68);
+  });
+
   it("falls back to the thermostat's reading while the sensor is unavailable", () => {
     const view = toHomeView(
       hass({ climate, extraStates: { 'sensor.den': den('unavailable') } }),

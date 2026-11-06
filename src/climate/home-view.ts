@@ -314,7 +314,24 @@ export function resolveCurrentTemp(
   if (!config.temperature_entity) return own;
   const source = hass.states[config.temperature_entity];
   if (!source || UNAVAILABLE.has(source.state)) return own;
-  return num(source.state) ?? num(source.attributes.current_temperature) ?? own;
+  const reading = num(source.state) ?? num(source.attributes.current_temperature);
+  if (reading === null) return own;
+  return toDisplayUnit(
+    reading,
+    str(source.attributes.unit_of_measurement),
+    hass.config?.unit_system?.temperature,
+  );
+}
+
+/** Convert a reading between °C and °F when its own unit differs from the
+ *  dashboard's. HA already converts temperature sensors to the unit system, but a
+ *  per-entity display-unit override can leave one in the other unit. Anything
+ *  unrecognised passes through unchanged. */
+function toDisplayUnit(value: number, from: string | undefined, to: string | undefined): number {
+  const tenths = (n: number): number => Math.round(n * 10) / 10;
+  if (from === '°C' && to === '°F') return tenths((value * 9) / 5 + 32);
+  if (from === '°F' && to === '°C') return tenths(((value - 32) * 5) / 9);
+  return value;
 }
 
 /** Display formatting for temperatures: whole degrees in °F, half degrees in °C,
