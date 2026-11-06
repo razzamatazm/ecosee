@@ -165,6 +165,31 @@ export class EcoseeOverlay extends LitElement {
       z-index: 2;
     }
 
+    /* Thermostat name (issue #120): a small caption in the strip ABOVE the ✕ row.
+       Level with the ✕ it collided with every Overlay's own heading (Main Menu,
+       Sunny, the System Mode list, the scrubber's top neighbor), which all start at
+       that row; the strip between the edge glow (~3.5u) and the tallest content
+       (~9.8u, the scrubber) is the one band free on every Overlay. Fixed-unit sized
+       like the ✕ (the shell is not a query container); long names truncate. */
+    .overlay-name {
+      position: absolute;
+      top: calc(4.5 * var(--ecosee-u, 4.6px));
+      left: calc(20 * var(--ecosee-u, 4.6px));
+      right: calc(20 * var(--ecosee-u, 4.6px));
+      height: calc(4.5 * var(--ecosee-u, 4.6px));
+      line-height: calc(4.5 * var(--ecosee-u, 4.6px));
+      z-index: 1;
+      text-align: center;
+      font-size: calc(2.8 * var(--ecosee-u, 4.6px));
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      color: var(--ecosee-muted, #6f96a3);
+      pointer-events: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     /* The device's persistent bottom navigation, shown across the Main Menu section
        screens (System / Sensors / Fan). Shell chrome like the ✕: absolutely placed,
        sized in the fixed unit (the shell is not a query container), above the content.
@@ -233,6 +258,10 @@ export class EcoseeOverlay extends LitElement {
    *  while any overlay is open (ADR-0011). */
   @property({ attribute: false }) equipment?: EquipmentStatus | null;
 
+  /** The thermostat's display name (config `name` → friendly_name), shown at the top
+   *  of every Overlay so each sub-screen says which thermostat it controls (#120). */
+  @property({ attribute: false }) name?: string;
+
   private _dismiss = (): void => {
     emitOverlayDismiss(this);
   };
@@ -260,6 +289,7 @@ export class EcoseeOverlay extends LitElement {
         }
         <div class="backdrop" @click=${this._dismiss}></div>
         <button class="close" aria-label="Close" @click=${this._dismiss}>${icons.close}</button>
+        ${this.name ? html`<div class="overlay-name" part="name">${this.name}</div>` : nothing}
         <div class="content"><slot></slot></div>
         ${this._renderTabBar()}
       </div>

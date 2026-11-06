@@ -512,6 +512,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       <ecosee-overlay
         .tabs=${this._tabBar(view)}
         .equipment=${view.equipment}
+        .name=${view.name}
         @ecosee-overlay-dismiss=${this._closeOverlay}
         @ecosee-service-call=${this._onServiceCall}
         @ecosee-system-select=${this._onSystemSelect}

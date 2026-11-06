@@ -75,6 +75,25 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+describe('ecosee-card wiring — thermostat name (issue #120)', () => {
+  it('passes the configured name to the overlay shell so every sub-screen can label it', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = document.createElement('ecosee-card') as EcoseeCard;
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t', name: 'Upstairs' });
+    card.hass = hass;
+    document.body.appendChild(card);
+    await card.updateComplete;
+
+    fireAction(card, 'temperature');
+    await card.updateComplete;
+
+    const shell = card.shadowRoot!.querySelector('ecosee-overlay') as LitElement & {
+      name?: string;
+    };
+    expect(shell.name).toBe('Upstairs');
+  });
+});
+
 describe('ecosee-card wiring — apply path', () => {
   it('forwards a temperature change from the overlay to hass.callService via the one ecosee-service-call event', async () => {
     const { hass, calls } = fakeHass({
