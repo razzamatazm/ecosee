@@ -60,6 +60,9 @@ export interface HomeView {
   /** False when the entity is missing or `unavailable` — Card shows a quiet shell. */
   available: boolean;
   name: string;
+  /** Whether the name labels the Home Screen and Overlays (`hide_name` unset). The
+   *  "unavailable" message carries `name` regardless. */
+  showName: boolean;
   /** `current_temperature` — the dominant number. Not a setpoint. */
   currentTemp: number | null;
   unit: string;
@@ -242,6 +245,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
   const entity = hass.states[config.entity];
   const unit = hass.config?.unit_system?.temperature ?? '°';
   const name = config.name ?? str(entity?.attributes.friendly_name) ?? config.entity;
+  const showName = !config.hide_name;
 
   const weather = weatherCondition(hass, config.weather_entity);
 
@@ -249,6 +253,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     return {
       available: false,
       name,
+      showName,
       currentTemp: null,
       unit,
       humidity: null,
@@ -276,6 +281,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
   return {
     available: true,
     name,
+    showName,
     currentTemp,
     unit,
     humidity,

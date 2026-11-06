@@ -414,3 +414,21 @@ describe('formatTemp', () => {
     expect(formatTemp(null, '°F')).toBe('–');
   });
 });
+
+describe('toHomeView — hide_name', () => {
+  const climate: HassEntityBase = {
+    entity_id: 'climate.t',
+    state: 'heat',
+    attributes: { friendly_name: 'Upstairs', current_temperature: 70 },
+  };
+
+  it('shows the name by default', () => {
+    expect(toHomeView(hass({ climate }), config()).showName).toBe(true);
+  });
+
+  it('hides the name when hide_name is set, but keeps it for the unavailable message', () => {
+    const view = toHomeView(hass({ climate }), config({ hide_name: true }));
+    expect(view.showName).toBe(false);
+    expect(view.name).toBe('Upstairs');
+  });
+});

@@ -27,6 +27,7 @@ function view(equipment: EquipmentStatus | null): HomeView {
   return {
     available: true,
     name: 'Thermostat',
+    showName: true,
     currentTemp: 72,
     unit: '°F',
     humidity: 40,

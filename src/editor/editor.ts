@@ -172,6 +172,12 @@ export function editorSchema(): EditorField[] {
         'just scaled down. Off by default.',
       selector: { boolean: {} },
     },
+    {
+      name: 'hide_name',
+      label: 'Hide name',
+      helper: 'Optional. Hides the thermostat name on the Home Screen and control screens.',
+      selector: { boolean: {} },
+    },
   ];
 }
 

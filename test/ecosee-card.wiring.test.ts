@@ -92,6 +92,29 @@ describe('ecosee-card wiring — thermostat name (issue #120)', () => {
     };
     expect(shell.name).toBe('Upstairs');
   });
+
+  it('passes no name to the overlay shell when hide_name is set', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = document.createElement('ecosee-card') as EcoseeCard;
+    card.setConfig({
+      type: 'custom:ecosee-card',
+      entity: 'climate.t',
+      name: 'Upstairs',
+      hide_name: true,
+    });
+    card.hass = hass;
+    document.body.appendChild(card);
+    await card.updateComplete;
+
+    fireAction(card, 'temperature');
+    await card.updateComplete;
+
+    const shell = card.shadowRoot!.querySelector('ecosee-overlay') as LitElement & {
+      name?: string;
+    };
+    expect(shell.name).toBeUndefined();
+    expect(shell.shadowRoot!.querySelector('.overlay-name')).toBeNull();
+  });
 });
 
 describe('ecosee-card wiring — apply path', () => {

@@ -27,6 +27,7 @@ function homeView(overrides: Partial<HomeView> = {}): HomeView {
   return {
     available: true,
     name: 'Thermostat',
+    showName: true,
     currentTemp: 72,
     unit: '°F',
     humidity: null,

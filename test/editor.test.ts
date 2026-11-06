@@ -28,6 +28,7 @@ describe('editorSchema — coverage', () => {
       'inactivity_timeout',
       'standby_screen',
       'compact',
+      'hide_name',
     ]);
   });
 
@@ -255,6 +256,11 @@ describe('normalizeEditorConfig — optional-config-key hygiene', () => {
         base,
       ).sensors,
     ).toEqual(['sensor.kitchen', 'sensor.den']);
+  });
+
+  it('keeps hide_name when on but drops it when off or unset', () => {
+    expect(normalizeEditorConfig({ ...base, hide_name: true }, base).hide_name).toBe(true);
+    expect('hide_name' in normalizeEditorConfig({ ...base, hide_name: false }, base)).toBe(false);
   });
 
   it('keeps compact when on but drops it when off or unset', () => {

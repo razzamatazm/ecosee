@@ -15,6 +15,7 @@ function view(overrides: Partial<HomeView> = {}): HomeView {
   return {
     available: true,
     name: 'Living Room',
+    showName: true,
     currentTemp: 72,
     unit: '°F',
     humidity: null,
@@ -62,6 +63,16 @@ describe('Home Screen thermostat name (issue #120)', () => {
   it('does not repeat the name when unavailable (the unavailable message already carries it)', async () => {
     const el = await mount(view({ available: false }));
     expect(el.shadowRoot!.querySelector('.name')).toBeNull();
+    expect(el.shadowRoot!.querySelector('.unavailable')?.textContent).toContain('Living Room');
+  });
+
+  it('omits the name when hide_name is set', async () => {
+    const el = await mount(view({ name: 'Upstairs', showName: false }));
+    expect(el.shadowRoot!.querySelector('.name')).toBeNull();
+  });
+
+  it('still names an unavailable thermostat when hide_name is set', async () => {
+    const el = await mount(view({ available: false, showName: false }));
     expect(el.shadowRoot!.querySelector('.unavailable')?.textContent).toContain('Living Room');
   });
 });

@@ -187,6 +187,8 @@ sensors: # optional, the Sensors screen (see below)
 | `sensors`                | no       | Temperature entities for the Sensors screen (see below).                                                                                           |
 | `inactivity_timeout`     | no       | Seconds an open control waits, idle, before returning home. `0` disables. Default 25.                                                              |
 | `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                                                                                        |
+| `hide_name`              | no       | Hide the thermostat name on the Home Screen and control screens. Default off.                                                                      |
+| `compact`                | no       | Render the card smaller (up to 320px instead of 460px). Same layout, scaled down. Default off.                                                     |
 
 #### Advanced
 

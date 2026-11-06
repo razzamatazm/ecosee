@@ -525,7 +525,7 @@ export class EcoseeHomeScreen extends LitElement {
           ${
             view.available
               ? html`
-                  <div class="name" part="name">${view.name}</div>
+                  ${view.showName ? html`<div class="name" part="name">${view.name}</div>` : nothing}
                   ${
                     view.humidity !== null
                       ? html`<div class="hum">
