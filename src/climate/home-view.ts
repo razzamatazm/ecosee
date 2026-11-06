@@ -130,9 +130,13 @@ function fromHvacAction(action: string | undefined): EquipmentStatus | null {
       return 'cooling';
     case 'idle':
     case 'off':
+    case 'fan':
+    case 'drying':
+      // The entity says it is not heating or cooling, so trust that rather than
+      // guessing: a fan-only run below the heat setpoint used to glow as heating.
       return 'idle';
     default:
-      // 'drying' / 'fan' / undefined — not represented on the Home Screen.
+      // No hvac_action at all: the caller falls back to inferEquipment's guess.
       return null;
   }
 }
@@ -270,7 +274,7 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
 
   const attrs = entity.attributes;
   const mode = toMode(entity.state);
-  const currentTemp = num(attrs.current_temperature);
+  const currentTemp = resolveCurrentTemp(hass, config, attrs);
   const setpoints = deriveSetpoints(mode, attrs);
   const equipment =
     fromHvacAction(str(attrs.hvac_action)) ?? inferEquipment(mode, currentTemp, setpoints);
@@ -294,6 +298,40 @@ export function toHomeView(hass: HomeAssistant, config: EcoseeCardConfig): HomeV
     airQuality: toAirQuality(hass, config),
     uvIndex: toUvIndex(hass, config),
   };
+}
+
+/** The current temperature the Card shows: the configured `temperature_entity`
+ *  (a `sensor` state, or a `climate` entity's `current_temperature`) when it has a
+ *  reading, otherwise the thermostat's own `current_temperature`. Falling back
+ *  rather than blanking keeps the Card useful while a remote sensor drops out
+ *  (ADR-0001). Shared with the Sensors screen so every surface agrees. */
+export function resolveCurrentTemp(
+  hass: HomeAssistant,
+  config: EcoseeCardConfig,
+  thermostatAttrs: Record<string, unknown>,
+): number | null {
+  const own = num(thermostatAttrs.current_temperature);
+  if (!config.temperature_entity) return own;
+  const source = hass.states[config.temperature_entity];
+  if (!source || UNAVAILABLE.has(source.state)) return own;
+  const reading = num(source.state) ?? num(source.attributes.current_temperature);
+  if (reading === null) return own;
+  return toDisplayUnit(
+    reading,
+    str(source.attributes.unit_of_measurement),
+    hass.config?.unit_system?.temperature,
+  );
+}
+
+/** Convert a reading between °C and °F when its own unit differs from the
+ *  dashboard's. HA already converts temperature sensors to the unit system, but a
+ *  per-entity display-unit override can leave one in the other unit. Anything
+ *  unrecognised passes through unchanged. */
+function toDisplayUnit(value: number, from: string | undefined, to: string | undefined): number {
+  const tenths = (n: number): number => Math.round(n * 10) / 10;
+  if (from === '°C' && to === '°F') return tenths((value * 9) / 5 + 32);
+  if (from === '°F' && to === '°C') return tenths(((value - 32) * 5) / 9);
+  return value;
 }
 
 /** Display formatting for temperatures: whole degrees in °F, half degrees in °C,

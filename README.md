@@ -180,6 +180,7 @@ sensors: # optional, the Sensors screen (see below)
 | `entity`                 | yes      | The `climate.*` entity the card is bound to. One card drives one thermostat.                                                                       |
 | `name`                   | no       | Label shown above the temperature and atop every control screen. Defaults to the entity's friendly name.                                           |
 | `weather_entity`         | no       | A `weather` entity. Enables the weather icon and the Weather screen.                                                                               |
+| `temperature_entity`     | no       | A temperature sensor shown instead of the thermostat's own reading. Falls back to the thermostat's while unavailable.                              |
 | `humidity_entity`        | no       | Humidity source, for when the climate entity does not report humidity itself.                                                                      |
 | `air_quality_entity`     | no       | An entity carrying a US EPA air-quality index. Adds the AQI gauge.                                                                                 |
 | `uv_index_entity`        | no       | An entity carrying a UV index. Adds the UV gauge.                                                                                                  |
@@ -189,6 +190,8 @@ sensors: # optional, the Sensors screen (see below)
 | `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                                                                                        |
 | `hide_name`              | no       | Hide the thermostat name on the Home Screen and control screens. Default off.                                                                      |
 | `compact`                | no       | Render the card smaller (up to 320px instead of 460px). Same layout, scaled down. Default off.                                                     |
+| `hide_glow`              | no       | Hide the blue/amber edge glow shown while cooling or heating. Default off.                                                                         |
+| `background_color`       | no       | Card background: any CSS color (`#1a1a2e`), or `transparent` to show the dashboard behind it.                                                      |
 
 #### Advanced
 

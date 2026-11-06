@@ -43,6 +43,7 @@ import './overlays/sensors-overlay';
 import './overlays/weather-overlay';
 import { EDITOR_TYPE } from './editor/ecosee-card-editor';
 import './editor/ecosee-card-editor';
+import { version } from '../package.json';
 
 /** An Overlay that can mount over the Home Screen. `system` is the Main Menu's
  *  System sub-screen (the hub holding the System Mode + Comfort Setting selectors);
@@ -87,7 +88,9 @@ interface OverlayDescriptor {
  */
 const COMPACT_MAX_SIZE = 320;
 
-const VERSION = '0.11.0';
+// Read from package.json at build time (Vite bundles only this field), so the
+// console banner always matches the published release.
+const VERSION = version;
 
 /**
  * `<ecosee-card>` — the host Lovelace element. It owns the `hass` wiring and
@@ -247,8 +250,12 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
   static override styles = [
     tokens,
     css`
+      /* Never let a flex wrapper (HA's vertical-stack is flex: 1; min-height: 0)
+         squeeze the host below the square .sizer renders; the overflow would be
+         clipped rather than reflowed. */
       :host {
         display: block;
+        flex-shrink: 0;
       }
       /* Fixed-canvas device (issue #35 / #36). .root holds the whole Card laid out
          once at --ecosee-base-size; the ResizeObserver measures the slot and sets
@@ -367,7 +374,18 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     // The ResizeObserver only fires on a slot-width change, and toggling the key in
     // the GUI editor does not change the slot - without this the new size would not
     // appear until the next resize.
-    if (changed.has('_config')) this._syncDeviceScale();
+    if (changed.has('_config')) {
+      this._syncDeviceScale();
+      this._syncAppearance();
+    }
+  }
+
+  /** Publish the config's appearance keys as inherited custom properties on the
+   *  host, so every surface (each in its own shadow root) picks them up from the
+   *  shared shape styles. Unset keys write nothing, leaving the Skin defaults. */
+  private _syncAppearance(): void {
+    this._setOrClear('--ecosee-glow-visibility', this._config?.hide_glow ? 'hidden' : '');
+    this._setOrClear('--ecosee-surface', this._config?.background_color ?? '');
   }
 
   /** Measure the dashboard slot and set the transform scale that fits the
@@ -482,16 +500,22 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
       `;
     }
     const view = toHomeView(this.hass, this._config);
+    // An open Overlay replaces the Home Screen rather than covering it (as Standby
+    // does), so a see-through `background_color` never shows Home behind a menu.
+    const overlay = this._renderOverlay(view);
     return html`
       <div class="sizer">
         <div class="root">
-          <ecosee-home-screen
-            .view=${view}
-            @ecosee-action=${this._onAction}
-            @pointerdown=${this._onHomeActivity}
-            @mouseover=${this._onHomeActivity}
-          ></ecosee-home-screen>
-          ${this._renderOverlay(view)}
+          ${
+            overlay === nothing
+              ? html`<ecosee-home-screen
+                  .view=${view}
+                  @ecosee-action=${this._onAction}
+                  @pointerdown=${this._onHomeActivity}
+                  @mouseover=${this._onHomeActivity}
+                ></ecosee-home-screen>`
+              : overlay
+          }
         </div>
       </div>
     `;

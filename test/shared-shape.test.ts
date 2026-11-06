@@ -111,7 +111,10 @@ describe('shared superellipse silhouette (issue #76)', () => {
   it('paints the near-black canvas fill through the shape, not a screen background', () => {
     // The shared module owns the canvas fill; it is keyed to --ecosee-bg so a token
     // override still recolors it (the issue: keep the canvas fill shared).
-    expect(shapeStyles.cssText).toMatch(/\.fill\s*\{[^}]*fill:\s*var\(\s*--ecosee-bg/);
+    // (--ecosee-surface, from config background_color, takes precedence when set.)
+    expect(shapeStyles.cssText).toMatch(
+      /\.fill\s*\{[^}]*fill:\s*var\(\s*--ecosee-surface,\s*var\(\s*--ecosee-bg/,
+    );
   });
 
   it('draws the equipment edge glow on the Home, Standby, and Overlay surfaces (ADR-0011)', async () => {

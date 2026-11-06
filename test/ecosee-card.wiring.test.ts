@@ -480,3 +480,40 @@ describe('ecosee-card wiring — compact', () => {
     expect(renderedSize(card)).toBe(260);
   });
 });
+
+describe('ecosee-card wiring — appearance', () => {
+  it('publishes hide_glow and background_color on the host, and clears them when removed', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+
+    card.setConfig({
+      type: 'custom:ecosee-card',
+      entity: 'climate.t',
+      hide_glow: true,
+      background_color: 'transparent',
+    });
+    await card.updateComplete;
+    expect(card.style.getPropertyValue('--ecosee-glow-visibility')).toBe('hidden');
+    expect(card.style.getPropertyValue('--ecosee-surface')).toBe('transparent');
+
+    card.setConfig({ type: 'custom:ecosee-card', entity: 'climate.t' });
+    await card.updateComplete;
+    expect(card.style.getPropertyValue('--ecosee-glow-visibility')).toBe('');
+    expect(card.style.getPropertyValue('--ecosee-surface')).toBe('');
+  });
+
+  it('replaces the Home Screen while an Overlay is open, and restores it on dismiss', async () => {
+    const { hass } = fakeHass({ entities: [climateEntity('heat', { temperature: 70 })] });
+    const card = await mountCard(hass);
+    expect(card.shadowRoot!.querySelector('ecosee-home-screen')).not.toBeNull();
+
+    fireAction(card, 'temperature');
+    await card.updateComplete;
+    expect(card.shadowRoot!.querySelector('ecosee-overlay')).not.toBeNull();
+    expect(card.shadowRoot!.querySelector('ecosee-home-screen')).toBeNull();
+
+    fireDismiss(card);
+    await card.updateComplete;
+    expect(card.shadowRoot!.querySelector('ecosee-home-screen')).not.toBeNull();
+  });
+});
