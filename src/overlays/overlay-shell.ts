@@ -56,7 +56,7 @@ export class EcoseeOverlay extends LitElement {
     /* The same fixed layout canvas as <ecosee-home-screen>'s .screen, so the
        overlay lands squarely on top of it; the whole Card (Home Screen + Overlay)
        is scaled as one unit by <ecosee-card> (issue #35 / #36). The shell's own
-       chrome (the ✕) is sized in the fixed unit calc(N * --ecosee-u), not cqw —
+       chrome (the ✕) is sized in the fixed unit calc(N * --ecosee-u), not cqmin —
        the shell is not a query container, and slotted overlay bodies each carry
        their own (that context can't cross the shadow boundary anyway). The opaque
        near-black canvas and the outer silhouette come from the shared .shape SVG
@@ -66,8 +66,8 @@ export class EcoseeOverlay extends LitElement {
     .shell {
       position: relative;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       color: var(--ecosee-fg, #d4eff9);
       font-family: var(--ecosee-font, system-ui, sans-serif);
       overflow: hidden;

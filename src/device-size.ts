@@ -1,6 +1,7 @@
 /**
- * The Card renders a fixed square "device" whose every dimension scales in
- * container-query units (cqw). For those to resolve, the square needs a query
+ * The default card renders a fixed square "device" whose dimensions scale with
+ * its slot. Landscape mode fits a separate fixed-aspect canvas. For container
+ * query units (cqmin) to resolve, each canvas needs a query
  * container with a *definite* size. Deriving that size from `clamp(…, 100%, …)`
  * plus `aspect-ratio` (a percentage + an aspect-derived block size) is exactly
  * what Gecko resolves late/collapsed, so text starts tiny and the layout
@@ -26,4 +27,24 @@ export function resolveDeviceSize(slotWidth: number, minSize: number, maxSize: n
   // Clamp the slot width between the floor and ceiling. If the two bounds cross
   // (misconfigured min > max), the floor wins, matching CSS clamp().
   return Math.max(floor, Math.min(slotWidth, ceil));
+}
+
+/** Fit a fixed landscape canvas inside its slot without distorting its aspect ratio. */
+export function resolveLandscapeScale(
+  slotWidth: number,
+  slotHeight: number,
+  baseWidth: number,
+  baseHeight: number,
+  maxScale = 1,
+): number {
+  if (
+    ![slotWidth, slotHeight, baseWidth, baseHeight].every(Number.isFinite) ||
+    slotWidth <= 0 ||
+    slotHeight <= 0 ||
+    baseWidth <= 0 ||
+    baseHeight <= 0
+  )
+    return 0;
+  const ceiling = Number.isFinite(maxScale) && maxScale > 0 ? maxScale : 1;
+  return Math.min(slotWidth / baseWidth, slotHeight / baseHeight, ceiling);
 }

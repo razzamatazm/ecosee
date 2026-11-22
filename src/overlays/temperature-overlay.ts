@@ -40,8 +40,10 @@ const RECONCILE_MS = 4000;
 /** True when two models carry the same heat/cool setpoint values — the signal that
  *  the device has echoed a pending write and the optimistic hold can release. */
 function sameSetpoints(a: TempAdjustModel, b: TempAdjustModel): boolean {
-  return (a.heat?.value ?? null) === (b.heat?.value ?? null) &&
-    (a.cool?.value ?? null) === (b.cool?.value ?? null);
+  return (
+    (a.heat?.value ?? null) === (b.heat?.value ?? null) &&
+    (a.cool?.value ?? null) === (b.cool?.value ?? null)
+  );
 }
 
 /**
@@ -107,16 +109,16 @@ export class EcoseeTemperatureOverlay extends LitElement {
     /* Three columns: setpoint chips (left) | vertical scrubber (center) | ±
        nudge buttons (right). Chips and buttons are centered on the row so they
        sit level with the selected-value bubble at the scrubber's midpoint. An
-       inline-size container so the children resolve cqw off this definite width;
-       the root's OWN padding is in the fixed unit (calc · --ecosee-u), not cqw,
-       because a container-type element resolves its own cqw against the viewport —
+       inline-size container so the children resolve cqmin off this definite width;
+       the root's OWN padding is in the fixed unit (calc · --ecosee-u), not cqmin,
+       because a container-type element resolves its own cqmin against the viewport —
        which ballooned the padding and collapsed the content on wide windows (the
        actual issue #35 bug, in every browser, not a Gecko-only rescale). */
     .adjust {
-      container-type: inline-size;
+      container-type: size;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       padding: calc(8 * var(--ecosee-u, 4.6px)) calc(7 * var(--ecosee-u, 4.6px));
       display: grid;
       grid-template-columns: max-content 1fr max-content;
@@ -130,11 +132,11 @@ export class EcoseeTemperatureOverlay extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 14cqw;
+      gap: 14cqmin;
     }
     .nudge button {
-      width: 12cqw;
-      height: 12cqw;
+      width: 12cqmin;
+      height: 12cqmin;
     }
     .adjust.cool .nudge button {
       color: var(--ecosee-cool, #49b6ea);
@@ -152,21 +154,21 @@ export class EcoseeTemperatureOverlay extends LitElement {
       display: grid;
       grid-template-rows: 1fr auto 1fr;
       justify-items: center;
-      gap: 3cqw;
+      gap: 3cqmin;
       /* Drag-to-scrub surface: swipe vertically to change the value. */
       touch-action: none;
       cursor: ns-resize;
     }
     .scrubber:focus-visible {
-      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      outline-offset: 1.5cqw;
-      border-radius: 8cqw;
+      outline: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      outline-offset: 1.5cqmin;
+      border-radius: 8cqmin;
     }
     .stack {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4cqw;
+      gap: 4cqmin;
     }
     .stack.above {
       align-self: end;
@@ -175,23 +177,23 @@ export class EcoseeTemperatureOverlay extends LitElement {
       align-self: start;
     }
     .neighbor {
-      font-size: 11cqw;
+      font-size: 11cqmin;
       font-weight: 300;
       color: var(--ecosee-muted, #6f96a3);
       opacity: 0.85;
     }
     .neighbor.far {
-      font-size: 9cqw;
+      font-size: 9cqmin;
       opacity: 0.5;
     }
     .bubble {
-      width: 36cqw;
-      height: 36cqw;
+      width: 36cqmin;
+      height: 36cqmin;
       border-radius: 28%;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      font-size: 22cqw;
+      font-size: 22cqmin;
       font-weight: 200;
       /* Thin light numeral, as on the device (not dark) — reads on both gradients. */
       color: var(--ecosee-fg, #d4eff9);
@@ -209,7 +211,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
       grid-column: 1;
       display: flex;
       flex-direction: column;
-      gap: 5cqw;
+      gap: 5cqmin;
     }
     .chip {
       display: inline-flex;
@@ -220,20 +222,20 @@ export class EcoseeTemperatureOverlay extends LitElement {
          sits where the font's baseline puts it, and a broken-metric webfont
          can baseline at the middle of the line box (issue #85), floating the
          ink ~0.2em above the box — a hair's gap lets it crash into the glyph.
-         1.2cqw (~0.17em of the 7cqw numeral) absorbs that drift while the
-         glyph + gap + numeral column still fits the 15.6cqw content box. */
-      gap: 1.2cqw;
-      width: 17cqw;
-      height: 17cqw;
+         1.2cqmin (~0.17em of the 7cqmin numeral) absorbs that drift while the
+         glyph + gap + numeral column still fits the 15.6cqmin content box. */
+      gap: 1.2cqmin;
+      width: 17cqmin;
+      height: 17cqmin;
       border-radius: 50%;
-      font-size: 7cqw;
+      font-size: 7cqmin;
       font-weight: 500;
       line-height: 1;
-      border: 0.7cqw solid transparent;
+      border: 0.7cqmin solid transparent;
     }
     .chip .glyph {
-      width: 7cqw;
-      height: 7cqw;
+      width: 7cqmin;
+      height: 7cqmin;
       /* Keep the glyph its full size in the flex column — never let it shrink out
          of its box under the numeral (the other half of the cramped Firefox chip,
          issue #74). */
@@ -243,7 +245,7 @@ export class EcoseeTemperatureOverlay extends LitElement {
        strut (phantom descender leading) is reserved by Firefox but swallowed by
        Blink, so the glyph rendered taller than its box in Firefox/Zen and
        overlapped the setpoint number. Block layout removes the strut in every
-       engine while the SVG still fills its 7cqw box (width/height 100%). See
+       engine while the SVG still fills its 7cqmin box (width/height 100%). See
        docs/adr/0005-cross-browser-typography.md. */
     .glyph svg {
       display: block;

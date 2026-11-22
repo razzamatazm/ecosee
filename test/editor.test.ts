@@ -29,6 +29,7 @@ describe('editorSchema — coverage', () => {
       'inactivity_timeout',
       'standby_screen',
       'compact',
+      'landscape',
       'hide_name',
       'hide_glow',
       'background_color',

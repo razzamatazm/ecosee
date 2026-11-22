@@ -179,6 +179,13 @@ export function editorSchema(): EditorField[] {
       selector: { boolean: {} },
     },
     {
+      name: 'landscape',
+      label: 'Landscape layout',
+      helper:
+        'Optional. Reflows the card and its control screens into a landscape canvas; off by default.',
+      selector: { boolean: {} },
+    },
+    {
       name: 'hide_name',
       label: 'Hide name',
       helper: 'Optional. Hides the thermostat name on the Home Screen and control screens.',

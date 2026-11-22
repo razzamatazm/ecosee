@@ -59,7 +59,7 @@ describe('cross-browser typography contract (issue #74)', () => {
   describe('Home Screen large current temperature (.temp)', () => {
     // The base `button` rule makes buttons inline-flex; the `.temp` number MUST
     // override that to block-level text layout, or Firefox mis-clips the gradient.
-    const tempBlock = ruleBlockContaining(HOME_CSS, 'font-size: 42cqw');
+    const tempBlock = ruleBlockContaining(HOME_CSS, 'font-size: 42cqmin');
 
     it('lays the number out as inline-block, not a flex container', () => {
       expect(tempBlock).not.toBeNull();
@@ -110,10 +110,7 @@ describe('cross-browser typography contract (issue #74)', () => {
     it('declares identical stops in tokens and in the .temp fallback', () => {
       const grad = (css: string, pattern: RegExp): string | undefined =>
         pattern.exec(css)?.[1]?.replace(/\s+/g, ' ');
-      const tokenGrad = grad(
-        cssTextOf(tokens),
-        /--ecosee-temp-grad:\s*(linear-gradient\([^)]+\))/,
-      );
+      const tokenGrad = grad(cssTextOf(tokens), /--ecosee-temp-grad:\s*(linear-gradient\([^)]+\))/);
       const fallbackGrad = grad(
         HOME_CSS,
         /var\(\s*--ecosee-temp-grad,\s*(linear-gradient\([^)]+\))/,

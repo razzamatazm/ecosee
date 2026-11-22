@@ -58,15 +58,15 @@ export class EcoseeWeatherOverlay extends LitElement {
       justify-content: center;
     }
 
-    /* Inline-size container so everything scales with cqw off the definite width,
-       with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). Title up top (clearing the shell's ✕),
+    /* Inline-size container so everything scales with cqmin off the definite width,
+       with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqmin against the viewport (issue #35). Title up top (clearing the shell's ✕),
        the active page filling the middle, the pager + provider at the foot —
        matching the device's vertical rhythm. */
     .weather {
-      container-type: inline-size;
+      container-type: size;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -77,14 +77,14 @@ export class EcoseeWeatherOverlay extends LitElement {
 
     .title {
       margin: 0;
-      font-size: 8cqw;
+      font-size: 8cqmin;
       font-weight: 600;
       letter-spacing: 0.01em;
       color: var(--ecosee-accent, #62cfe9);
     }
     .subtitle {
-      margin-top: 1.4cqw;
-      font-size: 4.6cqw;
+      margin-top: 1.4cqmin;
+      font-size: 4.6cqmin;
       font-weight: 400;
       color: var(--ecosee-muted, #6f96a3);
     }
@@ -97,7 +97,7 @@ export class EcoseeWeatherOverlay extends LitElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 4cqw;
+      gap: 4cqmin;
     }
 
     /* page 1 — current conditions */
@@ -105,14 +105,14 @@ export class EcoseeWeatherOverlay extends LitElement {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 2cqw;
+      gap: 2cqmin;
     }
     .current-main .glyph {
-      width: 22cqw;
-      height: 22cqw;
+      width: 22cqmin;
+      height: 22cqmin;
     }
     .current-temp {
-      font-size: 30cqw;
+      font-size: 30cqmin;
       font-weight: 200;
       line-height: 0.85;
       letter-spacing: -0.03em;
@@ -120,51 +120,51 @@ export class EcoseeWeatherOverlay extends LitElement {
     }
     .stats {
       display: inline-flex;
-      gap: 8cqw;
-      font-size: 6cqw;
+      gap: 8cqmin;
+      font-size: 6cqmin;
       font-weight: 400;
       color: var(--ecosee-accent, #62cfe9);
     }
     .stat {
       display: inline-flex;
       align-items: center;
-      gap: 1.6cqw;
+      gap: 1.6cqmin;
     }
     .stat .glyph {
-      width: 5.4cqw;
-      height: 5.4cqw;
+      width: 5.4cqmin;
+      height: 5.4cqmin;
       /* The umbrella / droplet ink sits low in the shared icon viewBox, so the
          center-aligned row reads as the glyph drooping below the text; a hair
          of upward nudge centers the ink optically on the numerals. Tuned by
          eye; ≈1.4px at the 460px base size. */
-      transform: translateY(-0.35cqw);
+      transform: translateY(-0.35cqmin);
     }
     .periods {
       display: inline-flex;
-      gap: 8cqw;
+      gap: 8cqmin;
     }
     .period {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1cqw;
+      gap: 1cqmin;
     }
     .period-top {
       display: inline-flex;
       align-items: center;
-      gap: 1.4cqw;
+      gap: 1.4cqmin;
     }
     .period .glyph {
-      width: 7.5cqw;
-      height: 7.5cqw;
+      width: 7.5cqmin;
+      height: 7.5cqmin;
     }
     .period-temp {
-      font-size: 7cqw;
+      font-size: 7cqmin;
       font-weight: 300;
       color: var(--ecosee-accent, #62cfe9);
     }
     .period-label {
-      font-size: 4.8cqw;
+      font-size: 4.8cqmin;
       color: var(--ecosee-accent, #62cfe9);
     }
 
@@ -174,25 +174,25 @@ export class EcoseeWeatherOverlay extends LitElement {
       display: grid;
       grid-auto-flow: column;
       grid-auto-columns: 1fr;
-      gap: 2cqw;
+      gap: 2cqmin;
     }
     .day {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1.6cqw;
+      gap: 1.6cqmin;
     }
     .day-name {
-      font-size: 6cqw;
+      font-size: 6cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
     }
     .day .glyph {
-      width: 11cqw;
-      height: 11cqw;
+      width: 11cqmin;
+      height: 11cqmin;
     }
     .day-high {
-      font-size: 13cqw;
+      font-size: 13cqmin;
       font-weight: 300;
       line-height: 1;
       color: var(--ecosee-accent, #62cfe9);
@@ -201,7 +201,7 @@ export class EcoseeWeatherOverlay extends LitElement {
        a glance — the "Lo" label plus the demoted color keep it from being mistaken
        for a section heading the way the old "Night NN" did (issue #33). */
     .day-low {
-      font-size: 4.6cqw;
+      font-size: 4.6cqmin;
       font-weight: 400;
       color: var(--ecosee-muted, #6f96a3);
     }
@@ -210,18 +210,18 @@ export class EcoseeWeatherOverlay extends LitElement {
     .day-pop {
       display: inline-flex;
       align-items: center;
-      gap: 1.2cqw;
+      gap: 1.2cqmin;
       white-space: nowrap;
-      font-size: 4.6cqw;
+      font-size: 4.6cqmin;
       font-weight: 400;
       color: var(--ecosee-accent, #62cfe9);
     }
     .day-pop .glyph {
-      width: 4.4cqw;
-      height: 4.4cqw;
+      width: 4.4cqmin;
+      height: 4.4cqmin;
       /* Same optical nudge as .stat .glyph: lift the low-riding umbrella ink
          onto the % numerals' center. Tuned by eye; ≈1px at the base size. */
-      transform: translateY(-0.25cqw);
+      transform: translateY(-0.25cqmin);
     }
 
     /* footer — the pager (the provider credit was dropped deliberately: it cost
@@ -230,13 +230,13 @@ export class EcoseeWeatherOverlay extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1.8cqw;
+      gap: 1.8cqmin;
     }
     .pager {
       display: inline-flex;
       align-items: center;
-      gap: 4cqw;
-      font-size: 5.4cqw;
+      gap: 4cqmin;
+      font-size: 5.4cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
     }
@@ -244,18 +244,18 @@ export class EcoseeWeatherOverlay extends LitElement {
        pointer-transparent so an outside tap falls through to the shell's backdrop. */
     .pager button {
       pointer-events: auto;
-      width: 7cqw;
-      height: 7cqw;
+      width: 7cqmin;
+      height: 7cqmin;
       color: var(--ecosee-accent, #62cfe9);
     }
     .pager button:focus-visible {
-      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      outline-offset: 0.5cqw;
-      border-radius: 2cqw;
+      outline: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      outline-offset: 0.5cqmin;
+      border-radius: 2cqmin;
     }
     .pager .chev {
-      width: 5cqw;
-      height: 5cqw;
+      width: 5cqmin;
+      height: 5cqmin;
     }
     .pager .chev.prev {
       transform: scaleX(-1);

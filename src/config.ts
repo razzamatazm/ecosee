@@ -100,6 +100,8 @@ export interface EcoseeCardConfig {
    *  in a narrow column. Absent/`false` means the Card renders at its full size as
    *  today (ADR-0001 graceful degradation). See `COMPACT_MAX_SIZE` in `ecosee-card.ts`. */
   compact?: boolean;
+  /** Use a responsive 900:520 landscape canvas for wide display slots. */
+  landscape?: boolean;
   /** Hide the thermostat name on the Home Screen and atop every Overlay (#120).
    *  Absent/`false` means the name shows; the "unavailable" message keeps it either
    *  way, since that is the only thing telling you which thermostat dropped out. */
@@ -175,6 +177,7 @@ export function parseConfig(raw: unknown): EcoseeCardConfig {
     inactivity_timeout: parseInactivityTimeout(raw.inactivity_timeout),
     standby_screen: parseOptionalBoolean(raw.standby_screen, 'standby_screen'),
     compact: parseOptionalBoolean(raw.compact, 'compact'),
+    landscape: parseOptionalBoolean(raw.landscape, 'landscape'),
     hide_name: parseOptionalBoolean(raw.hide_name, 'hide_name'),
     hide_glow: parseOptionalBoolean(raw.hide_glow, 'hide_glow'),
     background_color: optionalString('background_color'),

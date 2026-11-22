@@ -27,7 +27,7 @@ import type { ServiceCall } from './climate/service-call';
 import { tokens } from './styles/tokens';
 import { createCanvasMeasure, filterDegenerateFamilies } from './styles/font-probe';
 import { ensureBundledFont } from './styles/bundled-font';
-import { resolveDeviceSize } from './device-size';
+import { resolveDeviceSize, resolveLandscapeScale } from './device-size';
 import type { HomeAssistant, LovelaceCard } from './types/hass';
 import type { HomeActionDetail } from './screens/home-screen';
 import { toStandbyView } from './screens/standby-view';
@@ -51,13 +51,7 @@ import { version } from '../package.json';
  *  are the Main Menu sections, reached via the gear and switched between with the
  *  bottom tab bar. */
 type OverlayKind =
-  | 'temperature'
-  | 'system-mode'
-  | 'comfort-setting'
-  | 'system'
-  | 'fan'
-  | 'sensors'
-  | 'weather';
+  'temperature' | 'system-mode' | 'comfort-setting' | 'system' | 'fan' | 'sensors' | 'weather';
 
 /**
  * One Overlay's wiring, gathered in a single place: whether it has anything to show
@@ -83,7 +77,7 @@ interface OverlayDescriptor {
  * 320 is chosen to sit clear of the 220px legible floor (`--ecosee-min-size`), so
  * the floor still does its job in a genuinely narrow column and a compact Card
  * never collides with it. At this size the dominant current temperature still
- * renders around 134px (42cqw of 320), so the Card's primary reading stays
+ * renders around 134px (42cqmin of 320), so the Card's primary reading stays
  * dominant.
  */
 const COMPACT_MAX_SIZE = 320;
@@ -143,7 +137,7 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
 
   /** Watches the dashboard slot so the fixed-canvas device can be scaled to fit
    *  (issue #35 / #36). The Home Screen and every Overlay are laid out once at a
-   *  fixed base size and sized in cqw; deriving the container size from
+   *  fixed base size and sized in cqmin; deriving the container size from
    *  `clamp(…, 100%, …)` + `aspect-ratio` instead is what Gecko resolves
    *  late/collapsed, squashing the layout in Firefox/Zen. Measuring the width here
    *  and publishing `--ecosee-scale` (applied as one transform) sidesteps that and
@@ -257,6 +251,12 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
         display: block;
         flex-shrink: 0;
       }
+      :host([landscape]) {
+        width: 100%;
+        height: 100%;
+        min-width: 0;
+        min-height: 0;
+      }
       /* Fixed-canvas device (issue #35 / #36). .root holds the whole Card laid out
          once at --ecosee-base-size; the ResizeObserver measures the slot and sets
          --ecosee-scale, and we scale .root as a single unit. transform is a purely
@@ -265,18 +265,35 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
          the Card's layout footprint to the on-screen (scaled) size, since a
          transform alone leaves the un-scaled box reserving space. */
       .sizer {
-        width: var(--ecosee-rendered-size, var(--ecosee-base-size, 460px));
-        height: var(--ecosee-rendered-size, var(--ecosee-base-size, 460px));
+        width: var(
+          --ecosee-rendered-width,
+          var(--ecosee-rendered-size, var(--ecosee-base-width, var(--ecosee-base-size, 460px)))
+        );
+        height: var(
+          --ecosee-rendered-height,
+          var(--ecosee-rendered-size, var(--ecosee-base-height, var(--ecosee-base-size, 460px)))
+        );
         max-width: 100%;
         margin: 0 auto;
         overflow: hidden;
       }
+      :host([landscape]) .sizer {
+        display: flex;
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        align-items: center;
+        justify-content: center;
+      }
       .root {
         position: relative;
-        width: var(--ecosee-base-size, 460px);
-        height: var(--ecosee-base-size, 460px);
+        width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+        height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
         transform: scale(var(--ecosee-scale, 1));
         transform-origin: top left;
+      }
+      :host([landscape]) .root {
+        transform-origin: center;
       }
     `,
   ];
@@ -375,8 +392,8 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     // the GUI editor does not change the slot - without this the new size would not
     // appear until the next resize.
     if (changed.has('_config')) {
-      this._syncDeviceScale();
       this._syncAppearance();
+      this._syncDeviceScale();
     }
   }
 
@@ -384,8 +401,13 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  host, so every surface (each in its own shadow root) picks them up from the
    *  shared shape styles. Unset keys write nothing, leaving the Skin defaults. */
   private _syncAppearance(): void {
+    this.toggleAttribute('landscape', !!this._config?.landscape);
     this._setOrClear('--ecosee-glow-visibility', this._config?.hide_glow ? 'hidden' : '');
     this._setOrClear('--ecosee-surface', this._config?.background_color ?? '');
+    this._setOrClear('--ecosee-base-size', this._config?.landscape ? '520px' : '');
+    this._setOrClear('--ecosee-base-width', this._config?.landscape ? '900px' : '');
+    this._setOrClear('--ecosee-base-height', this._config?.landscape ? '520px' : '');
+    this._setOrClear('--ecosee-u', this._config?.landscape ? '5.2px' : '');
   }
 
   /** Measure the dashboard slot and set the transform scale that fits the
@@ -397,8 +419,11 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
    *  base-size footprint — in place. */
   private _syncDeviceScale(): void {
     const width = this.clientWidth;
+    const height = this.clientHeight;
     const styles = getComputedStyle(this);
     const base = parseFloat(styles.getPropertyValue('--ecosee-base-size')) || 460;
+    const baseWidth = parseFloat(styles.getPropertyValue('--ecosee-base-width')) || base;
+    const baseHeight = parseFloat(styles.getPropertyValue('--ecosee-base-height')) || base;
     const min = parseFloat(styles.getPropertyValue('--ecosee-min-size')) || 220;
     const tokenMax = parseFloat(styles.getPropertyValue('--ecosee-max-size')) || 460;
     // `compact` lowers the ceiling only, and composes with the token rather than
@@ -407,20 +432,43 @@ export class EcoseeCard extends LitElement implements LovelaceCard {
     // reading of a key named "compact". Writing nothing when the key is off leaves
     // the token default standing, the same principle as `_setOrClear` below.
     const max = this._config?.compact ? Math.min(tokenMax, COMPACT_MAX_SIZE) : tokenMax;
-    const rendered = resolveDeviceSize(width, min, max);
-    const scale = rendered > 0 && base > 0 ? rendered / base : 0;
+    const landscape = !!this._config?.landscape;
+    const scale = landscape
+      ? resolveLandscapeScale(
+          width,
+          height,
+          baseWidth,
+          baseHeight,
+          this._config?.compact ? COMPACT_MAX_SIZE / baseHeight : 2,
+        )
+      : resolveDeviceSize(width, min, max) / base;
+    const renderedWidth = scale > 0 ? baseWidth * scale : 0;
+    const renderedHeight = scale > 0 ? baseHeight * scale : 0;
+    const rendered = landscape ? renderedWidth : scale > 0 ? base * scale : 0;
     // The .sizer collapses to the rendered size but the host stays full-slot
     // width (block), so publishing these can't feed back into the observer.
     const nextScale = scale > 0 ? String(scale) : '';
     const nextSize = rendered > 0 ? `${rendered}px` : '';
     if (
       this.style.getPropertyValue('--ecosee-scale') === nextScale &&
-      this.style.getPropertyValue('--ecosee-rendered-size') === nextSize
+      this.style.getPropertyValue('--ecosee-rendered-size') === nextSize &&
+      this.style.getPropertyValue('--ecosee-rendered-width') ===
+        (landscape ? `${renderedWidth}px` : '') &&
+      this.style.getPropertyValue('--ecosee-rendered-height') ===
+        (landscape ? `${renderedHeight}px` : '')
     ) {
       return;
     }
     this._setOrClear('--ecosee-scale', nextScale);
     this._setOrClear('--ecosee-rendered-size', nextSize);
+    this._setOrClear(
+      '--ecosee-rendered-width',
+      landscape && renderedWidth > 0 ? `${renderedWidth}px` : '',
+    );
+    this._setOrClear(
+      '--ecosee-rendered-height',
+      landscape && renderedHeight > 0 ? `${renderedHeight}px` : '',
+    );
   }
 
   private _setOrClear(prop: string, value: string): void {

@@ -42,12 +42,12 @@ export class EcoseeSystemOverlay extends LitElement {
 
     /* Title near the top, the selectors beneath, then the equipment line
        (visual-spec.md / menu-system.jpeg). Inline-size container so type scales
-       with cqw off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
+       with cqmin off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqmin against the viewport (issue #35). */
     .system {
-      container-type: inline-size;
+      container-type: size;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -66,18 +66,18 @@ export class EcoseeSystemOverlay extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1.5cqw;
+      gap: 1.5cqmin;
     }
     .title {
       margin: 0;
-      font-size: 9cqw;
+      font-size: 9cqmin;
       font-weight: 600;
       letter-spacing: 0.02em;
       color: var(--ecosee-accent, #62cfe9);
     }
     .subtitle {
       margin: 0;
-      font-size: 6.5cqw;
+      font-size: 6.5cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
     }
@@ -92,16 +92,16 @@ export class EcoseeSystemOverlay extends LitElement {
       flex-wrap: wrap;
       align-items: flex-start;
       justify-content: center;
-      gap: 4cqw 6cqw;
+      gap: 4cqmin 6cqmin;
     }
     .selector {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2.5cqw;
+      gap: 2.5cqmin;
     }
     .selector-label {
-      font-size: 5cqw;
+      font-size: 5cqmin;
       font-weight: 600;
       white-space: nowrap;
       color: var(--ecosee-accent, #62cfe9);
@@ -116,33 +116,33 @@ export class EcoseeSystemOverlay extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 2.5cqw;
-      min-width: 26cqw;
-      max-width: 80cqw;
-      padding: 3cqw 4cqw;
+      gap: 2.5cqmin;
+      min-width: 26cqmin;
+      max-width: 80cqmin;
+      padding: 3cqmin 4cqmin;
       background: none;
       font: inherit;
-      font-size: 6.5cqw;
+      font-size: 6.5cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
-      border: 0.6cqw solid var(--ecosee-accent, #62cfe9);
-      border-radius: 4cqw;
+      border: 0.6cqmin solid var(--ecosee-accent, #62cfe9);
+      border-radius: 4cqmin;
       cursor: pointer;
       pointer-events: auto;
     }
     .field:focus-visible {
-      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      outline-offset: 1cqw;
+      outline: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      outline-offset: 1cqmin;
     }
     .caret {
-      width: 5cqw;
-      height: 5cqw;
+      width: 5cqmin;
+      height: 5cqmin;
       flex: none;
     }
 
     .equipment {
       margin: 0;
-      font-size: 7cqw;
+      font-size: 7cqmin;
       font-weight: 600;
       color: var(--ecosee-accent, #62cfe9);
     }

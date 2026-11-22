@@ -229,6 +229,20 @@ describe('parseConfig — compact', () => {
   });
 });
 
+describe('parseConfig — landscape', () => {
+  it('leaves landscape off by default and accepts an explicit boolean opt-in', () => {
+    expect(parseConfig(base).landscape).toBeUndefined();
+    expect(parseConfig({ ...base, landscape: true }).landscape).toBe(true);
+    expect(parseConfig({ ...base, landscape: false }).landscape).toBe(false);
+  });
+
+  it('rejects non-boolean values', () => {
+    expect(() => parseConfig({ ...base, landscape: 'yes' })).toThrow(
+      /`landscape` must be a boolean/,
+    );
+  });
+});
+
 describe('parseConfig — show_fan', () => {
   it('leaves show_fan undefined when the key is absent (auto default)', () => {
     expect(parseConfig(base).show_fan).toBeUndefined();

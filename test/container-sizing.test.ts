@@ -22,11 +22,11 @@ import { EcoseeWeatherOverlay } from '../src/overlays/weather-overlay';
 // (--ecosee-base-size) scaled as one unit by <ecosee-card>, so container queries
 // buy nothing: every self-sizing length is the fixed unit calc(N * --ecosee-u)
 // (base-size / 100), which has no viewport coupling. Where container queries do
-// survive (overlay bodies, so children still scale off their definite content
-// box), the container's OWN properties must stay on the fixed unit. These guard
-// that: (a) no block-axis / alias container unit may appear anywhere; (b) the
-// fixed-canvas surfaces carry no container query at all; (c) no element sizes
-// *itself* with cqw in the same rule that declares container-type.
+// survive (screen and overlay bodies, so children scale off their definite
+// short-side box), the container's OWN properties must stay on the fixed unit.
+// These guard that: (a) only cqmin is used (never cqb/cqh/cqi/cqmax); (b) the
+// fixed shell carries no container query; (c) screen/overlay container properties
+// use the fixed unit so their own query lengths never couple to the viewport.
 
 type StyleHost = { styles: CSSResult | CSSResultArray };
 
@@ -78,12 +78,8 @@ describe('sizing is viewport-robust (issue #35)', () => {
   for (const [tag, ctor] of ALL_SCREENS) {
     const css = cssTextOf(ctor.styles);
 
-    it(`${tag} uses no block-axis / alias container unit (cqh / cqb / cqi / cqmin / cqmax)`, () => {
-      // Only cqw (inline width) is ever valid here; the others resolve against a
-      // size container's block axis or alias the inline axis, and would silently
-      // fall back to the viewport. (No leading \b — the unit is glued to its
-      // number, e.g. "60cqh", so there is no word boundary before "cq".)
-      expect(css).not.toMatch(/cq(?:h|b|i|min|max)\b/);
+    it(`${tag} uses only the short-side container unit, not cqb/cqh/cqi/cqmax`, () => {
+      expect(css).not.toMatch(/cq(?:h|b|i|max)\b/);
     });
   }
 
@@ -104,17 +100,15 @@ describe('sizing is viewport-robust (issue #35)', () => {
     const css = cssTextOf(ctor.styles);
     const rootBlock = ruleBlockDeclaring(css, 'container-type');
 
-    it(`${tag} is an inline-size container that never sizes ITSELF with cqw`, () => {
-      // These bodies keep container queries so children scale off their definite
-      // content box — but the container's own properties (padding / gap) must be
-      // the fixed unit, or they resolve against the viewport (the actual bug).
-      expect(css).toMatch(/container-type:\s*inline-size/);
-      expect(css).not.toMatch(/container-type:\s*size\b/);
+    it(`${tag} is a size container that never sizes ITSELF with cqmin`, () => {
+      // Descendants use cqmin so the landscape layout scales to the shorter side.
+      // The container's own properties must stay on --ecosee-u: its query units
+      // resolve against the viewport, not its own size (issue #35).
+      expect(css).toMatch(/container-type:\s*size/);
       expect(rootBlock).not.toBeNull();
-      expect(rootBlock).not.toMatch(/cqw/);
+      expect(rootBlock).not.toMatch(/cqmin/);
       expect(rootBlock).toMatch(/var\(\s*--ecosee-u/);
-      // Children still resolve cqw off the now-definite box.
-      expect(css).toMatch(/cqw/);
+      expect(css).toMatch(/cqmin/);
     });
   }
 });

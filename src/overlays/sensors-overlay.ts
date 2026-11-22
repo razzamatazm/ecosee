@@ -33,13 +33,13 @@ export class EcoseeSensorsOverlay extends LitElement {
     }
 
     /* Breadcrumb header near the top, the card stack beneath (sensors.jpeg), not a
-       vertically-centered cluster. Inline-size container so cards scale with cqw
-       off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
+       vertically-centered cluster. Inline-size container so cards scale with cqmin
+       off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqmin against the viewport (issue #35). */
     .sensors {
-      container-type: inline-size;
+      container-type: size;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -56,18 +56,18 @@ export class EcoseeSensorsOverlay extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 1cqw;
+      gap: 1cqmin;
     }
     .title {
       margin: 0;
-      font-size: 9cqw;
+      font-size: 9cqmin;
       font-weight: 600;
       letter-spacing: 0.02em;
       color: var(--ecosee-accent, #62cfe9);
     }
     .subtitle {
       margin: 0;
-      font-size: 6cqw;
+      font-size: 6cqmin;
       font-weight: 600;
       color: var(--ecosee-accent, #62cfe9);
     }
@@ -76,13 +76,13 @@ export class EcoseeSensorsOverlay extends LitElement {
        content transparent so empty areas dismiss) so a long list can scroll;
        empty margins still fall through to the backdrop. */
     .list {
-      width: 84cqw;
+      width: 84cqmin;
       /* Caps how many cards are visible before the list scrolls (the last one peeks,
          as on the device); the root's bottom inset keeps it clear of the tab bar. */
-      max-height: 54cqw;
+      max-height: 54cqmin;
       display: flex;
       flex-direction: column;
-      gap: 3cqw;
+      gap: 3cqmin;
       overflow-y: auto;
       pointer-events: auto;
       /* Hide the scrollbar — the device has none (it's a touchscreen). */
@@ -98,15 +98,15 @@ export class EcoseeSensorsOverlay extends LitElement {
       flex: none;
       display: flex;
       align-items: center;
-      gap: 3.5cqw;
-      padding: 3.4cqw 4cqw;
-      border: 0.6cqw solid var(--ecosee-accent, #62cfe9);
-      border-radius: 5cqw;
+      gap: 3.5cqmin;
+      padding: 3.4cqmin 4cqmin;
+      border: 0.6cqmin solid var(--ecosee-accent, #62cfe9);
+      border-radius: 5cqmin;
     }
 
     .card-icon {
-      width: 8cqw;
-      height: 8cqw;
+      width: 8cqmin;
+      height: 8cqmin;
       flex: none;
       color: var(--ecosee-accent, #62cfe9);
     }
@@ -116,10 +116,10 @@ export class EcoseeSensorsOverlay extends LitElement {
       min-width: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.8cqw;
+      gap: 0.8cqmin;
     }
     .name {
-      font-size: 6cqw;
+      font-size: 6cqmin;
       font-weight: 600;
       color: var(--ecosee-accent, #62cfe9);
       white-space: nowrap;
@@ -129,8 +129,8 @@ export class EcoseeSensorsOverlay extends LitElement {
     .reading {
       display: flex;
       align-items: baseline;
-      gap: 2cqw;
-      font-size: 5cqw;
+      gap: 2cqmin;
+      font-size: 5cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
     }
@@ -142,11 +142,11 @@ export class EcoseeSensorsOverlay extends LitElement {
     /* The circled expand chevron (fidelity affordance; read-only). */
     .chevron {
       box-sizing: border-box;
-      width: 8cqw;
-      height: 8cqw;
+      width: 8cqmin;
+      height: 8cqmin;
       flex: none;
-      padding: 1.7cqw;
-      border: 0.5cqw solid var(--ecosee-accent, #62cfe9);
+      padding: 1.7cqmin;
+      border: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
       border-radius: 50%;
       color: var(--ecosee-accent, #62cfe9);
     }

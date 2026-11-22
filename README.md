@@ -168,6 +168,7 @@ air_quality_entity: sensor.air_quality_index # optional, adds the AQI gauge
 uv_index_entity: sensor.uv_index # optional, adds the UV gauge
 show_fan: auto # optional, auto | always | never — the Home Screen fan shortcut
 standby_screen: true # optional, dims to a clock when left idle
+landscape: true # optional, responsive landscape canvas; square stays the default
 sensors: # optional, the Sensors screen (see below)
   - sensor.kitchen_temperature
   - entity: sensor.hallway_temperature
@@ -190,6 +191,7 @@ sensors: # optional, the Sensors screen (see below)
 | `standby_screen`         | no       | Dim to a minimal clock display when left idle. Default off.                                                                                        |
 | `hide_name`              | no       | Hide the thermostat name on the Home Screen and control screens. Default off.                                                                      |
 | `compact`                | no       | Render the card smaller (up to 320px instead of 460px). Same layout, scaled down. Default off.                                                     |
+| `landscape`              | no       | Fit a responsive 900 × 520 landscape canvas to available width and height without distortion. Default off. Existing square layout is unchanged.     |
 | `hide_glow`              | no       | Hide the blue/amber edge glow shown while cooling or heating. Default off.                                                                         |
 | `background_color`       | no       | Card background: any CSS color (`#1a1a2e`), or `transparent` to show the dashboard behind it.                                                      |
 

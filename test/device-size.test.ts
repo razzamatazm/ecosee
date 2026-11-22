@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveDeviceSize } from '../src/device-size';
+import { resolveDeviceSize, resolveLandscapeScale } from '../src/device-size';
 
 // Issue #35: the square device needs an explicit pixel edge length so its
 // container queries resolve reliably in Gecko, instead of a percentage +
@@ -50,5 +50,17 @@ describe('resolveDeviceSize', () => {
 
   it('keeps the legible floor under the compact ceiling', () => {
     expect(resolveDeviceSize(160, 220, 320)).toBe(220);
+  });
+});
+
+describe('resolveLandscapeScale', () => {
+  it('fits both slot dimensions while preserving the canvas ratio', () => {
+    expect(resolveLandscapeScale(840, 560, 900, 520)).toBeCloseTo(840 / 900, 8);
+    expect(resolveLandscapeScale(962, 480, 900, 520)).toBeCloseTo(480 / 520, 8);
+  });
+
+  it('honors a compact ceiling and leaves CSS sizing alone when unmeasured', () => {
+    expect(resolveLandscapeScale(1200, 800, 900, 520, 320 / 520)).toBeCloseTo(320 / 520, 8);
+    expect(resolveLandscapeScale(0, 600, 900, 520)).toBe(0);
   });
 });

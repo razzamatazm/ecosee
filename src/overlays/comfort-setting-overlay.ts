@@ -60,12 +60,12 @@ export class EcoseeComfortSettingOverlay extends LitElement {
     }
 
     /* Center the list within the shell; inline-size container so rows scale with
-       cqw off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
+       cqmin off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqmin against the viewport (issue #35). */
     .picker {
-      container-type: inline-size;
+      container-type: size;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -76,15 +76,15 @@ export class EcoseeComfortSettingOverlay extends LitElement {
        fill to the rounded corners. The list opts back into pointer events (the
        shell makes slotted content transparent so empty areas dismiss). */
     .list {
-      width: 68cqw;
-      max-height: 80cqw;
+      width: 68cqmin;
+      max-height: 80cqmin;
       /* Vertical scroll only. A bare overflow-y:auto forces the visible x-axis to
          compute to auto too, so a long label produced a left-right scroll (kiosk
          pull-to-scrub territory). Pin x to hidden; long labels truncate (see the
          .label rule), matching the device's own ellipsis behavior. */
       overflow: hidden auto;
-      border: 0.6cqw solid var(--ecosee-accent, #62cfe9);
-      border-radius: 6cqw;
+      border: 0.6cqmin solid var(--ecosee-accent, #62cfe9);
+      border-radius: 6cqmin;
       pointer-events: auto;
     }
 
@@ -96,10 +96,10 @@ export class EcoseeComfortSettingOverlay extends LitElement {
       width: 100%;
       display: flex;
       align-items: center;
-      gap: 3.5cqw;
-      padding: 4.5cqw 4cqw;
+      gap: 3.5cqmin;
+      padding: 4.5cqmin 4cqmin;
       font: inherit;
-      font-size: 7.5cqw;
+      font-size: 7.5cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
       text-align: left;
@@ -107,19 +107,19 @@ export class EcoseeComfortSettingOverlay extends LitElement {
       /* Hairline divider between rows; the first row has the list's own border.
          Derived from the accent token (at low alpha) so the Skin stays themeable. */
       border: none;
-      border-top: 0.4cqw solid color-mix(in srgb, var(--ecosee-accent, #62cfe9) 30%, transparent);
+      border-top: 0.4cqmin solid color-mix(in srgb, var(--ecosee-accent, #62cfe9) 30%, transparent);
     }
     .option:first-child {
       border-top: none;
     }
     .option:focus-visible {
-      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      outline-offset: -1.5cqw;
+      outline: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      outline-offset: -1.5cqmin;
     }
 
     .glyph {
-      width: 7.5cqw;
-      height: 7.5cqw;
+      width: 7.5cqmin;
+      height: 7.5cqmin;
       flex: none;
     }
 

@@ -86,18 +86,18 @@ export class EcoseeStandbyScreen extends LitElement {
       /* Same fixed layout canvas as the Home Screen (issue #35 / #36): the device is
        laid out ONCE at --ecosee-base-size and <ecosee-card> scales the whole Card to
        fit its slot, so nothing reflows per-width. This is an inline-size query
-       container so the children scale in cqw; the box's own padding uses the fixed
-       --ecosee-u unit (never cqw — an element resolves its own cqw against the
+       container so the children scale in cqmin; the box's own padding uses the fixed
+       --ecosee-u unit (never cqmin — an element resolves its own cqmin against the
        viewport). The idle display is minimal white-on-black. The near-black canvas and
        the outer silhouette come from the shared .shape SVG (issue #76) — no
        background or border-radius here, so the superellipse (not a rounded rect) is the
        only shape, with overflow: hidden clipping the corners outside the curve. */
       .screen {
-        container-type: inline-size;
+        container-type: size;
         position: relative;
         box-sizing: border-box;
-        width: var(--ecosee-base-size, 460px);
-        height: var(--ecosee-base-size, 460px);
+        width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+        height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
         overflow: hidden;
         padding: calc(10 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px));
         display: flex;
@@ -160,19 +160,19 @@ export class EcoseeStandbyScreen extends LitElement {
       .outdoor {
         display: inline-flex;
         align-items: center;
-        gap: 2cqw;
-        font-size: 9cqw;
+        gap: 2cqmin;
+        font-size: 9cqmin;
         font-weight: 300;
         letter-spacing: 0.02em;
         font-variant-numeric: lining-nums proportional-nums;
       }
       .outdoor .glyph {
-        width: 9cqw;
-        height: 9cqw;
+        width: 9cqmin;
+        height: 9cqmin;
         /* The condition glyphs' ink sits low in the shared icon viewBox, so a
          center-aligned row reads as the glyph drooping below the numerals; a
          hair of upward nudge centers the ink optically on the temp. */
-        transform: translateY(-0.8cqw);
+        transform: translateY(-0.8cqmin);
       }
 
       /* The dominant current temperature, centered in the remaining space. Reuses the
@@ -183,7 +183,7 @@ export class EcoseeStandbyScreen extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 42cqw;
+        font-size: 42cqmin;
         font-weight: 200;
         line-height: 0.84;
         letter-spacing: -0.05em;
@@ -193,7 +193,7 @@ export class EcoseeStandbyScreen extends LitElement {
       /* The live wall clock, at the bottom. Tabular figures so the digits do not
        shuffle as the minute ticks over. */
       .clock {
-        font-size: 11cqw;
+        font-size: 11cqmin;
         font-weight: 300;
         letter-spacing: 0.04em;
         font-variant-numeric: tabular-nums;

@@ -60,20 +60,20 @@ export class EcoseeHomeScreen extends LitElement {
        <ecosee-card> scales the whole Card to fit its slot (issue #35 / #36), so the
        layout never reflows per-width and renders identically at every size and in
        every browser. This is an inline-size query container, so the children below
-       scale with cqw off this box's definite CONTENT width (its authored
+       scale with cqmin off this box's definite CONTENT width (its authored
        proportions). The container's OWN padding, though, is the fixed unit
-       calc(N * --ecosee-u) — NOT cqw: an element resolves its own container-query
-       units against the *viewport* (nothing above it is a container), so a cqw
+       calc(N * --ecosee-u) — NOT cqmin: an element resolves its own container-query
+       units against the *viewport* (nothing above it is a container), so a cqmin
        padding here ballooned on wide windows and collapsed the content (the real
        issue #35 bug, in every browser). overflow: hidden keeps the box square; the
        squircle surface is drawn by the inline SVG (.shape) below — no background or
        border-radius here, so the superellipse, its glow and any clip trace one curve. */
       .screen {
-        container-type: inline-size;
+        container-type: size;
         position: relative;
         box-sizing: border-box;
-        width: var(--ecosee-base-size, 460px);
-        height: var(--ecosee-base-size, 460px);
+        width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+        height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
         overflow: hidden;
         padding: calc(7 * var(--ecosee-u, 4.6px)) calc(8 * var(--ecosee-u, 4.6px));
         display: flex;
@@ -172,7 +172,7 @@ export class EcoseeHomeScreen extends LitElement {
         z-index: 1;
         box-sizing: border-box;
         width: 100%;
-        padding: 3cqw 6cqw 0;
+        padding: 3cqmin 6cqmin 0;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -196,21 +196,21 @@ export class EcoseeHomeScreen extends LitElement {
        System Mode indicator in the three-glyph case (issue #77). A slight, even lift;
        the corner glyphs (weather, menu) stay on the baseline. */
       .raised {
-        transform: translateY(-3cqw);
+        transform: translateY(-3cqmin);
       }
       /* Compose the press scale with the raised glyphs' lift so a tap pushes in
        without dropping the glyph back to the baseline (button:active alone would
        replace the translate). */
       .raised:active {
-        transform: translateY(-3cqw) scale(0.97);
+        transform: translateY(-3cqmin) scale(0.97);
       }
       /* The weather and fan affordances are white on the Home Screen, like every other
        top-row glyph (the weather condition's natural color is reserved for the Weather
        Overlay's glyphs; the device colors this control row white — issue #37). */
       .weather,
       .fan {
-        width: 9.5cqw;
-        height: 9.5cqw;
+        width: 9.5cqmin;
+        height: 9.5cqmin;
         color: var(--ecosee-top-row, #ffffff);
       }
       /* System Mode indicator (tap → System Mode picker); white like the rest of the
@@ -220,23 +220,23 @@ export class EcoseeHomeScreen extends LitElement {
         color: var(--ecosee-top-row, #ffffff);
       }
       .mode .glyph {
-        width: 10cqw;
-        height: 10cqw;
+        width: 10cqmin;
+        height: 10cqmin;
       }
       .mode-off {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        border: 0.5cqw solid currentColor;
+        border: 0.5cqmin solid currentColor;
         border-radius: 999px;
-        padding: 1cqw 2.6cqw;
-        font-size: 5cqw;
+        padding: 1cqmin 2.6cqmin;
+        font-size: 5cqmin;
         font-weight: 600;
         letter-spacing: 0.08em;
       }
       .menu {
-        width: 9.5cqw;
-        height: 9.5cqw;
+        width: 9.5cqmin;
+        height: 9.5cqmin;
         color: var(--ecosee-top-row, #ffffff);
       }
 
@@ -254,16 +254,16 @@ export class EcoseeHomeScreen extends LitElement {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 3cqw;
-        padding-bottom: 18cqw;
+        gap: 3cqmin;
+        padding-bottom: 18cqmin;
       }
 
       /* Thermostat name (issue #120), so several cards on one dashboard can be told
          apart. Quieter than the humidity line below it: fg color, not accent. */
       .name {
-        max-width: 80cqw;
+        max-width: 80cqmin;
         text-align: center;
-        font-size: 6cqw;
+        font-size: 6cqmin;
         font-weight: 500;
         letter-spacing: 0.02em;
         color: var(--ecosee-fg, #d4eff9);
@@ -275,15 +275,15 @@ export class EcoseeHomeScreen extends LitElement {
       .hum {
         display: inline-flex;
         align-items: center;
-        gap: 1.6cqw;
-        font-size: 7cqw;
+        gap: 1.6cqmin;
+        font-size: 7cqmin;
         font-weight: 300;
         letter-spacing: 0.02em;
         color: var(--ecosee-accent, #62cfe9);
       }
       .hum .glyph {
-        width: 6cqw;
-        height: 6cqw;
+        width: 6cqmin;
+        height: 6cqmin;
         /* No optical nudge here: flex centering already balances the drop on
          the % numerals — tuned by eye (several nudges round-tripped back to
          dead center), so don't "fix" this to match the other glyph rows. */
@@ -307,7 +307,7 @@ export class EcoseeHomeScreen extends LitElement {
       .temp {
         display: inline-block;
         text-align: center;
-        font-size: 42cqw;
+        font-size: 42cqmin;
         font-weight: 200;
         line-height: 0.84;
         letter-spacing: -0.05em;
@@ -339,7 +339,7 @@ export class EcoseeHomeScreen extends LitElement {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 3cqw;
+        gap: 3cqmin;
       }
       /* A stadium-shaped pill tinted to its mode: colored glyph + numeral over a
        faint same-color wash with a matching outline, so the amber/blue reads
@@ -347,19 +347,19 @@ export class EcoseeHomeScreen extends LitElement {
       .oval {
         display: inline-flex;
         align-items: center;
-        gap: 1.8cqw;
-        padding: 1.8cqw 4.4cqw;
-        border: 0.6cqw solid currentColor;
+        gap: 1.8cqmin;
+        padding: 1.8cqmin 4.4cqmin;
+        border: 0.6cqmin solid currentColor;
         border-radius: 999px;
         background: color-mix(in srgb, currentColor 14%, transparent);
-        font-size: 8cqw;
+        font-size: 8cqmin;
         font-weight: 600;
         line-height: 1;
         cursor: pointer;
       }
       .oval .glyph {
-        width: 6.5cqw;
-        height: 6.5cqw;
+        width: 6.5cqmin;
+        height: 6.5cqmin;
       }
       .oval.heat {
         color: var(--ecosee-heat, #f3a13c);
@@ -369,7 +369,7 @@ export class EcoseeHomeScreen extends LitElement {
       }
 
       .unavailable {
-        font-size: 8cqw;
+        font-size: 8cqmin;
         font-weight: 300;
         color: var(--ecosee-muted, #6f96a3);
       }
@@ -379,13 +379,95 @@ export class EcoseeHomeScreen extends LitElement {
        when both are present — so the taller UV gauge no longer stacks below the AQI
        badge and clips against the bottom squircle curve — and centers a single
        indicator when only one is (the setpoint-oval single-vs-both idiom). Their
-       differing heights are centered on the cross axis. Gap in cqw like the rest of
+       differing heights are centered on the cross axis. Gap in cqmin like the rest of
        .body (issue #35). */
       .foot {
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 5cqw;
+        gap: 5cqmin;
+      }
+
+      /* Landscape canvases use their short side as the design unit and turn the
+         readout/setpoints into two touch-friendly columns instead of enlarging a square layout. */
+      @container (min-width: 700px) {
+        .top {
+          padding: 2cqmin 4cqmin 0;
+        }
+        .weather,
+        .fan,
+        .menu {
+          width: 5cqmin;
+          height: 5cqmin;
+        }
+        .mode .glyph {
+          width: 5cqmin;
+          height: 5cqmin;
+        }
+        .raised {
+          transform: translateY(-1cqmin);
+        }
+        .raised:active {
+          transform: translateY(-1cqmin) scale(0.97);
+        }
+        .body {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: minmax(0, 1fr) auto;
+          gap: 1cqmin 4cqmin;
+          padding: 0 4cqmin;
+        }
+        .readout {
+          grid-column: 1;
+          grid-row: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 1cqmin;
+        }
+        .controls {
+          grid-column: 2;
+          grid-row: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .name {
+          max-width: 100%;
+          font-size: 3cqmin;
+        }
+        .hum {
+          gap: 1cqmin;
+          font-size: 4cqmin;
+        }
+        .hum .glyph {
+          width: 3cqmin;
+          height: 3cqmin;
+        }
+        .temp {
+          font-size: 34cqmin;
+        }
+        .setpoints {
+          gap: 2cqmin;
+        }
+        .oval {
+          gap: 1cqmin;
+          padding: 2.5cqmin 3cqmin;
+          font-size: 5cqmin;
+        }
+        .oval .glyph {
+          width: 3.5cqmin;
+          height: 3.5cqmin;
+        }
+        .unavailable {
+          font-size: 6cqmin;
+        }
+        .foot {
+          grid-column: 1 / -1;
+          grid-row: 2;
+          gap: 3cqmin;
+        }
       }
 
       /* The optional foot indicators — air quality (issue #10) and UV index — share
@@ -394,22 +476,22 @@ export class EcoseeHomeScreen extends LitElement {
        rounded value sits in the arc's mouth taking the reading's band color — the
        band alone carries the severity, so the visible category word stays dropped
        (issues #66 / #91) — and a muted scale label ("AQI" / "UVI") sits beneath.
-       Each is hidden entirely when its entity isn't configured. Sized in cqw like
+       Each is hidden entirely when its entity isn't configured. Sized in cqmin like
        the rest of .body. */
       .aqi,
       .uvi {
         display: inline-flex;
         flex-direction: column;
         align-items: center;
-        gap: 0.4cqw;
+        gap: 0.4cqmin;
         line-height: 1.1;
       }
       .aqi .gauge,
       .uvi .gauge {
         position: relative;
-        width: 26cqw;
+        width: 26cqmin;
         /* 26 * 0.64 — the arc's 100×64 viewBox aspect, so the SVG scales uniformly. */
-        height: 16.6cqw;
+        height: 16.6cqmin;
       }
       .aqi .gauge svg,
       .uvi .gauge svg {
@@ -448,13 +530,13 @@ export class EcoseeHomeScreen extends LitElement {
         top: 64%;
         transform: translateY(-50%);
         text-align: center;
-        font-size: 6.5cqw;
+        font-size: 6.5cqmin;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
       }
       .aqi .label,
       .uvi .label {
-        font-size: 3.6cqw;
+        font-size: 3.6cqmin;
         font-weight: 600;
         letter-spacing: 0.16em;
         color: var(--ecosee-muted, #6f96a3);
@@ -525,22 +607,18 @@ export class EcoseeHomeScreen extends LitElement {
           ${
             view.available
               ? html`
-                  ${view.showName ? html`<div class="name" part="name">${view.name}</div>` : nothing}
-                  ${
-                    view.humidity !== null
-                      ? html`<div class="hum">
-                          <span class="glyph">${icons.humidity}</span>${Math.round(view.humidity)}%
-                        </div>`
-                      : nothing
-                  }
-                  <button
-                    class="temp"
-                    aria-label="Adjust temperature"
-                    @click=${() => this._emit('temperature')}
-                  >
-                    ${formatTemp(view.currentTemp, view.unit)}
-                  </button>
-                  ${this._renderSetpoints(view)}
+                  <div class="readout">
+                    ${view.showName ? html`<div class="name" part="name">${view.name}</div>` : nothing}
+                    ${view.humidity !== null ? html`<div class="hum"><span class="glyph">${icons.humidity}</span>${Math.round(view.humidity)}%</div>` : nothing}
+                    <button
+                      class="temp"
+                      aria-label="Adjust temperature"
+                      @click=${() => this._emit('temperature')}
+                    >
+                      ${formatTemp(view.currentTemp, view.unit)}
+                    </button>
+                  </div>
+                  <div class="controls">${this._renderSetpoints(view)}</div>
                 `
               : html`<div class="unavailable">${view.name} unavailable</div>`
           }

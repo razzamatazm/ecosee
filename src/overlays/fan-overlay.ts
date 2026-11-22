@@ -53,12 +53,12 @@ export class EcoseeFanOverlay extends LitElement {
 
     /* Title near the top with the controls beneath (fan-mode.jpeg), not a
        vertically-centered cluster. Inline-size container so everything scales with
-       cqw off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqw against the viewport (issue #35). */
+       cqmin off the definite width, with the root's own padding/gap in the fixed unit (calc · --ecosee-u) so they can't couple to the viewport, the real bug — a container-type element resolves its OWN cqmin against the viewport (issue #35). */
     .fan {
-      container-type: inline-size;
+      container-type: size;
       box-sizing: border-box;
-      width: var(--ecosee-base-size, 460px);
-      height: var(--ecosee-base-size, 460px);
+      width: var(--ecosee-base-width, var(--ecosee-base-size, 460px));
+      height: var(--ecosee-base-height, var(--ecosee-base-size, 460px));
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -71,7 +71,7 @@ export class EcoseeFanOverlay extends LitElement {
 
     .title {
       margin: 0;
-      font-size: 8cqw;
+      font-size: 8cqmin;
       font-weight: 600;
       letter-spacing: 0.02em;
       color: var(--ecosee-accent, #62cfe9);
@@ -84,9 +84,9 @@ export class EcoseeFanOverlay extends LitElement {
     .toggle {
       display: inline-flex;
       align-items: stretch;
-      border: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      border-radius: 100cqw;
-      padding: 1.2cqw;
+      border: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      border-radius: 100cqmin;
+      padding: 1.2cqmin;
       pointer-events: auto;
     }
 
@@ -96,17 +96,17 @@ export class EcoseeFanOverlay extends LitElement {
       border: none;
       margin: 0;
       font: inherit;
-      font-size: 7cqw;
+      font-size: 7cqmin;
       font-weight: 500;
       color: var(--ecosee-accent, #62cfe9);
-      padding: 3cqw 9cqw;
-      min-width: 22cqw;
-      border-radius: 100cqw;
+      padding: 3cqmin 9cqmin;
+      min-width: 22cqmin;
+      border-radius: 100cqmin;
       cursor: pointer;
     }
     .segment:focus-visible {
-      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      outline-offset: 0.6cqw;
+      outline: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      outline-offset: 0.6cqmin;
     }
     .segment.selected {
       background: var(--ecosee-accent, #62cfe9);
@@ -122,15 +122,15 @@ export class EcoseeFanOverlay extends LitElement {
     .toggle.stacked {
       flex-direction: column;
       align-items: stretch;
-      gap: 1.2cqw;
-      width: 64cqw;
+      gap: 1.2cqmin;
+      width: 64cqmin;
       max-width: 100%;
-      border-radius: 9cqw;
+      border-radius: 9cqmin;
     }
     .toggle.stacked .segment {
       min-width: 0;
       width: 100%;
-      padding: 3cqw 4cqw;
+      padding: 3cqmin 4cqmin;
     }
 
     /* Minimum-runtime block: bold summary line, instructional hint, then the
@@ -139,18 +139,18 @@ export class EcoseeFanOverlay extends LitElement {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4cqw;
-      margin-top: 2cqw;
+      gap: 4cqmin;
+      margin-top: 2cqmin;
     }
     .summary {
       margin: 0;
-      font-size: 6.5cqw;
+      font-size: 6.5cqmin;
       font-weight: 600;
       color: var(--ecosee-accent, #62cfe9);
     }
     .hint {
       margin: 0;
-      font-size: 5.5cqw;
+      font-size: 5.5cqmin;
       font-weight: 400;
       line-height: 1.3;
       color: var(--ecosee-accent, #62cfe9);
@@ -167,21 +167,21 @@ export class EcoseeFanOverlay extends LitElement {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 3cqw;
-      margin-top: 1cqw;
-      padding: 3cqw 7cqw;
-      border: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      border-radius: 100cqw;
+      gap: 3cqmin;
+      margin-top: 1cqmin;
+      padding: 3cqmin 7cqmin;
+      border: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      border-radius: 100cqmin;
       color: var(--ecosee-accent, #62cfe9);
-      font-size: 6.5cqw;
+      font-size: 6.5cqmin;
       font-weight: 500;
     }
     .select-label {
       pointer-events: none;
     }
     .caret {
-      width: 5cqw;
-      height: 5cqw;
+      width: 5cqmin;
+      height: 5cqmin;
       flex: none;
       color: var(--ecosee-accent, #62cfe9);
       pointer-events: none;
@@ -206,8 +206,8 @@ export class EcoseeFanOverlay extends LitElement {
       pointer-events: auto;
     }
     .select-pill:focus-within {
-      outline: 0.5cqw solid var(--ecosee-accent, #62cfe9);
-      outline-offset: 0.6cqw;
+      outline: 0.5cqmin solid var(--ecosee-accent, #62cfe9);
+      outline-offset: 0.6cqmin;
     }
     /* Best-effort skin for the native dropdown list (platform support varies). */
     .select-native option {
